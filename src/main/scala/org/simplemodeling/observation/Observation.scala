@@ -6,8 +6,25 @@ import org.simplemodeling.datatype.I18nMessage
 /*
  * @since   Jul. 19, 2025
  *  version Jul. 23, 2025
- * @version Aug.  1, 2025
+ *  version Aug.  1, 2025
+ * @version Dec. 18, 2025
  * @author  ASAMI, Tomoharu
+ */
+/*
+ * NOTE:
+ * In the current phase (Config / CLI development),
+ * the following fields are intentionally NOT used:
+ *
+ *   - strategy
+ *   - handler
+ *   - code / DetailCode
+ *
+ * Observation represents factual events only.
+ * Interpretation (reaction, handling, classification)
+ * is delegated to ErrorSystem / higher layers.
+ *
+ * See TODO.md and docs/notes/error-model-exploration.md
+ * for deferred design items.
  */
 case class Observation(
   phenomenon: Phenomenon,

@@ -7,7 +7,8 @@ import scala.util.control.NonFatal
  * @since   Jul. 19, 2025
  *  version Jul. 20, 2025
  *  version Sep. 30, 2025
- * @version Nov. 11, 2025
+ *  version Nov. 11, 2025
+ * @version Dec. 18, 2025
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] {
@@ -16,8 +17,7 @@ sealed trait Consequence[+T] {
 
 object Consequence {
   case class Success[+T](
-    result: T,
-    conclusion: Option[Conclusion] = None
+    result: T
   ) extends Consequence[T] {
     def take = result
   }
@@ -32,14 +32,14 @@ object Consequence {
 
     override def flatMap[A, B](fa: Consequence[A])(f: A => Consequence[B]): Consequence[B] =
       fa match {
-        case Success(result, _) => f(result)
+        case Success(result) => f(result)
         case e @ Failure(_)       => e.asInstanceOf[Consequence[B]]
       }
 
     override def tailRecM[A, B](a: A)(f: A => Consequence[Either[A, B]]): Consequence[B] =
       f(a) match {
-        case Success(Right(b), _) => Success(b)
-        case Success(Left(nextA), _) => tailRecM(nextA)(f)
+        case Success(Right(b)) => Success(b)
+        case Success(Left(nextA)) => tailRecM(nextA)(f)
         case e @ Failure(_) => e.asInstanceOf[Consequence[B]]
       }
   }
