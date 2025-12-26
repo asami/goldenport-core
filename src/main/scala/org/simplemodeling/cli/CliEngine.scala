@@ -1,0 +1,70 @@
+package org.simplemodeling.cli
+
+import org.simplemodeling.cli.logic.CliLogic
+import org.simplemodeling.protocol.Request
+import org.simplemodeling.protocol.operation.OperationRequest
+import org.simplemodeling.protocol.spec.ServiceDefinitionGroup
+import org.simplemodeling.Consequence
+
+/* CliEngine – Minimal Wiring Implementation
+ * 
+ * Purpose:
+ *  - Application-facing entry point
+ *  - Wire ServiceDefinition / OperationDefinition
+ *  - Produce syntactic Request and semantic OperationRequest
+ *  - Execution is explicitly out of scope (reserved for execute phase)
+ */
+/*
+ * @since   Dec. 26, 2025
+ * @version Dec. 26, 2025
+ * @author  ASAMI, Tomoharu
+ */
+final class CliEngine(
+  config: CliEngine.Config,
+  specification: CliEngine.Specification
+) {
+  private val _logic: CliLogic = CliLogic.create(specification.services)
+
+  /**
+   * Entry point for CLI applications.
+   *
+   * Responsibility:
+   * - Convert raw CLI inputs into a syntactic Request
+   * - Resolve service / operation
+   * - Delegate semantic interpretation to OperationDefinition
+   *
+   * MUST NOT:
+   * - Execute the operation
+   * - Perform semantic validation itself
+   */
+  def makeRequest(
+    args: Seq[String],
+    switches: Map[String, String] = Map.empty,
+    properties: Map[String, String] = Map.empty
+  ): Consequence[OperationRequest] = {
+    val _ = switches
+    val _ = properties
+    for {
+      request <- _logic.makeRequest(args.toArray)
+      opreq <- _logic.makeOperationRequest(request)
+    } yield opreq
+  }
+}
+
+object CliEngine {
+
+  /**
+   * Runtime configuration (logging, mode, etc.)
+   * Intentionally minimal at this stage.
+   */
+  case class Config()
+
+  /**
+   * Static specification of available services.
+   *
+   * Provided by application at startup.
+   */
+  case class Specification(
+    services: ServiceDefinitionGroup
+  )
+}

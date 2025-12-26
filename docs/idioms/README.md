@@ -57,18 +57,14 @@ Structural idioms describe **code shape and composition**.
 - **ValueBackedAbstractObject**  
   Abstract object carrying its data as a single immutable value object.  
   → `value-backed-abstract-object.md`
+- **ValueBacked**  
+  Single case class aggregation for copy / transform / validation workflows.  
+  → `value-backed-idiom.md`
+- **Holder**  
+  Stable accessor facade over a value object.  
+  → `holder-idiom.md`
 
-### Semantic Idioms
-
-Semantic idioms describe **intent and usage context**, often built on
-top of structural idioms.
-
-- **ProtocolRequest**  
-  Protocol-level request object representing *what is requested*
-  without implying *how it is executed*.  
-  Built on the **ValueBackedAbstractObject** idiom.  
-  → `protocol-request.md`
-
+---
 ---
 
 ## Idiom Naming Conventions
@@ -95,6 +91,8 @@ Each idiom is defined in a standalone Markdown file:
 docs/idioms/
   README.md
   value-backed-abstract-object.md
+  value-backed-idiom.md
+  holder-idiom.md
   protocol-request.md        (planned)
   snapshot-object.md         (planned)
 ```

@@ -2,26 +2,26 @@ package org.simplemodeling.observation
 
 /*
  * @since   Jul. 19, 2025
- * @version Jul. 19, 2025
+ * @version Dec. 24, 2025
  * @author  ASAMI, Tomoharu
  */
-sealed trait Cause {
-}
+enum Cause derives CanEqual:
+  case SyntaxError
+  case FormatError
+  case ValueDomainError
+  case InvalidState
 
-object Cause {
-  case object SyntaxError extends Cause
-  case object FormatError extends Cause
-  case object ValueDomainError extends Cause
-  case object InvalidState extends Cause
-  case class Argument(reason: Reason) extends Cause
-  case class Configuration(reason: Reason) extends Cause
-  case object Timeout extends Cause
-  case object DataCorruption extends Cause
-  case object ValidationError extends Cause
-  case object ResourceExhausted extends Cause
-  case object Unknown extends Cause
+  case Argument(reason: Cause.Reason)
+  case Configuration(reason: Cause.Reason)
 
-  enum Reason {
-    case Missng, Redundant, ValidationError
-  }
-}
+  case Timeout
+  case DataCorruption
+  case ValidationError
+  case ResourceExhausted
+  case Unknown
+
+object Cause:
+  enum Reason derives CanEqual:
+    case Missing
+    case Redundant
+    case ValidationError

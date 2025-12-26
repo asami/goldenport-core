@@ -8,6 +8,7 @@ import org.simplemodeling.datatype
  * @author  ASAMI, Tomoharu
  */
 enum Agent {
+  case System
   case Component(name: Agent.Name)
 }
 

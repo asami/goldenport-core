@@ -8,6 +8,7 @@ import org.simplemodeling.datatype
  * @author  ASAMI, Tomoharu
  */
 enum Resource {
+  case Unknown
   case File(file: java.io.File)
   case Url(url: java.net.URL)
   case Miscellaneous(name: Resource.Name, value: Resource.Value)

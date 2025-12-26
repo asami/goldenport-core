@@ -2,7 +2,8 @@ package org.simplemodeling.datatype
 
 /*
  * @since   Jul. 20, 2025
- * @version Jul. 23, 2025
+ *  version Jul. 23, 2025
+ * @version Dec. 24, 2025
  * @author  ASAMI, Tomoharu
  */
 abstract class StringDataType() extends DataType() {
@@ -12,6 +13,7 @@ abstract class StringDataType() extends DataType() {
 
   def length: Int = value.length
   def codePointCount: Int = value.codePointCount(0, value.length)
+  def isMatch(p: String): Boolean = value == p
 
   protected def length_min: Int
   protected def length_max: Int

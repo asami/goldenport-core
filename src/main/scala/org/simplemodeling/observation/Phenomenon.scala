@@ -5,7 +5,8 @@ import org.simplemodeling.util.{SmEnum, SmEnumClass}
 /*
  * @since   Jul. 19, 2025
  *  version Jul. 23, 2025
- * @version Aug.  1, 2025
+ *  version Aug.  1, 2025
+ * @version Dec. 24, 2025
  * @author  ASAMI, Tomoharu
  */
 enum Phenomenon(val code: Int) extends Enum[Phenomenon], SmEnum {
@@ -17,4 +18,5 @@ enum Phenomenon(val code: Int) extends Enum[Phenomenon], SmEnum {
 
 
 object Phenomenon extends SmEnumClass[Phenomenon] {
+  protected def enum_Values = values
 }

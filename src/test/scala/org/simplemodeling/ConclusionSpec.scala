@@ -6,19 +6,20 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 22, 2025
- * @version Dec. 22, 2025
+ * @version Dec. 25, 2025
  * @author  ASAMI, Tomoharu
  */
 class ConclusionSpec extends AnyWordSpec
   with ScalaCheckDrivenPropertyChecks
   with Matchers {
 
-  "Conclusion" should {  "satisfy basic properties" in {
-    pending
-  }
+  "Conclusion" should {
+    "satisfy basic properties" in {
+      pending
+    }
 
-  "preserve invariants" in {
-    pending
-  }
+    "preserve invariants" in {
+      pending
+    }
   }
 }

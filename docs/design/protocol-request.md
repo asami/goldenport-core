@@ -1,7 +1,7 @@
 # Protocol Request
 
-**Idiom:** ProtocolRequest  
-**Category:** Semantic Idiom  
+**Document:** Protocol Request  
+**Category:** Design Rationale  
 **Based on:** ValueBackedAbstractObject
 
 ---
@@ -48,7 +48,7 @@ The ProtocolRequest idiom explicitly separates:
 
 ## Structure
 
-ProtocolRequest is a **semantic idiom**, typically realized using the
+ProtocolRequest is a **design boundary**, typically realized using the
 **ValueBackedAbstractObject** structural idiom.
 
 Its structure consists of:
@@ -123,7 +123,7 @@ A ProtocolRequest:
 
 ## When to Use
 
-Use the ProtocolRequest idiom when:
+Use the ProtocolRequest design boundary when:
 
 - Handling CLI commands
 - Accepting REST or MCP requests
@@ -158,7 +158,7 @@ Instead, convert ProtocolRequest into:
 ## Relationship to Other Idioms
 
 - **ValueBackedAbstractObject**  
-  ProtocolRequest is a semantic specialization of this structural idiom.
+ProtocolRequest is a semantic specialization of this structural idiom.
 
 - **Command / Query (CNCF)**  
   Classification into Command or Query is a *runtime concern* and must
@@ -176,7 +176,7 @@ Instead, convert ProtocolRequest into:
 
 ## Design Intent
 
-The ProtocolRequest idiom ensures that:
+The ProtocolRequest design boundary ensures that:
 
 - Protocol layers remain thin and stable
 - Runtime semantics are introduced deliberately

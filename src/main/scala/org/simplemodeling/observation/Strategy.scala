@@ -4,8 +4,8 @@ import org.simplemodeling.util.{SmEnum, SmEnumClass}
 
 /*
  * @since   Jul. 23, 2025
- *  version Jul. 23, 2025
- * @version Aug.  1, 2025
+ *  version Aug.  1, 2025
+ * @version Dec. 24, 2025
  * @author  ASAMI, Tomoharu
  */
 enum Strategy(val code: Int) extends Enum[Strategy], SmEnum {
@@ -18,4 +18,5 @@ enum Strategy(val code: Int) extends Enum[Strategy], SmEnum {
 }
 
 object Strategy extends SmEnumClass[Strategy] {
+  protected def enum_Values = values
 }

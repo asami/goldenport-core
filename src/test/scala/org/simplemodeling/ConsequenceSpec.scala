@@ -1,24 +1,181 @@
 package org.simplemodeling
 
-import org.scalatest.wordspec.AnyWordSpec
+import java.time.Instant
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import org.scalatest.wordspec.AnyWordSpec
+import cats.data.NonEmptyVector
+import org.simplemodeling.datatype.I18nMessage
+import org.simplemodeling.observation.Agent
+import org.simplemodeling.observation.Cause
+import org.simplemodeling.observation.CauseKind
+import org.simplemodeling.observation.Handler
+import org.simplemodeling.observation.Observation
+import org.simplemodeling.observation.Phenomenon
+import org.simplemodeling.observation.Resource
+import org.simplemodeling.observation.Severity
+import org.simplemodeling.observation.Strategy
+import org.simplemodeling.observation.Subject
+import org.simplemodeling.observation.SystemLocation
 
 /*
  * @since   Dec. 22, 2025
- * @version Dec. 22, 2025
+ * @version Dec. 25, 2025
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec
   with ScalaCheckDrivenPropertyChecks
   with Matchers {
 
-  "Consequence" should {  "satisfy basic properties" in {
-    pending
-  }
+  // ------------------------------------------------------------------
+  // Helpers (test-local, explicit)
+  // ------------------------------------------------------------------
 
-  "preserve invariants" in {
-    pending
-  }
+  def ok[A](a: A): Consequence[A] =
+    Consequence.Success(a)
+
+  def ng(label: String): Consequence[Nothing] =
+    Consequence.Failure(
+      Conclusion(
+        status = Conclusion.Status(
+          webCode = Conclusion.WebCode(400)
+        ),
+        observation = _observation(label),
+        previous = None
+      )
+    )
+
+  private def _observation(label: String): Observation =
+    Observation(
+      phenomenon = Phenomenon.Rejection,
+      causeKind = CauseKind.Fault,
+      cause = Some(Cause.ValidationError),
+      severity = Severity.Error,
+      strategy = Strategy.Manual,
+      handler = Handler.EndUser,
+      timestamp = Instant.EPOCH,
+      subject = Subject.User,
+      `object` = Resource.Unknown,
+      agent = Agent.System,
+      location = SystemLocation(None),
+      traceId = None,
+      spanId = None,
+      message = Some(I18nMessage(label)),
+      exception = None,
+      properties = Map.empty
+    )
+
+  "Consequence" should {
+
+
+    "when used in validation style (applicative composition)" should {
+      "combine independent results using zip" should {
+        "return Success when both sides succeed" in {
+          val r =
+            ok(1).zip(ok(2))
+
+          r.shouldBe(Consequence.Success((1, 2)))
+        }
+        "return Failure if the left side fails" in {
+          val r =
+            ng("A").zip(ok(1))
+
+          r match {
+            case Consequence.Failure(_) => succeed
+            case _ => fail("expected Failure")
+          }
+        }
+        "return Failure if the right side fails" in {
+          val r =
+            ok(1).zip(ng("B"))
+
+          r match {
+            case Consequence.Failure(_) => succeed
+            case _ => fail("expected Failure")
+          }
+        }
+        "aggregate failures when both sides fail" in {
+          val r =
+            ng("A").zip(ng("B"))
+
+          val c = r match {
+            case Consequence.Failure(conclusion) => conclusion
+            case _ => fail("expected Failure")
+          }
+          c.causes.map(_.observation.displayMessage).shouldBe(Seq("A", "B"))
+        }
+      }
+      "combine three independent validations using zip3" should {
+        "return Success when all three succeed" in {
+          val r =
+            Consequence.zip3(
+              ok(1),
+              ok(2),
+              ok(3)
+            )
+
+          r.shouldBe(Consequence.Success((1, 2, 3)))
+        }
+        "collect all failures from three inputs" in {
+          val r =
+            Consequence.zip3(
+              ng("A"),
+              ok(2),
+              ng("C")
+            )
+
+          val c = r match {
+            case Consequence.Failure(conclusion) => conclusion
+            case _ => fail("expected Failure")
+          }
+          c.causes.map(_.observation.displayMessage).shouldBe(Seq("A", "C"))
+        }
+      }
+      "combine an arbitrary number of validations using zipN" should {
+        "collect all failures without short-circuiting" in {
+          val r =
+            Consequence.zipN(
+              Seq(
+                ng("A"),
+                ok(2),
+                ng("C"),
+                ng("D")
+              )
+            )
+
+          val c = r match {
+            case Consequence.Failure(conclusion) => conclusion
+            case _ => fail("expected Failure")
+          }
+          c.causes.map(_.observation.displayMessage).shouldBe(Seq("A", "C", "D"))
+        }
+        "preserve the input order of observations in failures" in {
+          val r =
+            Consequence.zipN(
+              Seq(
+                ng("first"),
+                ng("second"),
+                ng("third")
+              )
+            )
+
+          val c = r match {
+            case Consequence.Failure(conclusion) => conclusion
+            case _ => fail("expected Failure")
+          }
+          c.causes.map(_.observation.displayMessage).shouldBe(Seq("first", "second", "third"))
+        }
+      }
+    }
+
+    "as a design constraint" should {
+      "not use flatMap for validation style" in {
+        // This test is documentary:
+        // If flatMap were used, only the first failure would be visible.
+        // zip / zipN MUST be used for validation.
+        succeed
+      }
+    }
   }
 }

@@ -9,7 +9,8 @@ import org.simplemodeling.datatype.I18nTitle
 
 /*
  * @since   Aug.  1, 2025
- * @version Aug.  2, 2025
+ *  version Aug.  2, 2025
+ * @version Dec. 24, 2025
  * @author  ASAMI, Tomoharu
  */
 case class NameAttributes(
@@ -23,6 +24,8 @@ case class NameAttributes(
 ) {
   def withName(p: Name) = copy(name = p)
   def withLabel(p: I18nLabel) = copy(label = Some(p))
+
+  def isMatchName(p: String): Boolean = name.isMatch(p)
 }
 
 object NameAttributes {

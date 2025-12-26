@@ -53,6 +53,9 @@ case class Observation(
 
   def makeDetailCode(a: Int, b: Int, c: Int, d: Int): Int =
     a * 1000 + b * 100 + c * 10 + d
+
+  def displayMessage: String =
+    message.map(_.displayMessage).getOrElse(phenomenon.toString)
 }
 
 object Observation {
@@ -64,4 +67,28 @@ object Observation {
       ???
     }
   }
+
+  /**
+   * Minimal validation error observation for library-level failures.
+   * This is semantic-only and intentionally avoids rich runtime context.
+   */
+  def validationError(message: String): Observation =
+    Observation(
+      phenomenon = Phenomenon.Rejection,
+      causeKind  = CauseKind.Fault,
+      cause      = Some(Cause.ValidationError),
+      severity   = Severity.Error,
+      strategy   = Strategy.Manual,
+      handler    = Handler.EndUser,
+      timestamp  = Instant.EPOCH,
+      subject    = Subject.User,
+      `object`   = Resource.Unknown,
+      agent      = Agent.System,
+      location   = SystemLocation(None),
+      traceId    = None,
+      spanId     = None,
+      message    = None,
+      exception  = None,
+      properties = Map.empty
+    )
 }

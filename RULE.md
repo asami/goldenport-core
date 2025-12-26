@@ -1,4 +1,4 @@
-Naming Conventions (2025-12-16)
+Naming Conventions (2025-12-26)
 ==================
 
 This document defines the naming conventions used in the programs on this site.
@@ -46,6 +46,7 @@ protected def purchase_order(cmd: PurchaseOrder): Consequence[PurchaseResult]
 
 ## Private Methods
 
+
 - Start with an underscore (`_`)
 - Use snake_case
 
@@ -54,6 +55,26 @@ protected def purchase_order(cmd: PurchaseOrder): Consequence[PurchaseResult]
 ```
 private def _purchase_order(cmd: PurchaseOrder): Consequence[PurchaseResult]
 ```
+
+#### Trailing Underscore Prohibition
+
+- Private helper methods MUST use **only a single leading underscore**.
+- Trailing underscores MUST NOT be used unless required to escape Scala keywords.
+
+Valid:
+```
+private def _parameter_definition(...)
+```
+
+Invalid:
+```
+private def _parameter_definition_(...)
+```
+
+Rationale:
+- A leading underscore expresses internal scope.
+- Trailing underscores introduce artificial or generated semantics
+  and reduce readability.
 
 ## Method‑Local Helper Methods
 
@@ -344,9 +365,122 @@ derived_status
 
 ## Design Principles
 
+
+
+# AI Incremental Change Rule
+
+This rule defines mandatory constraints when using AI-assisted tools
+(e.g. Codex, ChatGPT, Copilot) to modify existing code in this project.
+
+## Core Principle
+
+AI-assisted changes MUST be **incremental by default**.
+
+Unless explicitly stated otherwise, AI tools are NOT permitted to
+rewrite, redesign, or refactor existing implementations.
+
+This rule exists to prevent accidental responsibility shifts,
+architectural drift, and silent semantic changes.
+
+## Default Constraints (Mandatory)
+
+When requesting AI-assisted code changes, the following constraints apply
+unless the instruction explicitly overrides them.
+
+AI tools MUST NOT:
+
+- Rewrite entire files
+- Replace existing algorithms wholesale
+- Change class or method responsibilities
+- Introduce new abstractions or layers
+- Rename public classes or methods
+- Add features not required by the working specification
+- Perform refactoring, optimization, or “cleanup”
+
+AI tools MUST:
+
+- Modify only the minimum number of lines required
+- Preserve existing logic, structure, and comments
+- Treat existing implementations as correct by default
+- Follow the working specification exactly
+- Prefer small, local changes over global edits
+
+## Working Specification Priority
+
+When a working specification (ScalaTest) exists:
+
+- The working specification is the **single source of truth**
+- Behavior not required by the spec MUST NOT be implemented
+- Improvements or extensions MUST be introduced only via new specs
+
+Spec > Existing Code > AI Intuition
+
+When in doubt, AI tools must **do less**, not more.
+
+## Explicit Rewrite Permission
+
+Full rewrites or redesigns are allowed ONLY when the instruction
+contains an explicit rewrite directive, such as:
+
+- "rewrite entirely"
+- "full redesign"
+- "replace the implementation"
+
+In the absence of such phrases, incremental change is mandatory.
+
+## Scope Awareness Rule
+
+AI tools must respect the intended scope expressed by names,
+packages, and surrounding context.
+
+For example:
+
+- `CommandResolver` resolves command names only
+- It does NOT implement command search engines,
+  ranking systems, or discovery mechanisms
+
+Expanding scope beyond the working specification
+constitutes a rule violation.
+
+## Design Intent
+
+This rule ensures that AI-assisted development:
+
+- Remains predictable and reviewable
+- Preserves architectural intent
+- Scales safely as specifications evolve
+- Treats AI as a controlled collaborator, not an autonomous designer
+
 - Names must clearly communicate **risk, trust, and stability**
 - Dangerous behavior must never be implicit
 - Naming is part of the API contract, not an implementation detail
+
+## AI Interaction Command Catalog
+
+AI-assisted development in this project uses a standardized
+**command shorthand catalog** to control and constrain AI behavior
+(ChatGPT, Codex, Copilot, etc.).
+
+These commands define *interaction-level contracts* and are distinct from
+coding rules or design principles defined in this document.
+
+The authoritative command catalog is defined in:
+
+    docs/ai/chappie-commands.md
+
+When issuing AI instructions for code or specification changes,
+contributors SHOULD reference the appropriate command shorthand
+(e.g. incremental-only, rewrite-allowed) to prevent accidental
+scope expansion or unintended refactoring.
+
+## Project-Specific Rules
+
+This project defines additional, project-specific rules
+that do not scale beyond this codebase.
+
+These rules are documented under:
+
+    docs/rules/README.md
 
 ## Experimental and Exploratory Code Policy
 
@@ -656,17 +790,128 @@ experimental_load_non_blocking_cached
 - Semantic guarantees should not rely on documentation alone
 - Naming is an executable form of design intent
 
+# Localization Principles
+
+These rules express library-level principles for message content and localization.
+They are intentionally abstract and do not reference concrete classes.
+
+- Internal messages should be deterministic and language-neutral by default
+- Localization should be performed outside core logic when context is available
+- When context is unavailable, deferred resolution should be preferred
+
 
 
 # Error Handling and Result Conventions
 
 This section defines conventions for representing errors, failures, and results in the codebase.
 
+
 ## Principle
 
 - **Domain errors** and **expected failures** should be modeled as values, not exceptions.
 - Use the `Consequence` type (or similar) to represent recoverable errors and business rule violations.
 - Use exceptions only for programming errors, contract violations, or truly exceptional conditions.
+
+
+## Dual-API Rule for Rarely-Failing Operations
+
+Some operations are expected to succeed in almost all normal usages,
+but **cannot be guaranteed to never fail** due to environmental,
+I/O, or data-dependent conditions.
+
+For such operations, the API MUST provide **two parallel variants**:
+
+1. **Exception-based variant**
+   - Returns a plain value
+   - Throws an exception on failure
+   - Intended for:
+     - Convenience
+     - Internal use
+     - Scenarios where failure is considered exceptional
+
+2. **Consequence-based variant**
+   - Returns `Consequence[T]`
+   - Captures failures as values
+   - Intended for:
+     - Boundary layers
+     - External input handling
+     - Error-aware control flow
+
+### Naming Convention
+
+- The exception-based variant uses the base name:
+  ```
+  toText
+  ```
+- The Consequence-based variant appends the suffix `C`:
+  ```
+  toTextC
+  ```
+
+### Design Rationale
+
+- Preserves API ergonomics for common-case usage
+- Makes error handling explicit where required
+- Avoids forcing pervasive error wrapping
+- Keeps failure semantics visible at the call site
+
+### Examples
+
+```
+def toText: String
+def toTextC: Consequence[String]
+```
+
+```
+def loadConfig: Config
+def loadConfigC: Consequence[Config]
+```
+
+```
+def readBytes: Array[Byte]
+def readBytesC: Consequence[Array[Byte]]
+```
+
+## Quasi-Error I/O (Practically Unrecoverable Failures)
+
+Some I/O-related failures are **theoretically possible** but
+**practically unrecoverable under correct system operation**.
+
+These failures indicate that the runtime environment or system state
+is already severely degraded, and meaningful recovery or branching
+at the application level is not realistic.
+
+Such failures are treated as **Quasi-Errors**.
+
+### Examples of Quasi-Error I/O
+
+- A file that was just created by the same process cannot be opened
+- A guaranteed-existing temporary file suddenly disappears
+- A process-owned path becomes unreadable without configuration change
+- Local temporary directories (e.g. `/var/tmp`) become inaccessible
+
+### Handling Rule
+
+- Quasi-Error I/O MAY be handled using **exceptions only**
+- A `Consequence`-based variant is **NOT required** for these operations
+- Callers are NOT expected to recover or branch on these failures
+
+### Rationale
+
+- Retrying is ineffective
+- Recovery logic adds no semantic value
+- Wrapping such failures in `Consequence` degrades signal quality
+- These failures are operationally equivalent to `Error` conditions
+
+### Design Guideline
+
+- Use exception-only APIs for:
+  - Resource opening that is guaranteed by construction
+  - Internal file or stream access owned by the current process
+- Use Dual-API (exception + `Consequence`) for:
+  - Data interpretation failures
+  - Boundary input validation
+  - Semantically recoverable errors
 
 ## Consequence Type
 
@@ -683,6 +928,60 @@ def reserve(cmd: ReserveCommand): Consequence[Reservation]
 - Do not use exceptions for validation failures or business rule violations.
 - Use `Consequence` for all domain-level errors.
 - Only throw exceptions for contract violations or unrecoverable errors.
+
+### Monadic vs Applicative Composition
+
+`Consequence` supports **both monadic and applicative-style composition**.
+These two styles serve different purposes and MUST be used intentionally.
+
+#### Monadic Composition (`flatMap`)
+
+- Use `flatMap` (or for-comprehension) for **sequential, dependent operations**
+- Later steps may depend on the values produced by earlier steps
+- Evaluation order is significant
+- Failure short-circuits subsequent computation
+
+Example:
+
+```
+for {
+  a <- loadA
+  b <- loadB(a)
+} yield b
+```
+
+#### Applicative Composition (`zip` / `zipN`)
+
+- Use `zip` / `zipN` for **independent operations**
+- No step depends on the value of another
+- Evaluation order is not semantically significant
+- **All failures MUST be collected**
+
+Semantics:
+
+- If all composed `Consequence` values succeed:
+  - The result succeeds
+  - Values are combined (tuple or sequence)
+- If one or more composed values fail:
+  - The result fails
+  - All failure `Conclusion`s are combined
+
+Example:
+
+```
+Consequence.zip3(
+  validateName(name),
+  validateAge(age),
+  validateEmail(email)
+)
+```
+
+#### Design Intent
+
+- `flatMap` expresses **process and dependency**
+- `zip / zipN` express **validation and aggregation**
+- Applicative composition MUST NOT short-circuit on first failure
+- `zip / zipN` are the preferred mechanism for validation-style logic
 
 ---
 
@@ -1391,6 +1690,7 @@ def readLine(reader: Reader): String
 - Latency and reliability expectations are visible at call sites
 - I/O boundaries are explicit and reviewable
 
+
 # Method Naming Conventions for Building and Assembling
 
 This section defines naming conventions for **building and assembling composite objects**.
@@ -1433,6 +1733,66 @@ def buildComponent(config: Config, deps: Dependencies): Component
 
 - `build` emphasizes **process and structure**
 - Inputs are assumed to be intentional and prepared by the caller
+
+---
+
+## Builder Output Method Naming
+
+For Builder-style classes that produce immutable values:
+
+- The method that finalizes construction and returns the built value
+  MUST be named `build`.
+- Alternative names such as `result`, `get`, or `toX` MUST NOT be used.
+- Calling `build` semantically indicates that the builder is finalized
+  and MUST NOT be used afterward.
+
+Rationale:
+- Clarifies destructive finalization semantics
+- Aligns method naming with builder intent
+- Prevents misinterpretation as a pure accessor
+
+---
+
+## Builder Effect Type Rule
+
+Builder-style APIs that accumulate state and produce an immutable value
+MUST use `Consequence` as their primary effect type.
+
+### Rule
+
+- Builder methods that may fail during accumulation or finalization
+  MUST return `Consequence[T]`.
+- Builder APIs MUST NOT expose `IO` as their primary effect type.
+- `IO` MAY be used only:
+  - At infrastructure or boundary layers
+  - For explicit execution control (`unsafeRun`, CLI, daemon, etc.)
+  - Via adapters such as `ConsequenceT[IO]`
+
+### Rationale
+
+- Prevents mixed monadic pipelines (`IO` + `Consequence`)
+- Keeps domain construction semantics explicit and composable
+- Avoids meaningless `IO` wrapping when failure, not execution, is the concern
+- Aligns builder APIs with domain-level error modeling
+
+### Example
+
+```
+final class BagBuilder {
+  def write(bytes: Array[Byte]): Consequence[Unit]
+  def writeFrom(in: InputStream): Consequence[Unit]
+  def build(): Consequence[Bag]
+}
+```
+
+### Anti-Example
+
+```
+final class BagBuilder {
+  def write(bytes: Array[Byte]): IO[Unit]      // ❌
+  def build(): IO[Bag]                         // ❌
+}
+```
 
 ---
 
@@ -2146,6 +2506,52 @@ def resumeProcessing(): IO[Unit]
 
 
 
+# Indentation-Based Syntax Policy
+
+This project intentionally restricts the use of Scala 3 indentation-based syntax
+(offside rule) to reduce accidental semantic changes, improve patch stability,
+and lower AI-assisted analysis cost.
+
+## Principle
+
+- Structural constructs MUST use explicit braces `{}`.
+- Indentation-based syntax MUST NOT be used to define structural AST boundaries.
+- Indentation-based syntax MAY be used only at AST leaf levels.
+
+## Prohibited Uses
+
+Indentation-based syntax MUST NOT be used for:
+
+- class / trait / enum / object definitions
+- top-level or nested structural declarations
+- method definitions with non-trivial or evolving bodies
+- multi-level or deeply nested control structures
+- code that is expected to be frequently patched or incrementally edited
+
+## Allowed Uses (Exceptional)
+
+Indentation-based syntax MAY be used only for:
+
+- small and closed `match` expressions
+- simple expression bodies with no nested structure
+- short `if`, `for`, or `try` expressions at leaf positions
+
+## Rationale
+
+- Prevent accidental AST changes caused by whitespace-only edits
+- Stabilize diff- and patch-based workflows
+- Reduce structural inference burden for AI-assisted tools
+- Preserve long-term readability and maintainability
+
+## Design Intent
+
+Scala 3 indentation-based syntax is treated as an optional convenience,
+not as a default coding style.
+
+Explicit braces are preferred whenever code longevity, patchability,
+or semantic clarity is more important than brevity.
+
+
 # Documentation Format and Patchability Rules
 
 This section defines conventions for choosing documentation formats,
@@ -2207,6 +2613,81 @@ These rules ensure that documentation remains:
 - Reviewable via diffs
 - Suitable for long-term AI-assisted maintenance
 
+
+# Specification vs Design Documentation Rule
+
+This project distinguishes between **specification (spec)** and **design** documentation.
+This distinction is critical to prevent premature stabilization of evolving designs
+and to keep long-term contracts explicit and trustworthy.
+
+## Specification (spec)
+
+Specification documents define **external contracts** that users and downstream code
+are allowed to depend on.
+
+A statement belongs to **spec** if and only if:
+
+- Breaking or changing it would constitute a **breaking change**
+- Downstream code is expected to rely on the behavior
+- The behavior is considered stable and intentional
+
+Typical contents of spec documents include:
+
+- Public type semantics
+- Method contracts and failure models
+- Builder and construction semantics
+- Error-handling guarantees
+- Explicitly forbidden behaviors
+
+Specification documents SHOULD live under:
+
+```
+docs/spec/
+```
+
+## Design
+
+Design documents describe **rationale, alternatives, and evolving decisions**.
+
+A statement belongs to **design** if:
+
+- It explains *why* a design was chosen
+- Alternative approaches are discussed
+- The behavior may change based on usage or feedback
+- Changing it would NOT necessarily break downstream code
+
+Typical contents of design documents include:
+
+- Design motivations and background
+- Rejected or deferred alternatives
+- Ergonomic considerations
+- Open questions and future directions
+
+Design documents SHOULD live under:
+
+```
+docs/design/
+```
+
+## Mixed Documents (Recommended During Exploration)
+
+During active exploration, a single document MAY contain both spec and design content.
+
+In such cases:
+
+- Spec content MUST be clearly marked (e.g. “Stable Semantics”)
+- Design content MUST be clearly marked (e.g. “Design Notes”)
+- The document MUST state which sections are normative and which are not
+
+## Rule of Thumb
+
+When deciding where a statement belongs, ask:
+
+> **Would changing this require a major or breaking version bump?**
+
+- YES → Specification
+- NO / MAYBE → Design
+
 # Idiom Reference Rules
 
 This project defines reusable design idioms to capture
@@ -2240,6 +2721,49 @@ focused on normative rules.
 
 - Idioms are documented under `docs/idioms/`
 - Each idiom is defined in a standalone Markdown document
+
+# Working Specification Rule
+
+This project adopts a **dual specification approach** for important core semantics.
+
+## Principle
+
+- Specifications are written in **two complementary forms**:
+  1. **Markdown specification** (design intent, contracts, semantics)
+  2. **ScalaTest working specification** (executable, verifiable behavior)
+
+These two forms are treated as a **paired specification set**.
+
+## Rules
+
+- Core semantics (e.g. `Consequence`, `Conclusion`, validation, aggregation)
+  SHOULD be specified using both:
+  - A Markdown document under `docs/spec/`
+  - A ScalaTest specification (e.g. `AnyWordSpec`)
+- The ScalaTest specification acts as an **executable specification**
+  and MUST remain consistent with the Markdown specification.
+- When behavior changes:
+  - Both the Markdown spec and the ScalaTest working spec MUST be updated together.
+
+## Design Intent
+
+- Markdown specs capture **human-readable intent**
+- ScalaTest specs provide **mechanically enforced guarantees**
+- Together, they prevent:
+  - Spec drift
+  - Undocumented behavior changes
+  - Accidental semantic regression
+
+## Guidance
+
+- Prefer narrative-style ScalaTest specs (`AnyWordSpec`, `AnyFreeSpec`)
+  for working specifications.
+- Test names SHOULD read as executable sentences describing behavior.
+- Working specifications MAY include documentary tests
+  that exist only to express design constraints.
+
+This rule applies incrementally and MAY be adopted gradually
+for existing code.
 
 # Test Policy
 

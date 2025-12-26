@@ -8,6 +8,21 @@ import scala.util.*
  * @author  ASAMI, Tomoharu
  */
 object StringUtils {
+  def concatPath(base: String, path: String): String =
+    if (base.endsWith("/")) base + path.stripPrefix("/") else base + "/" + path.stripPrefix("/")
+
+  def tokeyvalue(s: String, delimiter: String): (String, String) = {
+    val xs = s.split(java.util.regex.Pattern.quote(delimiter), 2)
+    if (xs.length == 2) (xs(0), xs(1)) else (s, "")
+  }
+
+  def addUrlParams(base: String, params: Vector[(String, String)]): String =
+    if (params.isEmpty) base
+    else {
+      val query = params.map { case (k, v) => s"${k}=${v}" }.mkString("&")
+      if (base.contains("?")) s"${base}&${query}" else s"${base}?${query}"
+    }
+
   /*
    * Class Name
    */
