@@ -1,4 +1,4 @@
-package org.simplemodeling
+package org.goldenport
 
 import cats._
 import scala.util.control.NonFatal

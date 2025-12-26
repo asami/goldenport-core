@@ -1,12 +1,12 @@
-package org.simplemodeling.cli
+package org.goldenport.cli
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.GivenWhenThen
 
-import org.simplemodeling.protocol.operation.OperationRequest
-import org.simplemodeling.protocol.spec._
-import org.simplemodeling.Consequence
+import org.goldenport.protocol.operation.OperationRequest
+import org.goldenport.protocol.spec._
+import org.goldenport.Consequence
 import cats.data.NonEmptyVector
 
 /**
@@ -49,9 +49,9 @@ final class CliEngineSpec
       )
 
     override def createOperationRequest(
-      req: org.simplemodeling.protocol.Request
+      req: org.goldenport.protocol.Request
     ): Consequence[OperationRequest] = {
-      given org.simplemodeling.protocol.Request = req
+      given org.goldenport.protocol.Request = req
       take_string("query").map(Query(_))
     }
   }

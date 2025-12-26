@@ -1,4 +1,4 @@
-package org.simplemodeling.util
+package org.goldenport.util
 
 /*
  * @since   Dec. 23, 2025

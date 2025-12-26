@@ -1,4 +1,4 @@
-package org.simplemodeling.datatype
+package org.goldenport.datatype
 
 import cats.data.NonEmptyVector
 /*

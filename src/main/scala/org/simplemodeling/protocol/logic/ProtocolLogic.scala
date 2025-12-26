@@ -1,8 +1,8 @@
-package org.simplemodeling.protocol.logic
+package org.goldenport.protocol.logic
 
-import org.simplemodeling.Consequence
-import org.simplemodeling.protocol.Request
-import org.simplemodeling.protocol.operation.OperationRequest
+import org.goldenport.Consequence
+import org.goldenport.protocol.Request
+import org.goldenport.protocol.operation.OperationRequest
 
 /*
  * @since   Dec. 24, 2025

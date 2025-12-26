@@ -1,9 +1,9 @@
-package org.simplemodeling.model.value
+package org.goldenport.model.value
 
 import java.time.ZonedDateTime
-import org.simplemodeling.datatype.EntityReference
-import org.simplemodeling.model.statemachine.PostStatus
-import org.simplemodeling.model.statemachine.Aliveness
+import org.goldenport.datatype.EntityReference
+import org.goldenport.model.statemachine.PostStatus
+import org.goldenport.model.statemachine.Aliveness
 
 /*
  * @since   Aug.  1, 2025

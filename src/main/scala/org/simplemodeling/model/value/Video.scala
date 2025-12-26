@@ -1,7 +1,7 @@
-package org.simplemodeling.model.value
+package org.goldenport.model.value
 
-import org.simplemodeling.datatype.ObjectId
-import org.simplemodeling.model.SimpleObject
+import org.goldenport.datatype.ObjectId
+import org.goldenport.model.SimpleObject
 
 /*
  * @since   Aug.  2, 2025

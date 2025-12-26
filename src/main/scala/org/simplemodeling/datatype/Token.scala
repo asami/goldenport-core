@@ -1,6 +1,6 @@
-package org.simplemodeling.datatype
+package org.goldenport.datatype
 
-import org.simplemodeling.Consequence
+import org.goldenport.Consequence
 
 /*
  * @since   Jul. 23, 2025

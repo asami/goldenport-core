@@ -1,4 +1,4 @@
-package org.simplemodeling.text.tc
+package org.goldenport.text.tc
 
 /*
  * @since   Oct.  3, 2025
@@ -17,7 +17,7 @@ trait Present[-A] {
   def pretty(a: A): String = display(a)
   def tooltip(a: A): String = embed(a, 24)
   def log(a: A): String = display(a)
-  def fingerprint(a: A): String = org.simplemodeling.text.PresentDefaults.sha256(print(a))
+  def fingerprint(a: A): String = org.goldenport.text.PresentDefaults.sha256(print(a))
 }
 
 object Present {
@@ -42,7 +42,7 @@ object Present {
   }
 
   // Bridge from OO to TC
-  given fromPresentable[A <: org.simplemodeling.text.Presentable]: Present[A] with
+  given fromPresentable[A <: org.goldenport.text.Presentable]: Present[A] with
     def print(a: A)   = a.print
     def display(a: A) = a.display
     def show(a: A)    = a.show

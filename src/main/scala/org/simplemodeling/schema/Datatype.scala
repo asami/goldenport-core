@@ -1,4 +1,4 @@
-package org.simplemodeling.schema
+package org.goldenport.schema
 
 /*
  * Datatype reference used by schema definitions.

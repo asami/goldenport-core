@@ -1,7 +1,7 @@
-package org.simplemodeling.observation
+package org.goldenport.observation
 
 import java.time.Instant
-import org.simplemodeling.datatype.I18nMessage
+import org.goldenport.datatype.I18nMessage
 
 /*
  * @since   Jul. 19, 2025

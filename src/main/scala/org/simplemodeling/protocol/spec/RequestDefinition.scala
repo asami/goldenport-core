@@ -1,4 +1,4 @@
-package org.simplemodeling.protocol.spec
+package org.goldenport.protocol.spec
 
 /*
  * @since   Oct.  6, 2018

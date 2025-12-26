@@ -1,6 +1,6 @@
-package org.simplemodeling.protocol
+package org.goldenport.protocol
 
-import org.simplemodeling.protocol.logic.ProtocolLogic
+import org.goldenport.protocol.logic.ProtocolLogic
 /*
  * @since   Dec. 26, 2025
  * @version Dec. 26, 2025

@@ -1,6 +1,6 @@
-package org.simplemodeling.observation
+package org.goldenport.observation
 
-import org.simplemodeling.util.{SmEnum, SmEnumClass}
+import org.goldenport.util.{SmEnum, SmEnumClass}
 
 /*
  * @since   Jul. 19, 2025

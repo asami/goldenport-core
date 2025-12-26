@@ -1,4 +1,4 @@
-package org.simplemodeling.error
+package org.goldenport.error
 
 /**
  * ErrorCode represents a semantic error identifier.

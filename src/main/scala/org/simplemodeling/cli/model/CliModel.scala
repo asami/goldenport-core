@@ -1,7 +1,7 @@
-package org.simplemodeling.cli.model
+package org.goldenport.cli.model
 
-import org.simplemodeling.Consequence
-import org.simplemodeling.protocol.*
+import org.goldenport.Consequence
+import org.goldenport.protocol.*
 
 /*
  * @since   Dec. 22, 2025

@@ -1,13 +1,13 @@
-package org.simplemodeling.protocol.spec
+package org.goldenport.protocol.spec
 
 import cats.data.NonEmptyVector
 import java.time.ZonedDateTime
-import org.simplemodeling.Consequence
-import org.simplemodeling.http.HttpRequest
-import org.simplemodeling.protocol.Request
-import org.simplemodeling.protocol.operation.OperationRequest
-import org.simplemodeling.schema.Multiplicity
-import org.simplemodeling.schema.ValueDomain
+import org.goldenport.Consequence
+import org.goldenport.http.HttpRequest
+import org.goldenport.protocol.Request
+import org.goldenport.protocol.operation.OperationRequest
+import org.goldenport.schema.Multiplicity
+import org.goldenport.schema.ValueDomain
 
 /*
  * @since   Oct.  6, 2018

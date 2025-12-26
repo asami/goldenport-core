@@ -1,8 +1,8 @@
-package org.simplemodeling
+package org.goldenport
 
-import org.simplemodeling.observation.Observation
+import org.goldenport.observation.Observation
 
-import org.simplemodeling.error.{ErrorCode, ErrorStrategy}
+import org.goldenport.error.{ErrorCode, ErrorStrategy}
 
 /*
  * @since   Jul. 19, 2025

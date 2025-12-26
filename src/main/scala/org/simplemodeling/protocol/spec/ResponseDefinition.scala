@@ -1,6 +1,6 @@
-package org.simplemodeling.protocol.spec
+package org.goldenport.protocol.spec
 
-import org.simplemodeling.schema.DataType
+import org.goldenport.schema.DataType
 
 /*
  * @since   Oct.  6, 2018

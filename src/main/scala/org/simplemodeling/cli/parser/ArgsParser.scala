@@ -1,10 +1,10 @@
-package org.simplemodeling.cli.parser
+package org.goldenport.cli.parser
 
-import org.simplemodeling.protocol.Request
-import org.simplemodeling.protocol.Argument
-import org.simplemodeling.protocol.Switch
-import org.simplemodeling.protocol.Property
-import org.simplemodeling.protocol.spec.ServiceDefinition
+import org.goldenport.protocol.Request
+import org.goldenport.protocol.Argument
+import org.goldenport.protocol.Switch
+import org.goldenport.protocol.Property
+import org.goldenport.protocol.spec.ServiceDefinition
 
 /*
  * @since   Dec. 23, 2025

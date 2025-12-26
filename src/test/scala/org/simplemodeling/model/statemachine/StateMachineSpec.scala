@@ -1,4 +1,4 @@
-package org.simplemodeling.model.statemachine
+package org.goldenport.model.statemachine
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers

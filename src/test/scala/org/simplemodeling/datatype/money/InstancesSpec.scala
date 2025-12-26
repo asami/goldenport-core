@@ -1,4 +1,4 @@
-package org.simplemodeling.datatype.money
+package org.goldenport.datatype.money
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers

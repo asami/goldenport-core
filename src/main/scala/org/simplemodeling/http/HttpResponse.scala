@@ -1,10 +1,10 @@
-package org.simplemodeling.http
+package org.goldenport.http
 
 import java.io.InputStream
 import java.nio.charset.Charset
-import org.simplemodeling.bag.{Bag, BinaryBag, TextBag}
-import org.simplemodeling.record.Record
-import org.simplemodeling.util.Strings
+import org.goldenport.bag.{Bag, BinaryBag, TextBag}
+import org.goldenport.record.Record
+import org.goldenport.util.Strings
 
 /*
  * Unify arcadia

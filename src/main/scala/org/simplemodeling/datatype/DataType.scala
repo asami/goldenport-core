@@ -1,4 +1,4 @@
-package org.simplemodeling.datatype
+package org.goldenport.datatype
 
 import scala.util.*
 import java.util.Currency

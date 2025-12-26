@@ -1,6 +1,6 @@
-package org.simplemodeling.protocol
+package org.goldenport.protocol
 
-import org.simplemodeling.protocol.spec.ParameterDefinition
+import org.goldenport.protocol.spec.ParameterDefinition
 
 /*
  * @since   Mar.  1, 2025

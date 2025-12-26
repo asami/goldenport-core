@@ -1,12 +1,12 @@
-package org.simplemodeling.datatype
+package org.goldenport.datatype
 
 import scala.language.strictEquality
 import cats.*
 import cats.implicits.*
 import cats.syntax.all.*
 import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
-import org.simplemodeling.Consequence
-import org.simplemodeling.convert.ValueReader
+import org.goldenport.Consequence
+import org.goldenport.convert.ValueReader
 
 /*
  * @since   Sep. 17, 2025

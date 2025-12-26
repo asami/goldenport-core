@@ -1,10 +1,10 @@
-package org.simplemodeling.http
+package org.goldenport.http
 
 import java.net.URL
 import java.net.URLDecoder
-import org.simplemodeling.record.Record
-import org.simplemodeling.util.StringUtils
-import org.simplemodeling.util.Strings
+import org.goldenport.record.Record
+import org.goldenport.util.StringUtils
+import org.goldenport.util.Strings
 
 /*
  * @since   Dec. 19, 2017

@@ -1,4 +1,4 @@
-package org.simplemodeling.http
+package org.goldenport.http
 
 import java.io.InputStream
 import java.nio.charset.Charset

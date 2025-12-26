@@ -1,4 +1,4 @@
-package org.simplemodeling.observation
+package org.goldenport.observation
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers

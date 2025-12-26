@@ -1,10 +1,10 @@
-package org.simplemodeling.cli
+package org.goldenport.cli
 
-import org.simplemodeling.cli.logic.CliLogic
-import org.simplemodeling.protocol.Request
-import org.simplemodeling.protocol.operation.OperationRequest
-import org.simplemodeling.protocol.spec.ServiceDefinitionGroup
-import org.simplemodeling.Consequence
+import org.goldenport.cli.logic.CliLogic
+import org.goldenport.protocol.Request
+import org.goldenport.protocol.operation.OperationRequest
+import org.goldenport.protocol.spec.ServiceDefinitionGroup
+import org.goldenport.Consequence
 
 /* CliEngine – Minimal Wiring Implementation
  * 

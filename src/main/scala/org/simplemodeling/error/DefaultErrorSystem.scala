@@ -1,7 +1,7 @@
-package org.simplemodeling.error
+package org.goldenport.error
 
-import org.simplemodeling.Conclusion
-import org.simplemodeling.observation.Observation
+import org.goldenport.Conclusion
+import org.goldenport.observation.Observation
 
 /**
  * DefaultErrorSystem is the minimal core implementation.

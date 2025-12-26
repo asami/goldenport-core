@@ -1,4 +1,4 @@
-package org.simplemodeling.record
+package org.goldenport.record
 
 /*
  * @since   Oct. 17, 2025

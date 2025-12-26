@@ -1,4 +1,4 @@
-package org.simplemodeling.model.value
+package org.goldenport.model.value
 
 /*
  * @since   Aug.  1, 2025

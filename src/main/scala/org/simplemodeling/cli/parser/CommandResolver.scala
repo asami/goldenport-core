@@ -1,4 +1,4 @@
-package org.simplemodeling.cli.parser
+package org.goldenport.cli.parser
 
 import cats.data.NonEmptyVector
 

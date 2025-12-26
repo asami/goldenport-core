@@ -1,6 +1,6 @@
-package org.simplemodeling.observation
+package org.goldenport.observation
 
-import org.simplemodeling.datatype
+import org.goldenport.datatype
 
 /*
  * @since   Jul. 23, 2025

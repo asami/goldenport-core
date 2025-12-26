@@ -1,4 +1,4 @@
-package org.simplemodeling.error
+package org.goldenport.error
 
 /**
  * ErrorStrategy represents a declarative handling intention.

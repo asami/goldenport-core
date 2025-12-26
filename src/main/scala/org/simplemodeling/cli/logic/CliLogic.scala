@@ -1,12 +1,12 @@
-package org.simplemodeling.cli.logic
+package org.goldenport.cli.logic
 
 import cats.syntax.all.*
-import org.simplemodeling.Consequence
-import org.simplemodeling.protocol.Request
-import org.simplemodeling.protocol.operation.OperationRequest
-import org.simplemodeling.protocol.ProtocolEngine
-import org.simplemodeling.protocol.spec.ServiceDefinitionGroup
-import org.simplemodeling.cli.parser.ArgsParser
+import org.goldenport.Consequence
+import org.goldenport.protocol.Request
+import org.goldenport.protocol.operation.OperationRequest
+import org.goldenport.protocol.ProtocolEngine
+import org.goldenport.protocol.spec.ServiceDefinitionGroup
+import org.goldenport.cli.parser.ArgsParser
 
 /*
  * @since   Dec. 24, 2025
@@ -37,7 +37,7 @@ class CliLogic(
         Consequence.Failure(c)
     }
 
-  private def _resolve_service(req: Request): Consequence[org.simplemodeling.protocol.spec.ServiceDefinition] =
+  private def _resolve_service(req: Request): Consequence[org.goldenport.protocol.spec.ServiceDefinition] =
     req.service match {
       case Some(name) =>
         serviceGroup.services.find(_.name == name) match {
@@ -52,9 +52,9 @@ class CliLogic(
     }
 
   private def _resolve_operation(
-    service: org.simplemodeling.protocol.spec.ServiceDefinition,
+    service: org.goldenport.protocol.spec.ServiceDefinition,
     req: Request
-  ): Consequence[org.simplemodeling.protocol.spec.OperationDefinition] =
+  ): Consequence[org.goldenport.protocol.spec.OperationDefinition] =
     service.operations.operations.find(_.name == req.operation) match {
       case Some(op) => Consequence.success(op)
       case None => Consequence.failure("operation not found")

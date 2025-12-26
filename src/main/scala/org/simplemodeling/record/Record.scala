@@ -1,6 +1,6 @@
-package org.simplemodeling.record
+package org.goldenport.record
 
-import org.simplemodeling.convert.ValueReader
+import org.goldenport.convert.ValueReader
 
 /*
  * @since   Oct. 17, 2025

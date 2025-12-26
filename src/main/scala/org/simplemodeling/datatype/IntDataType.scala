@@ -1,4 +1,4 @@
-package org.simplemodeling.datatype
+package org.goldenport.datatype
 
 /*
  * @since   Jul. 23, 2025

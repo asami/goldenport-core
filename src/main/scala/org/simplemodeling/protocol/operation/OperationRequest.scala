@@ -1,8 +1,8 @@
-package org.simplemodeling.protocol.operation
+package org.goldenport.protocol.operation
 
-import org.simplemodeling.protocol.Argument
-import org.simplemodeling.protocol.Property
-import org.simplemodeling.protocol.Switch
+import org.goldenport.protocol.Argument
+import org.goldenport.protocol.Property
+import org.goldenport.protocol.Switch
 
 /*
  * Protocol-level operation request.

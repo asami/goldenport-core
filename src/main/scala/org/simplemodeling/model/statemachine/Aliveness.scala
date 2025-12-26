@@ -1,6 +1,6 @@
-package org.simplemodeling.model.statemachine
+package org.goldenport.model.statemachine
 
-import org.simplemodeling.Consequence
+import org.goldenport.Consequence
 
 /*
  * @since   Aug.  2, 2025

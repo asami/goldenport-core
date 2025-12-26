@@ -1,4 +1,4 @@
-package org.simplemodeling.cli.runner
+package org.goldenport.cli.runner
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers

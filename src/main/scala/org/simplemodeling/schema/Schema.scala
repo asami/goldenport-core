@@ -1,8 +1,8 @@
-package org.simplemodeling.schema
+package org.goldenport.schema
 
 import cats.data.NonEmptyList
 import cats.data.NonEmptyVector
-import org.simplemodeling.model.value.BaseContent
+import org.goldenport.model.value.BaseContent
 
 /*
  * @since   Nov. 23, 2012

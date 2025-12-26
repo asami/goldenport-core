@@ -1,4 +1,4 @@
-package org.simplemodeling.text.tc
+package org.goldenport.text.tc
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers

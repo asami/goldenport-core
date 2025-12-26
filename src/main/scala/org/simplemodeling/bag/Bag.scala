@@ -1,7 +1,7 @@
-package org.simplemodeling.bag
+package org.goldenport.bag
 
 import cats.effect.IO
-import org.simplemodeling.Consequence
+import org.goldenport.Consequence
 
 import java.io.InputStream
 import java.net.URL

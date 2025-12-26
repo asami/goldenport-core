@@ -1,15 +1,15 @@
-package org.simplemodeling.model
+package org.goldenport.model
 
-import org.simplemodeling.datatype.ObjectId
-import org.simplemodeling.model.value.NameAttributes
-import org.simplemodeling.model.value.DescriptiveAttributes
-import org.simplemodeling.model.value.LifecycleAttributes
-import org.simplemodeling.model.value.PublicationAttributes
-import org.simplemodeling.model.value.SecurityAttributes
-import org.simplemodeling.model.value.ResourceAttributes
-import org.simplemodeling.model.value.AuditAttributes
-import org.simplemodeling.model.value.MediaAttributes
-import org.simplemodeling.model.value.ContextualAttributes
+import org.goldenport.datatype.ObjectId
+import org.goldenport.model.value.NameAttributes
+import org.goldenport.model.value.DescriptiveAttributes
+import org.goldenport.model.value.LifecycleAttributes
+import org.goldenport.model.value.PublicationAttributes
+import org.goldenport.model.value.SecurityAttributes
+import org.goldenport.model.value.ResourceAttributes
+import org.goldenport.model.value.AuditAttributes
+import org.goldenport.model.value.MediaAttributes
+import org.goldenport.model.value.ContextualAttributes
 
 /*
  * @since   Aug.  4, 2025

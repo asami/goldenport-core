@@ -1,9 +1,9 @@
-package org.simplemodeling.sie.cli
+package org.goldenport.sie.cli
 
 import cats.syntax.all.*
-import org.simplemodeling.Consequence
-import org.simplemodeling.protocol.Argument
-import org.simplemodeling.protocol.operation.OperationRequest
+import org.goldenport.Consequence
+import org.goldenport.protocol.Argument
+import org.goldenport.protocol.operation.OperationRequest
 
 /*
  * @since   Dec. 23, 2025

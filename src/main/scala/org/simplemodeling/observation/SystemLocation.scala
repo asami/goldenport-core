@@ -1,4 +1,4 @@
-package org.simplemodeling.observation
+package org.goldenport.observation
 
 import java.net.URI
 

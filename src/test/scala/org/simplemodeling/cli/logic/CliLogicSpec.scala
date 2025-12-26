@@ -1,14 +1,14 @@
-package org.simplemodeling.cli.logic
+package org.goldenport.cli.logic
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
-import org.simplemodeling.protocol.spec.*
-import org.simplemodeling.protocol.ProtocolEngine
-import org.simplemodeling.protocol.logic.ProtocolLogic
-import org.simplemodeling.protocol.operation.OperationRequest
-import org.simplemodeling.Consequence
+import org.goldenport.protocol.spec.*
+import org.goldenport.protocol.ProtocolEngine
+import org.goldenport.protocol.logic.ProtocolLogic
+import org.goldenport.protocol.operation.OperationRequest
+import org.goldenport.Consequence
 import cats.data.NonEmptyVector
-import org.simplemodeling.schema.Multiplicity
+import org.goldenport.schema.Multiplicity
 
 /*
  * @since   Dec. 25, 2025
@@ -116,10 +116,10 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.simplemodeling.protocol.Request(
+      val request = org.goldenport.protocol.Request(
         service = Some("user"),
         operation = "create",
-        arguments = List(org.simplemodeling.protocol.Argument("first", "first", None)),
+        arguments = List(org.goldenport.protocol.Argument("first", "first", None)),
         switches = Nil,
         properties = Nil
       )
@@ -132,7 +132,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
             OperationRequest(
               service = Some("user"),
               operation = "create",
-              arguments = List(org.simplemodeling.protocol.Argument("first", "first", None)),
+              arguments = List(org.goldenport.protocol.Argument("first", "first", None)),
               switches = Nil,
               properties = Nil
             )
@@ -154,15 +154,15 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.simplemodeling.protocol.Request(
+      val request = org.goldenport.protocol.Request(
         service = Some("user"),
         operation = "create",
         arguments = List(
-          org.simplemodeling.protocol.Argument("arg1", "v1", None),
-          org.simplemodeling.protocol.Argument("arg2", "v2", None)
+          org.goldenport.protocol.Argument("arg1", "v1", None),
+          org.goldenport.protocol.Argument("arg2", "v2", None)
         ),
-        switches = List(org.simplemodeling.protocol.Switch("dry-run", true, None)),
-        properties = List(org.simplemodeling.protocol.Property("timeout", "30", None))
+        switches = List(org.goldenport.protocol.Switch("dry-run", true, None)),
+        properties = List(org.goldenport.protocol.Property("timeout", "30", None))
       )
 
       val result = cli.makeOperationRequest(request)
@@ -174,11 +174,11 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
               service = Some("user"),
               operation = "create",
               arguments = List(
-                org.simplemodeling.protocol.Argument("arg1", "v1", None),
-                org.simplemodeling.protocol.Argument("arg2", "v2", None)
+                org.goldenport.protocol.Argument("arg1", "v1", None),
+                org.goldenport.protocol.Argument("arg2", "v2", None)
               ),
-              switches = List(org.simplemodeling.protocol.Switch("dry-run", true, None)),
-              properties = List(org.simplemodeling.protocol.Property("timeout", "30", None))
+              switches = List(org.goldenport.protocol.Switch("dry-run", true, None)),
+              properties = List(org.goldenport.protocol.Property("timeout", "30", None))
             )
           )
         case _ =>
@@ -199,13 +199,13 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.simplemodeling.protocol.Request(
+      val request = org.goldenport.protocol.Request(
         service = Some("user"),
         operation = "query",
         arguments = List(
-          org.simplemodeling.protocol.Argument("id", "u1", None),
-          org.simplemodeling.protocol.Argument("name", "Alice", None),
-          org.simplemodeling.protocol.Argument(
+          org.goldenport.protocol.Argument("id", "u1", None),
+          org.goldenport.protocol.Argument("name", "Alice", None),
+          org.goldenport.protocol.Argument(
             "birthday",
             "2000-01-01T00:00:00Z",
             None
@@ -237,7 +237,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.simplemodeling.protocol.Request(
+      val request = org.goldenport.protocol.Request(
         service = Some("user"),
         operation = "delete",
         arguments = Nil,
@@ -267,7 +267,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.simplemodeling.protocol.Request(
+      val request = org.goldenport.protocol.Request(
         service = Some("unknown"),
         operation = "create",
         arguments = Nil,
@@ -292,8 +292,8 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     new ProtocolEngine(
       new ProtocolLogic {
         override def makeRequest(
-          req: org.simplemodeling.protocol.Request
-        ): Consequence[org.simplemodeling.protocol.operation.OperationRequest] =
+          req: org.goldenport.protocol.Request
+        ): Consequence[org.goldenport.protocol.operation.OperationRequest] =
           Consequence.failure("not implemented")
       }
     )
@@ -313,7 +313,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     id: String,
     name: String,
     birthday: Option[java.time.ZonedDateTime]
-  ) extends org.simplemodeling.protocol.operation.OperationRequest
+  ) extends org.goldenport.protocol.operation.OperationRequest
 
   // --- Applicative operation test infrastructure ---
 
@@ -336,7 +336,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
             ParameterDefinition(
               name = "birthday",
               kind = ParameterDefinition.Kind.Argument,
-              domain = org.simplemodeling.schema.ValueDomain(
+              domain = org.goldenport.schema.ValueDomain(
                 multiplicity = Multiplicity.ZeroOne
               )
             )
@@ -346,9 +346,9 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       )
 
     override def createOperationRequest(
-      req: org.simplemodeling.protocol.Request
-    ): Consequence[org.simplemodeling.protocol.operation.OperationRequest] = {
-      given org.simplemodeling.protocol.Request = req
+      req: org.goldenport.protocol.Request
+    ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
+      given org.goldenport.protocol.Request = req
 
       take_string("id")
         .zip3With(
@@ -378,7 +378,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
             ParameterDefinition(
               name = "birthday",
               kind = ParameterDefinition.Kind.Argument,
-              domain = org.simplemodeling.schema.ValueDomain(
+              domain = org.goldenport.schema.ValueDomain(
                 multiplicity = Multiplicity.ZeroOne
               )
             )
@@ -395,9 +395,9 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     import cats.syntax.all.*
 
     override def createOperationRequest(
-      req: org.simplemodeling.protocol.Request
-    ): Consequence[org.simplemodeling.protocol.operation.OperationRequest] = {
-      given org.simplemodeling.protocol.Request = req
+      req: org.goldenport.protocol.Request
+    ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
+      given org.goldenport.protocol.Request = req
 
       (
         take_string("id"),
@@ -415,9 +415,9 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     import cats.instances.tuple.*
 
     override def createOperationRequest(
-      req: org.simplemodeling.protocol.Request
-    ): Consequence[org.simplemodeling.protocol.operation.OperationRequest] = {
-      given org.simplemodeling.protocol.Request = req
+      req: org.goldenport.protocol.Request
+    ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
+      given org.goldenport.protocol.Request = req
 
       (
         (take_string("id"), take_string("name"), get_datetime("birthday"))
@@ -430,9 +430,9 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     extends BaseTestOperationDefinition(name) {
 
     override def createOperationRequest(
-      req: org.simplemodeling.protocol.Request
-    ): Consequence[org.simplemodeling.protocol.operation.OperationRequest] = {
-      given org.simplemodeling.protocol.Request = req
+      req: org.goldenport.protocol.Request
+    ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
+      given org.goldenport.protocol.Request = req
 
       take_string("id")
         .zip3With(
@@ -447,9 +447,9 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     extends BaseTestOperationDefinition(name) {
 
     override def createOperationRequest(
-      req: org.simplemodeling.protocol.Request
-    ): Consequence[org.simplemodeling.protocol.operation.OperationRequest] = {
-      given org.simplemodeling.protocol.Request = req
+      req: org.goldenport.protocol.Request
+    ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
+      given org.goldenport.protocol.Request = req
 
       for {
         id <- take_string("id")
@@ -474,7 +474,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val services = ServiceDefinitionGroup(Vector(service))
       val cli = new CliLogic(services, dummyProtocolEngine)
 
-      val request = org.simplemodeling.protocol.Request(
+      val request = org.goldenport.protocol.Request(
         service = Some("user"),
         operation = op.specification.name,
         arguments = Nil, // missing all params

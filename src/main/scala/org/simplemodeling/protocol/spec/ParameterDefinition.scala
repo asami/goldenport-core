@@ -1,8 +1,8 @@
-package org.simplemodeling.protocol.spec
+package org.goldenport.protocol.spec
 
-import org.simplemodeling.schema.*
-import org.simplemodeling.schema.ValueDomain
-import org.simplemodeling.util.{SmEnum, SmEnumClass}
+import org.goldenport.schema.*
+import org.goldenport.schema.ValueDomain
+import org.goldenport.util.{SmEnum, SmEnumClass}
 
 /*
  * @since   Oct.  6, 2018

@@ -1,4 +1,4 @@
-package org.simplemodeling
+package org.goldenport
 
 import java.time.Instant
 
@@ -6,18 +6,18 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpec
 import cats.data.NonEmptyVector
-import org.simplemodeling.datatype.I18nMessage
-import org.simplemodeling.observation.Agent
-import org.simplemodeling.observation.Cause
-import org.simplemodeling.observation.CauseKind
-import org.simplemodeling.observation.Handler
-import org.simplemodeling.observation.Observation
-import org.simplemodeling.observation.Phenomenon
-import org.simplemodeling.observation.Resource
-import org.simplemodeling.observation.Severity
-import org.simplemodeling.observation.Strategy
-import org.simplemodeling.observation.Subject
-import org.simplemodeling.observation.SystemLocation
+import org.goldenport.datatype.I18nMessage
+import org.goldenport.observation.Agent
+import org.goldenport.observation.Cause
+import org.goldenport.observation.CauseKind
+import org.goldenport.observation.Handler
+import org.goldenport.observation.Observation
+import org.goldenport.observation.Phenomenon
+import org.goldenport.observation.Resource
+import org.goldenport.observation.Severity
+import org.goldenport.observation.Strategy
+import org.goldenport.observation.Subject
+import org.goldenport.observation.SystemLocation
 
 /*
  * @since   Dec. 22, 2025

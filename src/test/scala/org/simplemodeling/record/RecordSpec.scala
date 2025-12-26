@@ -1,4 +1,4 @@
-package org.simplemodeling.record
+package org.goldenport.record
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers

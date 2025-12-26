@@ -1,11 +1,11 @@
-package org.simplemodeling.model.value
+package org.goldenport.model.value
 
 import cats.data.NonEmptyVector
-import org.simplemodeling.datatype.Name
-import org.simplemodeling.datatype.Identifier
-import org.simplemodeling.datatype.Slug
-import org.simplemodeling.datatype.I18nLabel
-import org.simplemodeling.datatype.I18nTitle
+import org.goldenport.datatype.Name
+import org.goldenport.datatype.Identifier
+import org.goldenport.datatype.Slug
+import org.goldenport.datatype.I18nLabel
+import org.goldenport.datatype.I18nTitle
 
 /*
  * @since   Aug.  1, 2025

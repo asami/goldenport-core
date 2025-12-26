@@ -1,4 +1,4 @@
-package org.simplemodeling.text
+package org.goldenport.text
 
 /*
  * @since   Oct.  3, 2025

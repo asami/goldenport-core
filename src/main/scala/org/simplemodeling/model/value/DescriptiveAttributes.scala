@@ -1,10 +1,10 @@
-package org.simplemodeling.model.value
+package org.goldenport.model.value
 
-import org.simplemodeling.datatype.I18nLabel
-import org.simplemodeling.datatype.I18nBrief
-import org.simplemodeling.datatype.I18nSummary
-import org.simplemodeling.datatype.I18nDescription
-import org.simplemodeling.datatype.I18nText
+import org.goldenport.datatype.I18nLabel
+import org.goldenport.datatype.I18nBrief
+import org.goldenport.datatype.I18nSummary
+import org.goldenport.datatype.I18nDescription
+import org.goldenport.datatype.I18nText
 
 /*
  * @since   Aug.  1, 2025
