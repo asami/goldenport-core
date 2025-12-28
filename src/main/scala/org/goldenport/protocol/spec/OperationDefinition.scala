@@ -64,7 +64,10 @@ abstract class OperationDefinition
     values match {
       case Nil =>
         if (_is_required(p))
-          Consequence.failure(s"parameter missing: ${p.name}")
+          Consequence
+            .failArgumentMissing
+            .withInput(p.name)
+            .build
         else
           Consequence.success(ResolvedEmpty(domain))
 
@@ -79,7 +82,10 @@ abstract class OperationDefinition
           _validate_value_domain(domain, values.toVector)
           Consequence.success(ResolvedMultiple(values.toVector, domain))
         } else {
-          Consequence.failure(s"multiple values not allowed: ${p.name}")
+          Consequence
+            .failArgumentRedundant
+            .withInput(p.name)
+            .build
         }
     }
   }

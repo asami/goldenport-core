@@ -10,6 +10,7 @@ import org.goldenport.datatype.I18nMessage
 import org.goldenport.observation.Agent
 import org.goldenport.observation.Cause
 import org.goldenport.observation.CauseKind
+import org.goldenport.observation.Descriptor
 import org.goldenport.observation.Handler
 import org.goldenport.observation.Observation
 import org.goldenport.observation.Phenomenon
@@ -61,6 +62,7 @@ class ConsequenceSpec extends AnyWordSpec
       location = SystemLocation(None),
       traceId = None,
       spanId = None,
+      descriptor = Descriptor(),
       message = Some(I18nMessage(label)),
       exception = None,
       properties = Map.empty

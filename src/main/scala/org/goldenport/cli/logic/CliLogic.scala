@@ -4,7 +4,10 @@ import cats.syntax.all.*
 import org.goldenport.Consequence
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
-import org.goldenport.protocol.ProtocolEngine
+import org.goldenport.protocol.{Protocol, ProtocolEngine}
+import org.goldenport.protocol.handler.ProtocolHandler
+import org.goldenport.protocol.handler.egress.EgressCollection
+import org.goldenport.protocol.handler.ingress.IngressCollection
 import org.goldenport.protocol.spec.ServiceDefinitionGroup
 import org.goldenport.cli.parser.ArgsParser
 
@@ -69,5 +72,10 @@ class CliLogic(
 
 object CliLogic {
   def create(services: ServiceDefinitionGroup): CliLogic =
-    CliLogic(services, ProtocolEngine.create())
+    val handler = ProtocolHandler(
+      IngressCollection(Vector.empty),
+      EgressCollection(Vector.empty)
+    )
+    val protocol = Protocol(services, handler)
+    CliLogic(services, ProtocolEngine.create(protocol))
 }

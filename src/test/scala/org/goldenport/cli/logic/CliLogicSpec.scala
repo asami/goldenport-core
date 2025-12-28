@@ -3,8 +3,10 @@ package org.goldenport.cli.logic
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 import org.goldenport.protocol.spec.*
-import org.goldenport.protocol.ProtocolEngine
-import org.goldenport.protocol.logic.ProtocolLogic
+import org.goldenport.protocol.{Protocol, ProtocolEngine}
+import org.goldenport.protocol.handler.ProtocolHandler
+import org.goldenport.protocol.handler.egress.EgressCollection
+import org.goldenport.protocol.handler.ingress.IngressCollection
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.Consequence
 import cats.data.NonEmptyVector
@@ -288,15 +290,14 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
 
   // --- helpers -------------------------------------------------
 
-  private def dummyProtocolEngine: ProtocolEngine =
-    new ProtocolEngine(
-      new ProtocolLogic {
-        override def makeRequest(
-          req: org.goldenport.protocol.Request
-        ): Consequence[org.goldenport.protocol.operation.OperationRequest] =
-          Consequence.failure("not implemented")
-      }
+  private def dummyProtocolEngine: ProtocolEngine = {
+    val handler = ProtocolHandler(
+      IngressCollection(Vector.empty),
+      EgressCollection(Vector.empty)
     )
+    val protocol = Protocol(ServiceDefinitionGroup(Vector.empty), handler)
+    ProtocolEngine.create(protocol)
+  }
 
   private def dummyOperation(name: String): OperationDefinition =
     OperationDefinition(

@@ -40,6 +40,7 @@ case class Observation(
   location: SystemLocation,
   traceId: Option[TraceId],
   spanId: Option[SpanId],
+  descriptor: Descriptor,
   message: Option[I18nMessage],
   exception: Option[Throwable],
   properties: Map[String, String] = Map.empty
@@ -87,6 +88,7 @@ object Observation {
       location   = SystemLocation(None),
       traceId    = None,
       spanId     = None,
+      descriptor = Descriptor(),
       message    = None,
       exception  = None,
       properties = Map.empty

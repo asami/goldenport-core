@@ -186,6 +186,44 @@ Non-goals:
 3. Conclusion Model Tasks  
 ----------------------------------------------------------------------  
 
+----------------------------------------------------------------------  
+3.x Define Severity Policy (Conclusion Aggregation)  
+----------------------------------------------------------------------  
+
+Status: NOT STARTED
+
+Purpose:
+    - Make severity handling explicit and deterministic
+    - Avoid implicit or ad-hoc interpretation in upper layers
+
+Scope:
+    - Define how severity is derived when:
+        - Multiple Observations are aggregated
+        - Multiple Conclusions are combined via `Conclusion.++`
+    - Clarify the relationship between:
+        - Observation severity
+        - Conclusion status / severity-like concepts
+        - ErrorSystem responsibility
+
+Key Questions:
+    - Is severity a total order (e.g. Info < Warning < Error < Fatal)?
+    - Is severity represented directly, or inferred from Status / ErrorCode?
+    - Should aggregation always select the maximum severity?
+    - Are there contexts where severity escalation or suppression is allowed?
+
+Rules:
+    - Severity policy must be framework-agnostic
+    - Severity policy must not imply execution behavior
+    - Core must not perform handling, only classification
+
+Deliverables:
+    - Design note under docs/spec/ (or inline Scaladoc)
+    - Minimal supporting code if required
+
+Notes:
+    - This task is intentionally separated from `Conclusion.++` implementation
+    - The current implementation assumes "max severity" semantics by convention
+
 Notes:
     - Conclusion.Status is treated as a declarative structure composed of:
         - WebCode

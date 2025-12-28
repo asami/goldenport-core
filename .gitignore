@@ -7,6 +7,7 @@ lib
 target
 .*
 boot
+WARP.md
 
 ### Metals (VS Code Scala extension) ###
 .metals/

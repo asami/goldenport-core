@@ -112,6 +112,9 @@ object Consequence {
   def failure[T](message: String): Consequence[T] =
     Failure(Conclusion.simple(message))
 
+  def failure[T](e: Throwable): Consequence[T] =
+    Failure(Conclusion.from(e))
+
   def toInt(p: String): Consequence[Int] = Consequence(p.toInt)
 
   def takeOrMissingPropertyFault[T](key: String, v: Option[T]): Consequence[T] =
@@ -146,6 +149,53 @@ object Consequence {
       case None    => Success(results.toSeq)
     }
   }
+
+  // FailureBuilder API for Observation/Descriptor-based failures
+  def failArgumentMissing: FailureBuilder =
+    FailureBuilder(org.goldenport.observation.Cause.Argument(
+      org.goldenport.observation.Cause.Reason.Missing
+    ))
+
+  def failArgumentRedundant: FailureBuilder =
+    FailureBuilder(org.goldenport.observation.Cause.Argument(
+      org.goldenport.observation.Cause.Reason.Redundant
+    ))
+
+  def failArgumentValidationError: FailureBuilder =
+    FailureBuilder(org.goldenport.observation.Cause.Argument(
+      org.goldenport.observation.Cause.Reason.ValidationError
+    ))
+
+  final case class FailureBuilder(
+    cause: org.goldenport.observation.Cause,
+    descriptor: org.goldenport.observation.Descriptor =
+      org.goldenport.observation.Descriptor()
+  ) {
+    def withOperation(name: String): FailureBuilder =
+      copy(descriptor = _add_aspect(org.goldenport.observation.Descriptor.Aspect.Operation(name)))
+
+    def withInput(name: String, value: Option[String] = None): FailureBuilder =
+      copy(descriptor = _add_aspect(
+        org.goldenport.observation.Descriptor.Aspect.Input(
+          name = Some(name),
+          value = value
+        )
+      ))
+
+    private def _add_aspect(
+      aspect: org.goldenport.observation.Descriptor.Aspect
+    ): org.goldenport.observation.Descriptor =
+      descriptor.copy(aspects = descriptor.aspects :+ aspect)
+
+    def build[A]: Consequence[A] = {
+      val base = Conclusion.simple("validation error")
+      val observation = base.observation.copy(
+        cause = Some(cause),
+        descriptor = descriptor
+      )
+      Failure(base.copy(observation = observation))
+    }
+  }
 }
 
 class ConsequenceException(
@@ -160,4 +210,3 @@ class ConsequenceException(
       case _ => super.getMessage
     }
 }
-

@@ -6,7 +6,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 22, 2025
- * @version Dec. 22, 2025
+ * @version Dec. 26, 2025
  * @author  ASAMI, Tomoharu
  */
 class IntDataTypeSpec extends AnyWordSpec
@@ -16,15 +16,17 @@ class IntDataTypeSpec extends AnyWordSpec
   "IntDataType" should {
 
     "satisfy basic properties" in {
-      forAll { (x: Int) =>
-        pending
-      }
+      // forAll { (x: Int) =>
+      //   pending
+      // }
+      pending
     }
 
     "preserve invariants" in {
-      forAll { (x: Int) =>
-        pending
-      }
+      // forAll { (x: Int) =>
+      //   pending
+      // }
+      pending
     }
   }
 }
