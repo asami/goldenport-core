@@ -3,9 +3,9 @@ val scala3Version = "3.6.2"
 lazy val root = project
   .in(file("."))
   .settings(
-    organization := "org.simplemodeling",
+    organization := "org.goldenport",
     name := "core",
-    version := "0.0.1-SNAPSHOT",
+    version := "0.1.0",
 
     scalaVersion := scala3Version,
 
@@ -21,5 +21,13 @@ lazy val root = project
     libraryDependencies += "org.typelevel" %% "spire" % "0.18.0",
     libraryDependencies += "io.circe" %% "circe-core" % "0.14.3",
     libraryDependencies += "io.circe" %% "circe-generic" % "0.14.3",
-    libraryDependencies += "io.circe" %% "circe-parser" % "0.14.3"
+    libraryDependencies += "io.circe" %% "circe-parser" % "0.14.3",
+
+    publishTo := Some(
+      "GitHub Packages" at "https://maven.pkg.github.com/asami/maven-repository"
+    ),
+
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
+
+    publishMavenStyle := true
   )
