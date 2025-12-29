@@ -1,5 +1,6 @@
 package org.goldenport.schema
 
+import java.time.{LocalDateTime, OffsetDateTime, YearMonth, ZonedDateTime}
 import scala.util.Try
 import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.I18nMessage
@@ -72,6 +73,17 @@ trait CanonicalNormalizer[T] {
     Consequence.zipN(values.map(normalize)).map(_.toVector)
 }
 
+private object CanonicalFailure {
+  def format[A](message: String): Consequence[A] = {
+    val base = Conclusion.simple(message)
+    val observation = base.observation.copy(
+      cause = Some(Cause.FormatError),
+      message = Some(I18nMessage(message))
+    )
+    Consequence.Failure(base.copy(observation = observation))
+  }
+}
+
 object BigIntNormalizer extends CanonicalNormalizer[BigInt] {
   def normalize(value: Any): Consequence[BigInt] =
     value match {
@@ -82,23 +94,18 @@ object BigIntNormalizer extends CanonicalNormalizer[BigInt] {
       case v: String =>
         Try(BigInt(v)) match {
           case scala.util.Success(result) => Consequence.success(result)
-          case scala.util.Failure(_) => _failure("format error: integer value")
+          case scala.util.Failure(_) => CanonicalFailure.format("format error: integer value")
         }
       case _ =>
-        _failure("format error: integer value")
+        CanonicalFailure.format("format error: integer value")
     }
-
-  private def _failure[A](message: String): Consequence[A] = {
-    val base = Conclusion.simple(message)
-    val observation = base.observation.copy(
-      cause = Some(Cause.FormatError),
-      message = Some(I18nMessage(message))
-    )
-    Consequence.Failure(base.copy(observation = observation))
-  }
 }
 
-abstract class IntegerDataType extends DataType {
+trait CanonicalDataType[T] extends DataType {
+  def normalizer: CanonicalNormalizer[T]
+}
+
+abstract class IntegerDataType extends CanonicalDataType[BigInt] {
   def normalizer: CanonicalNormalizer[BigInt] = BigIntNormalizer
   def isValid(value: BigInt): Boolean
 }
@@ -111,4 +118,69 @@ case object XNonNegativeInteger extends IntegerDataType {
 case object XPositiveInteger extends IntegerDataType {
   def name = "positiveInteger"
   def isValid(value: BigInt): Boolean = value > 0
+}
+
+object ZonedDateTimeNormalizer extends CanonicalNormalizer[ZonedDateTime] {
+  def normalize(value: Any): Consequence[ZonedDateTime] =
+    value match {
+      case v: ZonedDateTime => Consequence.success(v)
+      case v: OffsetDateTime => Consequence.success(v.toZonedDateTime)
+      case v: String =>
+        Try(ZonedDateTime.parse(v)) match {
+          case scala.util.Success(result) => Consequence.success(result)
+          case scala.util.Failure(_) =>
+            Try(OffsetDateTime.parse(v)) match {
+              case scala.util.Success(result) => Consequence.success(result.toZonedDateTime)
+              case scala.util.Failure(_) =>
+                CanonicalFailure.format("format error: datetime value")
+            }
+        }
+      case _ =>
+        CanonicalFailure.format("format error: datetime value")
+    }
+}
+
+object LocalDateTimeNormalizer extends CanonicalNormalizer[LocalDateTime] {
+  def normalize(value: Any): Consequence[LocalDateTime] =
+    value match {
+      case v: LocalDateTime => Consequence.success(v)
+      case v: String =>
+        Try(LocalDateTime.parse(v)) match {
+          case scala.util.Success(result) => Consequence.success(result)
+          case scala.util.Failure(_) =>
+            CanonicalFailure.format("format error: local datetime value")
+        }
+      case _ =>
+        CanonicalFailure.format("format error: local datetime value")
+    }
+}
+
+object YearMonthNormalizer extends CanonicalNormalizer[YearMonth] {
+  def normalize(value: Any): Consequence[YearMonth] =
+    value match {
+      case v: YearMonth => Consequence.success(v)
+      case v: String =>
+        Try(YearMonth.parse(v)) match {
+          case scala.util.Success(result) => Consequence.success(result)
+          case scala.util.Failure(_) =>
+            CanonicalFailure.format("format error: year month value")
+        }
+      case _ =>
+        CanonicalFailure.format("format error: year month value")
+    }
+}
+
+case object XDateTime extends CanonicalDataType[ZonedDateTime] {
+  def name = "dateTime"
+  def normalizer: CanonicalNormalizer[ZonedDateTime] = ZonedDateTimeNormalizer
+}
+
+case object XLocalDateTime extends CanonicalDataType[LocalDateTime] {
+  def name = "localDateTime"
+  def normalizer: CanonicalNormalizer[LocalDateTime] = LocalDateTimeNormalizer
+}
+
+case object XYearMonth extends CanonicalDataType[YearMonth] {
+  def name = "yearMonth"
+  def normalizer: CanonicalNormalizer[YearMonth] = YearMonthNormalizer
 }

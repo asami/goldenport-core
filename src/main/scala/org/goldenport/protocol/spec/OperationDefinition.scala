@@ -8,7 +8,7 @@ import org.goldenport.http.HttpRequest
 import org.goldenport.observation.Cause
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
-import org.goldenport.schema.{IntegerDataType, Multiplicity, ValueDomain}
+import org.goldenport.schema.{CanonicalDataType, IntegerDataType, Multiplicity, ValueDomain}
 
 /*
  * @since   Oct.  6, 2018
@@ -160,7 +160,7 @@ abstract class OperationDefinition
     values: Vector[Any]
   ): Consequence[Vector[Any]] =
     p.datatype match {
-      case dt: IntegerDataType =>
+      case dt: CanonicalDataType[?] =>
         dt.normalizer.normalizeAll(values).map(_.toVector)
       case _ =>
         Consequence.success(values.map(_.toString))
