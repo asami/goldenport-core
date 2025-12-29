@@ -2,12 +2,13 @@ package org.goldenport.protocol.spec
 
 import cats.data.NonEmptyVector
 import java.time.ZonedDateTime
-import org.goldenport.Consequence
+import org.goldenport.{Conclusion, Consequence}
+import org.goldenport.datatype.I18nMessage
 import org.goldenport.http.HttpRequest
+import org.goldenport.observation.Cause
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
-import org.goldenport.schema.Multiplicity
-import org.goldenport.schema.ValueDomain
+import org.goldenport.schema.{IntegerDataType, Multiplicity, ValueDomain}
 
 /*
  * @since   Oct.  6, 2018
@@ -16,7 +17,7 @@ import org.goldenport.schema.ValueDomain
  *  version Feb. 15, 2020
  *  version Nov. 25, 2023
  *  version Mar. 15, 2025
- * @version Dec. 26, 2025
+ * @version Dec. 29, 2025
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -32,11 +33,11 @@ abstract class OperationDefinition
     def domain: ValueDomain
   }
   protected final case class ResolvedSingle(
-    value: String,
+    value: Any,
     domain: ValueDomain
   ) extends ResolvedValue
   protected final case class ResolvedMultiple(
-    values: Vector[String],
+    values: Vector[Any],
     domain: ValueDomain
   ) extends ResolvedValue
   protected final case class ResolvedEmpty(
@@ -52,13 +53,13 @@ abstract class OperationDefinition
       multiplicity = p.multiplicity,
       constraints = Nil
     )
-    val values: List[String] = p.kind match {
+    val values: List[Any] = p.kind match {
       case ParameterDefinition.Kind.Argument =>
-        req.arguments.filter(_.name == p.name).map(_.value.toString)
+        req.arguments.filter(_.name == p.name).map(_.value)
       case ParameterDefinition.Kind.Switch =>
-        req.switches.filter(_.name == p.name).map(_.value.toString)
+        req.switches.filter(_.name == p.name).map(_.value)
       case ParameterDefinition.Kind.Property =>
-        req.properties.filter(_.name == p.name).map(_.value.toString)
+        req.properties.filter(_.name == p.name).map(_.value)
     }
 
     values match {
@@ -72,15 +73,17 @@ abstract class OperationDefinition
           Consequence.success(ResolvedEmpty(domain))
 
       case head :: Nil =>
-        // Value conversion is intentionally deferred.
-        // Raw string is carried as resolved value for now.
-        _validate_value_domain(domain, Vector(head))
-        Consequence.success(ResolvedSingle(head, domain))
+        for {
+          normalized <- _normalize_values(p, Vector(head))
+          _ <- _validate_value_domain(domain, normalized)
+        } yield ResolvedSingle(normalized.head, domain)
 
       case _ =>
         if (_allows_multiple(p)) {
-          _validate_value_domain(domain, values.toVector)
-          Consequence.success(ResolvedMultiple(values.toVector, domain))
+          for {
+            normalized <- _normalize_values(p, values.toVector)
+            _ <- _validate_value_domain(domain, normalized)
+          } yield ResolvedMultiple(normalized, domain)
         } else {
           Consequence
             .failArgumentRedundant
@@ -95,7 +98,12 @@ abstract class OperationDefinition
   )(using req: Request): Consequence[String] =
     _parameter_definition(name).flatMap { p =>
       resolveParameter(p).flatMap {
-        case ResolvedSingle(v, _) => Consequence.success(v)
+        case ResolvedSingle(v: String, _) => Consequence.success(v)
+        case ResolvedSingle(_, _) =>
+          _failure_with_cause(
+            s"parameter is not a string: ${p.name}",
+            Cause.FormatError
+          )
         case ResolvedEmpty(_) => Consequence.failure(s"parameter missing: ${p.name}")
         case ResolvedMultiple(_, _) => Consequence.failure(s"multiple values not allowed: ${p.name}")
       }
@@ -138,9 +146,54 @@ abstract class OperationDefinition
   // Value-domain validation on typed value (default: always succeeds)
   protected def _validate_value_domain(
     domain: ValueDomain,
-    values: Vector[String]
+    values: Vector[Any]
   ): Consequence[Unit] =
-    Consequence.success(())
+    domain.datatype match {
+      case dt: IntegerDataType =>
+        _validate_integer_domain(values, dt)
+      case _ =>
+        Consequence.success(())
+    }
+
+  private def _normalize_values(
+    p: ParameterDefinition,
+    values: Vector[Any]
+  ): Consequence[Vector[Any]] =
+    p.datatype match {
+      case dt: IntegerDataType =>
+        dt.normalizer.normalizeAll(values).map(_.toVector)
+      case _ =>
+        Consequence.success(values.map(_.toString))
+    }
+
+  private def _validate_integer_domain(
+    values: Vector[Any],
+    dt: IntegerDataType
+  ): Consequence[Unit] = {
+    val normalized = values.collect { case v: BigInt => v }
+    if (normalized.size != values.size) {
+      _failure_with_cause("format error: integer value", Cause.FormatError)
+    } else {
+      val invalid = normalized.exists(value => !dt.isValid(value))
+      if (invalid) {
+        _failure_with_cause("value domain error: integer range", Cause.ValueDomainError)
+      } else {
+        Consequence.success(())
+      }
+    }
+  }
+
+  private def _failure_with_cause[A](
+    message: String,
+    cause: Cause
+  ): Consequence[A] = {
+    val base = Conclusion.simple(message)
+    val observation = base.observation.copy(
+      cause = Some(cause),
+      message = Some(I18nMessage(message))
+    )
+    Consequence.Failure(base.copy(observation = observation))
+  }
 }
 
 object OperationDefinition {

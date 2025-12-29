@@ -1,5 +1,10 @@
 package org.goldenport.schema
 
+import scala.util.Try
+import org.goldenport.{Conclusion, Consequence}
+import org.goldenport.datatype.I18nMessage
+import org.goldenport.observation.Cause
+
 /*
  * Datatype reference used by schema definitions.
  *
@@ -37,7 +42,7 @@ package org.goldenport.schema
  *  version Nov.  5, 2021
  *  version Sep.  6, 2024
  *  version Sep. 17, 2025
- * @version Dec. 24, 2025
+ * @version Dec. 29, 2025
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -58,4 +63,52 @@ object DataType {
 
 case object XString extends DataType {
   def name = "string"
+}
+
+trait CanonicalNormalizer[T] {
+  def normalize(value: Any): Consequence[T]
+
+  def normalizeAll(values: Vector[Any]): Consequence[Vector[T]] =
+    Consequence.zipN(values.map(normalize)).map(_.toVector)
+}
+
+object BigIntNormalizer extends CanonicalNormalizer[BigInt] {
+  def normalize(value: Any): Consequence[BigInt] =
+    value match {
+      case v: BigInt => Consequence.success(v)
+      case v: Int => Consequence.success(BigInt(v))
+      case v: Long => Consequence.success(BigInt(v))
+      case v: Short => Consequence.success(BigInt(v.toInt))
+      case v: String =>
+        Try(BigInt(v)) match {
+          case scala.util.Success(result) => Consequence.success(result)
+          case scala.util.Failure(_) => _failure("format error: integer value")
+        }
+      case _ =>
+        _failure("format error: integer value")
+    }
+
+  private def _failure[A](message: String): Consequence[A] = {
+    val base = Conclusion.simple(message)
+    val observation = base.observation.copy(
+      cause = Some(Cause.FormatError),
+      message = Some(I18nMessage(message))
+    )
+    Consequence.Failure(base.copy(observation = observation))
+  }
+}
+
+abstract class IntegerDataType extends DataType {
+  def normalizer: CanonicalNormalizer[BigInt] = BigIntNormalizer
+  def isValid(value: BigInt): Boolean
+}
+
+case object XNonNegativeInteger extends IntegerDataType {
+  def name = "nonNegativeInteger"
+  def isValid(value: BigInt): Boolean = value >= 0
+}
+
+case object XPositiveInteger extends IntegerDataType {
+  def name = "positiveInteger"
+  def isValid(value: BigInt): Boolean = value > 0
 }
