@@ -52,12 +52,12 @@ stabilize meaning rather than to drive design.
 3. Test Layer
 ----------------------------------------------------------------------
 
-Only a single test layer is used.
+Only a single test layer is used: Executable Specifications.
 
-Unit Tests (src/test)
+Executable Specifications (src/test)
 
 Characteristics:
-  - unit-level only
+  - semantic-level (protocol and scenario semantics)
   - deterministic
   - no external dependencies
   - always executed in CI
@@ -77,8 +77,11 @@ Tests SHOULD focus on:
 Tests MUST NOT focus on:
   - private helpers
   - implementation details
-  - execution scenarios
-  - integration behavior
+  - ad hoc example-based integration checks
+  - non-semantic execution mechanics
+
+Scenario and usecase Executable Specifications are allowed and recommended
+when they capture semantic intent using Given/When/Then and PBT.
 
 ----------------------------------------------------------------------
 5. Summary
@@ -87,6 +90,7 @@ Tests MUST NOT focus on:
 - Tests are executable working specifications
 - Meaning is protected over mechanics
 - PBT is the primary approach
-- No integration or scenario tests are included
+- Example-based integration tests are minimized
+- Scenario/usecase Executable Specifications are part of the standard practice
 
 ======================================================================

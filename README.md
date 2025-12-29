@@ -1,203 +1,79 @@
-SimpleModeling Library
-=====================
+# SimpleModeling Library
 
-SimpleModeling Library is a core semantic model library
-for model-driven software systems.
+## What This Is
 
-It provides framework-agnostic, long-lived domain primitives
-that form a shared semantic foundation across:
+SimpleModeling Library is a core semantic model library for model-driven systems.
+It defines long-lived meaning for protocol, datatype, and operation semantics so
+generated and handwritten code can share a stable runtime vocabulary.
 
-    - domain modeling
-    - application logic
-    - configuration loading
-    - error handling
-    - observability
-    - cloud-native runtimes
-    - AI-assisted development
+This repository is not an application framework. It is the semantic substrate
+that keeps meaning stable across tools, runtimes, and adapters.
 
-In addition, this library serves as the **runtime foundation**
-for artifacts automatically generated from CML
-(Cozy Modeling Language).
+## Design Philosophy (Short)
 
-----------------------------------------------------------------------
-Design Philosophy
-----------------------------------------------------------------------
+- Executable Specification is first-class documentation
+- Meaning > mechanics
+- Functional programming oriented (Scala)
+- Given/When/Then + Property-Based Testing
+- Example-based tests are minimized
 
-SimpleModeling Library is built on the following principles:
+## How to Read This Repository (for Humans)
 
-    - Model first: define meaning before behavior
-    - Separation of concerns: fact, judgment, and reaction are distinct
-    - Framework neutrality: usable standalone or with any framework
-    - Long-term stability: semantic vocabulary outlives APIs
-    - Explicit structure over convenience
+1. `README.md`
+2. `docs/rules/`
+3. `docs/spec/`
+4. `docs/design/`
+5. `src/test/scala/`
+6. `src/main/scala/`
 
-The library defines what things mean,
-not what systems should do.
+## Where the Specifications Live
 
-----------------------------------------------------------------------
-Conceptual Overview
-----------------------------------------------------------------------
+- Executable Specifications live in `src/test/scala`.
+- Specs are organized by semantic responsibility (e.g., `org.goldenport.protocol`, `org.goldenport.scenario`).
+- Detailed style rules live in `docs/spec/spec-style.md`.
+- Test policy lives in `docs/spec/test-policy.md`.
 
-The library distinguishes three fundamental layers
-for describing runtime behavior:
+## For AI / Agents
 
-    - Phenomenon
-    - Observation
-    - Conclusion / Consequence
+AI/Agent guidance is in `AGENTS.md`, not here.
+`AGENTS.md` is the canonical entry point for automated agents.
 
-This separation is intentional:
+## Related Docs (Details Live Here)
 
-    - Observation describes what happened
-    - Conclusion represents a judgment
-    - Consequence represents an outcome
+- Error and observation model: `docs/spec/error-observation-integration.md`
+- Error model exploration notes: `docs/notes/error-model-exploration.md`
+- Design and integration boundaries: `docs/design/`
+- Spec style and test policy: `docs/spec/spec-style.md`, `docs/spec/test-policy.md`
+- Rules and conventions: `docs/rules/`
 
-No layer performs execution by itself.
+## Summary
 
-----------------------------------------------------------------------
-CML-Generated Runtime Artifacts
-----------------------------------------------------------------------
+- This repository defines semantic meaning, not runtime behavior.
+- Specifications live as executable code under `src/test/scala`.
+- Given/When/Then + PBT is the baseline spec style.
+- Read rules, spec, and design docs before implementation.
 
-SimpleModeling Library functions as the **runtime support library**
-for code generated from CML (Cozy Modeling Language).
+## Further Reading
 
-CML is used to describe:
+The following topics are intentionally not explained in this README.
+They are documented in detail in the corresponding documents below.
 
-    - domain entities and values
-    - lifecycle and state machines
-    - rules and constraints
-    - domain services and operations
-    - observation and error semantics
+### Error and Observation Model
+Semantic error vocabulary and observation-based error handling.
+See:
+- `docs/spec/error-observation-integration.md`
+- `docs/notes/error-model-exploration.md`
 
-Artifacts generated from CML rely on simplemodeling-lib
-to provide:
+### Framework and Application Integration
+Boundaries and responsibilities between this library, frameworks, and applications.
+See:
+- `docs/design/`
 
-    - shared semantic types
-    - observation primitives
-    - conclusion / consequence control-flow
-    - stable error and classification vocabulary
-
-In this sense, simplemodeling-lib is:
-
-    - not an application framework
-    - not code generation output itself
-    - but the runtime substrate on which
-      generated artifacts execute
-
-This allows generated code to remain:
-
-    - thin
-    - declarative
-    - free of framework coupling
-
-----------------------------------------------------------------------
-Base DataType Profile Compliance
-----------------------------------------------------------------------
-
-SimpleModeling Library follows the *SimpleModeling Base DataType Profile*,
-which defines the normative vocabulary of basic data types
-used in domain models.
-
-The profile specifies:
-
-    - semantic meaning of data types
-    - value ranges and constraints
-    - correspondence to Scala / Java types
-    - reference mapping to XML Schema types
-    - which types require SimpleModeling-specific support
-
-This library implements only those basic data types
-that cannot be adequately expressed by
-Scala or Java standard library types alone.
-
-Implementation rules are as follows:
-
-    - Data types already provided by Scala or Java standard libraries
-      MUST be used as-is and MUST NOT be wrapped.
-    - SimpleModeling-specific data types are introduced only when
-      semantic meaning or explicit value constraints are required.
-    - XML Schema types are treated as reference information only
-      and MUST NOT be reified as Scala types.
-    - This library does NOT provide:
-        - arithmetic or domain-specific operations
-        - validation frameworks
-        - serialization or transport semantics
-
-This policy ensures that simplemodeling-lib remains
-minimal, semantic, and framework-independent.
-
-The Base DataType Profile itself is defined in
-the SimpleModeling documentation site and is considered
-normative for this library.
-
-----------------------------------------------------------------------
-Core Concepts
-----------------------------------------------------------------------
-
-Observation
------------
-
-Observation represents a **factual record**
-of something that occurred during execution.
-
-Properties:
-
-    - descriptive, not prescriptive
-    - structured and machine-readable
-    - compatible with observability systems
-    - free of execution or reaction semantics
-
-Observation unifies information traditionally scattered across:
-
-    - logs
-    - traces
-    - error records
-    - audit trails
-
-Observation is defined in:
-
-    org.simplemodeling.observation
-
-----------------------------------------------------------------------
-Conclusion
-----------------------------------------------------------------------
-
-Conclusion represents a **judgment** made about an observation.
-
-It classifies and contextualizes what was observed,
-but does not execute behavior.
-
-Typical responsibilities:
-
-    - classification
-    - reference to Observation
-    - optional causal linkage
-
-Conclusion is intentionally minimal
-and designed to be interpreted by higher layers.
-
-----------------------------------------------------------------------
-Consequence[T]
-----------------------------------------------------------------------
-
-Consequence[T] represents the **outcome of an operation**.
-
-It is the primary control-flow abstraction
-used by generated and handwritten code alike.
-
-Forms:
-
-    - Success(result, conclusion)
-    - Failure(conclusion)
-
-Rules:
-
-    - expected failures are values, not exceptions
-    - all failures must carry a Conclusion
-    - exceptions are reserved for defects only
-
-----------------------------------------------------------------------
-Error Modeling
-----------------------------------------------------------------------
+### Test Policy and Specification Style
+Executable Specification philosophy, test policy, and specification style rules.
+See:
+- `docs/spec/test-policy.md`
+- `docs/spec/spec-style.md`
 
 Error handling in simplemodeling-lib follows these rules:
 
