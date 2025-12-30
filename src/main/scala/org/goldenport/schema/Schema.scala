@@ -61,7 +61,7 @@ case class Column(
 case class ValueDomain(
   datatype: DataType = XString,
   multiplicity: Multiplicity = Multiplicity.One,
-  constraints: List[Constraint] = Nil
+  constraints: Vector[Constraint] = Vector.empty
 ) {
 }
 
@@ -133,7 +133,4 @@ object MultiplicityMappingPolicy {
     def zeroMore[T](values: Vector[T]): Vector[T] =
       values
   }
-}
-
-sealed trait Constraint {
 }

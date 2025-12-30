@@ -14,9 +14,19 @@
 3. `README.md` (human-oriented overview and entry point)
 4. `docs/rules/` (documentation rules and policies; see document-boundary.md first)
 5. `docs/spec/` (static specifications)
-6. `docs/design/` (design intent and boundaries)
+6. `docs/design/` (design intent and boundaries; start with `docs/design/protocol-core.md`)
 7. `src/main/scala/` (implementation)
 8. `src/test/scala/` (Executable Specifications)
+
+## Canonical Design Documents
+
+- `docs/design/protocol-core.md`  
+  Primary design entry for protocol boundaries and invariants.  
+  MUST be read before modifying protocol-related code.
+
+- `docs/design/protocol-introspection.md`  
+  Projection / introspection design for CLI help, REST OpenAPI, MCP get_manifest.  
+  Read this when working on projection generation.
 
 
 ## Executable Specification Policy
@@ -52,6 +62,7 @@ Executable Specifications are organized by package.
 ### rules
 
 - naming rules
+- **type modeling rule (abstract class vs trait)**: `docs/rules/type-modeling.md`
 - spec style rules
 - operation / parameter definition rules
 - rules only; no exploration notes

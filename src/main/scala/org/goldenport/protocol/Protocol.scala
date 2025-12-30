@@ -14,6 +14,15 @@ case class Protocol(
   services: ServiceDefinitionGroup,
   handler: ProtocolHandler
 ) {
-  def takeIngress(args: Array[String]): Consequence[ArgsIngress] =
-    handler.ingresses.takeIngress(args)
+  def ingress(args: Array[String]): Consequence[ArgsIngress] =
+    handler.ingresses.ingress(args)
+
+  def project[Out](kind: org.goldenport.protocol.handler.projection.ProjectionKind[Out]): Consequence[Out] =
+    handler.projections.project(kind, services)
+
+  def egress[Out](
+    kind: org.goldenport.protocol.handler.egress.EgressKind[Out],
+    c: org.goldenport.Conclusion
+  ): Consequence[Out] =
+    handler.egresses.egress(kind, c)
 }

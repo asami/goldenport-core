@@ -7,6 +7,7 @@ import org.goldenport.protocol.{Protocol, ProtocolEngine}
 import org.goldenport.protocol.handler.ProtocolHandler
 import org.goldenport.protocol.handler.egress.EgressCollection
 import org.goldenport.protocol.handler.ingress.IngressCollection
+import org.goldenport.protocol.handler.projection.{CliHelpProjection, McpGetManifestProjection, OpenApiProjection, ProjectionCollection}
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.Consequence
 import cats.data.NonEmptyVector
@@ -293,7 +294,8 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
   private def dummyProtocolEngine: ProtocolEngine = {
     val handler = ProtocolHandler(
       IngressCollection(Vector.empty),
-      EgressCollection(Vector.empty)
+      EgressCollection(Vector.empty),
+      ProjectionCollection(Vector(new CliHelpProjection, new OpenApiProjection, new McpGetManifestProjection))
     )
     val protocol = Protocol(ServiceDefinitionGroup(Vector.empty), handler)
     ProtocolEngine.create(protocol)

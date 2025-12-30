@@ -1,6 +1,7 @@
 package org.goldenport.protocol.handler
 
 import org.goldenport.protocol.handler.ingress.*
+import org.goldenport.protocol.handler.projection.*
 import org.goldenport.protocol.handler.egress.*
 
 /*
@@ -10,5 +11,6 @@ import org.goldenport.protocol.handler.egress.*
  */
 case class ProtocolHandler(
   ingresses: IngressCollection,
-  egresses: EgressCollection
+  egresses: EgressCollection,
+  projections: ProjectionCollection
 )

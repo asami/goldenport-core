@@ -8,6 +8,7 @@ import org.goldenport.observation.Descriptor
 import org.goldenport.protocol.handler.ProtocolHandler
 import org.goldenport.protocol.handler.egress.EgressCollection
 import org.goldenport.protocol.handler.ingress.{ArgsIngress, IngressCollection}
+import org.goldenport.protocol.handler.projection.{CliHelpProjection, McpGetManifestProjection, OpenApiProjection, ProjectionCollection}
 import org.goldenport.protocol.spec._
 
 /*
@@ -35,7 +36,8 @@ object TestProtocol {
     val services = ServiceDefinitionGroup(Vector(service))
     val handler = ProtocolHandler(
       IngressCollection(Vector(SimpleArgsIngress)),
-      EgressCollection(Vector.empty)
+      EgressCollection(Vector.empty),
+      ProjectionCollection(Vector(new CliHelpProjection, new OpenApiProjection, new McpGetManifestProjection))
     )
     Protocol(services, handler)
   }
@@ -59,7 +61,8 @@ object TestProtocol {
     val services = ServiceDefinitionGroup(Vector(service))
     val handler = ProtocolHandler(
       IngressCollection(Vector(DefaultArgsIngress)),
-      EgressCollection(Vector.empty)
+      EgressCollection(Vector.empty),
+      ProjectionCollection(Vector(new CliHelpProjection, new OpenApiProjection, new McpGetManifestProjection))
     )
     Protocol(services, handler)
   }

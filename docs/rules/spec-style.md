@@ -333,6 +333,43 @@ A failure result is a **valid semantic outcome**.
 
 ---
 
+## PACKAGE PLACEMENT RULE
+
+Executable Specifications **MUST** be placed in the same package as the production code they specify.
+
+This rule treats specifications as first-class semantic definitions rather than auxiliary test artifacts.
+
+### RATIONALE
+
+- Co-locating specs with production code makes the semantic responsibility explicit.
+- Readers (human or AI) can discover authoritative behavior by navigating the package structure alone.
+- This avoids artificial separation such as `*.spec` packages that obscure ownership and intent.
+
+### EXAMPLES
+
+```scala
+// Production code
+package org.goldenport.protocol.handler.projection
+
+class McpGetManifestProjection { ... }
+```
+
+```scala
+// Executable Specification
+package org.goldenport.protocol.handler.projection
+
+class McpGetManifestProjectionSpec
+  extends AnyWordSpec
+     with Matchers
+     with GivenWhenThen {
+  ...
+}
+```
+
+Specifications placed in `*.spec` or parallel test-only packages are considered **legacy layout** and SHOULD be migrated when touched.
+
+---
+
 # EXAMPLES
 
 Typical Working Specifications include:

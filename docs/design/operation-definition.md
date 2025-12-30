@@ -29,6 +29,18 @@ source of parameter meaning.
 through ParameterDefinition so that required/optional semantics and typing
 are centralized in one place.
 
+## Constraint Validation
+
+OperationDefinition MUST validate declared constraints during
+OperationRequest construction.
+
+If any constraint is violated, OperationRequest MUST NOT be created and
+resolveParameter MUST return a failure with ValueDomainError.
+
+This is semantic-boundary validation and does not introduce execution logic.
+Constraint opacity is a projection concern and does not exist at the
+definition level.
+
 ## Applicative Construction
 
 Applicative construction keeps validation order-independent and enables error

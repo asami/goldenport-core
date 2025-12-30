@@ -61,7 +61,7 @@ class ProtocolLogic(protocol: Protocol) {
 
   def makeRequest(args: Array[String]): Consequence[Request] = {
     for {
-      in <- protocol.takeIngress(args)
+      in <- protocol.ingress(args)
       req <- in.encode(args)
     } yield req
   }

@@ -44,7 +44,7 @@ AI/Agent guidance is in `AGENTS.md`, not here.
 - Error model exploration notes: `docs/notes/error-model-exploration.md`
 - Design and integration boundaries: `docs/design/`
 - Spec style and test policy: `docs/spec/spec-style.md`, `docs/spec/test-policy.md`
-- Rules and conventions: `docs/rules/`
+- Rules and conventions: `docs/rules/` (see `docs/rules/type-modeling.md`)
 
 ## Summary
 

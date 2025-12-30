@@ -19,11 +19,15 @@ abstract class Ingress[T] {
 case class IngressCollection(
   ingresses: Vector[Ingress[?]]
 ) {
-  def takeIngress(args: Array[String]): Consequence[ArgsIngress] = {
+  def ingress(args: Array[String]): Consequence[ArgsIngress] = {
     val _ = args
     ingresses.collectFirst { case ingress: ArgsIngress => ingress } match {
       case Some(ingress) => Consequence.success(ingress)
-      case None => Consequence.failure("ingress not found")
+      case None =>
+        Consequence
+          .failArgumentMissing
+          .withInput("args")
+          .build
     }
   }
 }

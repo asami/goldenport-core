@@ -75,6 +75,7 @@ It contains:
 
 ValueDomain is declarative.
 It MUST NOT contain executable logic.
+Constraint opacity is a projection concern, not a definition concept.
 
 
 ### DataType (schema)
@@ -120,6 +121,12 @@ Responsibilities:
 3. Convert raw values into target values using DataType
 4. Validate constraints
 5. Return resolved value(s)
+
+Error split:
+
+- FormatError: parsing/type mismatch during normalization
+- ValueDomainError: constraint violation (including enum/range)
+- Argument.Missing / Argument.Redundant: structural errors
 
 
 ### Value Conversion

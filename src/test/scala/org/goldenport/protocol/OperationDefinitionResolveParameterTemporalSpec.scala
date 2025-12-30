@@ -1,11 +1,11 @@
-package org.goldenport.protocol.spec
+package org.goldenport.protocol
 
 import java.time.{LocalDateTime, OffsetDateTime, YearMonth, ZoneId, ZoneOffset, ZonedDateTime}
 import org.scalacheck.Gen
 import org.goldenport.Consequence
 import org.goldenport.observation.Cause
-import org.goldenport.protocol.{Argument, Request}
 import org.goldenport.protocol.operation.OperationRequest
+import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.schema.{Multiplicity, ValueDomain, XDateTime, XLocalDateTime, XYearMonth}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers

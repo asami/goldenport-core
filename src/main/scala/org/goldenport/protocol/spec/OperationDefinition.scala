@@ -8,7 +8,7 @@ import org.goldenport.http.HttpRequest
 import org.goldenport.observation.Cause
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
-import org.goldenport.schema.{CanonicalDataType, IntegerDataType, Multiplicity, ValueDomain}
+import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Multiplicity, ValueDomain}
 
 /*
  * @since   Oct.  6, 2018
@@ -48,11 +48,7 @@ abstract class OperationDefinition
   protected final def resolveParameter(
     p: ParameterDefinition
   )(using req: Request): Consequence[ResolvedValue] = {
-    val domain = ValueDomain(
-      datatype = p.datatype,
-      multiplicity = p.multiplicity,
-      constraints = Nil
-    )
+    val domain = p.domain
     val values: List[Any] = p.kind match {
       case ParameterDefinition.Kind.Argument =>
         req.arguments.filter(_.name == p.name).map(_.value)
@@ -75,14 +71,14 @@ abstract class OperationDefinition
       case head :: Nil =>
         for {
           normalized <- _normalize_values(p, Vector(head))
-          _ <- _validate_value_domain(domain, normalized)
+          _ <- _validate_value_domain(p, normalized)
         } yield ResolvedSingle(normalized.head, domain)
 
       case _ =>
         if (_allows_multiple(p)) {
           for {
             normalized <- _normalize_values(p, values.toVector)
-            _ <- _validate_value_domain(domain, normalized)
+            _ <- _validate_value_domain(p, normalized)
           } yield ResolvedMultiple(normalized, domain)
         } else {
           Consequence
@@ -145,14 +141,15 @@ abstract class OperationDefinition
 
   // Value-domain validation on typed value (default: always succeeds)
   protected def _validate_value_domain(
-    domain: ValueDomain,
+    p: ParameterDefinition,
     values: Vector[Any]
   ): Consequence[Unit] =
-    domain.datatype match {
+    p.domain.datatype match {
       case dt: IntegerDataType =>
-        _validate_integer_domain(values, dt)
+        _validate_integer_domain(values, dt, p.name)
+          .flatMap(_ => _validate_constraints(values, p.constraints, p.name))
       case _ =>
-        Consequence.success(())
+        _validate_constraints(values, p.constraints, p.name)
     }
 
   private def _normalize_values(
@@ -168,7 +165,8 @@ abstract class OperationDefinition
 
   private def _validate_integer_domain(
     values: Vector[Any],
-    dt: IntegerDataType
+    dt: IntegerDataType,
+    name: String
   ): Consequence[Unit] = {
     val normalized = values.collect { case v: BigInt => v }
     if (normalized.size != values.size) {
@@ -176,12 +174,32 @@ abstract class OperationDefinition
     } else {
       val invalid = normalized.exists(value => !dt.isValid(value))
       if (invalid) {
-        _failure_with_cause("value domain error: integer range", Cause.ValueDomainError)
+        _fail_value_domain(name)
       } else {
         Consequence.success(())
       }
     }
   }
+
+  private def _validate_constraints(
+    values: Vector[Any],
+    constraints: Vector[Constraint],
+    name: String
+  ): Consequence[Unit] = {
+    val invalid =
+      constraints.exists { c =>
+        values.exists(v => c.validate(v).isLeft)
+      }
+
+    if (invalid) _fail_value_domain(name)
+    else Consequence.success(())
+  }
+
+  private def _fail_value_domain[A](name: String): Consequence[A] =
+    Consequence
+      .FailureBuilder(Cause.ValueDomainError)
+      .withInput(name)
+      .build
 
   private def _failure_with_cause[A](
     message: String,
@@ -241,7 +259,9 @@ object OperationDefinition {
     // OperationRequest instance. The behavior here should be treated as
     // provisional and subject to refinement.
     override def createOperationRequest(req: Request): Consequence[OperationRequest] =
-      Consequence.success(
+      given Request = req
+      val validations = specification.request.parameters.map(resolveParameter)
+      Consequence.zipN(validations).map { _ =>
         OperationRequest(
           service    = req.service,
           operation  = name,
@@ -249,7 +269,7 @@ object OperationDefinition {
           switches   = req.switches,
           properties = req.properties
         )
-      )
+      }
   }
 }
 

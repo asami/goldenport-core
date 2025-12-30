@@ -19,13 +19,13 @@ case class ParameterDefinition(
   name: String,
   kind: ParameterDefinition.Kind,
   domain: ValueDomain = ValueDomain(),
-  defaut: ParameterDefinition.Default = ParameterDefinition.Default.Undefined,
+  default: ParameterDefinition.Default = ParameterDefinition.Default.Undefined,
   isMagicSequence: Boolean = true,
   isEagerSequence: Boolean = false
 ) {
   def datatype: DataType = domain.datatype
   def multiplicity: Multiplicity = domain.multiplicity
-  def constraints: List[Constraint] = domain.constraints
+  def constraints: Vector[Constraint] = domain.constraints
 }
 
 object ParameterDefinition {
@@ -38,11 +38,10 @@ object ParameterDefinition {
     protected def enum_Values = Kind.values
   }
 
-  enum Default extends SmEnum {
-    case Undefined
-    case Empty
-  }
-  object Default extends SmEnumClass[Default] {
-    protected def enum_Values = Default.values
+  sealed trait Default
+  object Default {
+    case object Undefined extends Default
+    case object Empty extends Default
+    case class Value(value: Any) extends Default
   }
 }
