@@ -22,7 +22,7 @@ import org.goldenport.observation.SystemLocation
 
 /*
  * @since   Dec. 22, 2025
- * @version Dec. 25, 2025
+ * @version Dec. 30, 2025
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec
@@ -40,7 +40,7 @@ class ConsequenceSpec extends AnyWordSpec
     Consequence.Failure(
       Conclusion(
         status = Conclusion.Status(
-          webCode = Conclusion.WebCode(400)
+          webCode = Conclusion.WebCode.BadRequest
         ),
         observation = _observation(label),
         previous = None

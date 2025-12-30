@@ -808,6 +808,48 @@ This section defines conventions for representing errors, failures, and results 
 
 ## Principle
 
+## Defect vs Domain Failure (Normative)
+
+This project makes a strict semantic distinction between **Defect** and **Domain Failure**.
+
+### Domain Failure
+
+- Represents expected, valid outcomes defined by the domain model
+- MUST be modeled as values
+- MUST use `Consequence` / `Conclusion`
+- MUST NOT use exceptions
+- MUST be composable and inspectable
+
+Examples:
+- Validation failure
+- Business rule violation
+- Invalid state transition
+- Missing or invalid user input
+
+### Defect
+
+- Represents system-level failures or broken assumptions
+- Indicates programming errors, misconfiguration, or invariant violations
+- MAY use exceptions
+- MUST NOT encode domain meaning
+- MUST be contained at system or boundary layers
+
+Examples:
+- Null pointer access
+- Illegal state
+- Broken invariant
+- Unexpected runtime failure
+
+### Throwable Boundary Rule
+
+- `Throwable` MUST be treated as a boundary signal only
+- `Throwable` MUST NOT cross domain boundaries
+- Domain logic MUST NOT depend on `Throwable`
+
+The normative definition and rationale are documented in:
+
+    docs/notes/defect-vs-domain-failure.md
+
 - **Domain errors** and **expected failures** should be modeled as values, not exceptions.
 - Use the `Consequence` type (or similar) to represent recoverable errors and business rule violations.
 - Use exceptions only for programming errors, contract violations, or truly exceptional conditions.
@@ -2772,3 +2814,125 @@ This project follows a documented test policy.
 The authoritative specification is defined in:
 
     docs/spec/test-policy.md
+
+----------------------------------------------------------------------
+ExecutionContext Rules
+----------------------------------------------------------------------
+
+ExecutionContext is the central execution model of goldenport core.
+
+All execution assumptions required by core logic MUST be provided
+explicitly via ExecutionContext.
+
+Core code MUST NOT rely on implicit JVM, OS, or library defaults.
+
+----------------------------------------------------------------------
+Context Usage Rules
+----------------------------------------------------------------------
+
+- All core logic MUST receive execution-related assumptions
+  via org.goldenport.context.ExecutionContext.
+
+- Core code MUST NOT directly access:
+  - system time (e.g. Instant.now, LocalDate.now)
+  - default locale or timezone
+  - default encoding
+  - random number generators
+  - math precision defaults
+
+- All such values MUST be modeled explicitly in ExecutionContext, including:
+  - locale
+  - timezone
+  - encoding
+  - datetime format
+  - clock / time source
+  - math context
+  - random sequence
+
+- ExecutionContext MUST be immutable and explicitly injected.
+
+- ExecutionContext MUST be test-constructible without CNCF.
+
+----------------------------------------------------------------------
+Logging Rules
+----------------------------------------------------------------------
+
+Logging in goldenport core is treated as a capability,
+not as infrastructure.
+
+- All logging in core MUST be performed via:
+    ExecutionContext.logger
+
+- Core code MUST NOT:
+  - access logging frameworks directly
+  - use static or global loggers
+  - manage logging configuration or output destinations
+
+- Logger is an interface defined by goldenport.
+
+Implementation policy:
+- Core provides SLF4J-based Logger adapters.
+- CNCF provides OpenTelemetry-based Logger adapters.
+- Tests provide recording or in-memory Logger implementations.
+
+----------------------------------------------------------------------
+RuntimeContext Boundary Rules
+----------------------------------------------------------------------
+
+RuntimeContext is a CNCF concern and MUST NOT leak into goldenport core.
+
+- Core code MUST NOT:
+  - depend on runtime state (retry count, thread, transaction)
+  - depend on execution lifecycle
+  - access CNCF RuntimeContext directly
+
+- CNCF MAY project information from RuntimeContext
+  into ExecutionContext, but this projection MUST be explicit.
+
+----------------------------------------------------------------------
+Defaults Prohibition Rules
+----------------------------------------------------------------------
+
+The following are prohibited in goldenport core code:
+
+- Locale.getDefault
+- ZoneId.systemDefault
+- Charset.defaultCharset
+- Instant.now / LocalDate.now / ZonedDateTime.now
+- scala.util.Random
+- default MathContext
+- static logger acquisition
+
+Any use of such functionality MUST be mediated by ExecutionContext.
+
+----------------------------------------------------------------------
+Naming and Import Rules
+----------------------------------------------------------------------
+
+- org.goldenport.context.ExecutionContext is the canonical ExecutionContext
+  of goldenport.
+
+- scala.concurrent.ExecutionContext MUST be imported with an alias, such as:
+    import scala.concurrent.{ExecutionContext => ScalaExecutionContext}
+
+- Direct usage of scala.concurrent.ExecutionContext without alias
+  is prohibited in goldenport code.
+
+----------------------------------------------------------------------
+Rationale
+----------------------------------------------------------------------
+
+These rules ensure that:
+
+- execution assumptions are explicit and modeled
+- testability and reproducibility are guaranteed
+- core remains independent of CNCF runtime concerns
+- configuration-driven behavior remains extensible
+- multi-language and time-sensitive behavior is verifiable
+
+Violation of these rules leads to:
+- hidden dependencies
+- non-reproducible tests
+- brittle runtime behavior
+- loss of architectural clarity
+

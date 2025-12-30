@@ -3,8 +3,18 @@
 This document records exploratory notes and empirical findings
 related to the error / observation model in simplemodeling-lib.
 
+
 This is a non-normative, evolving document.
 It intentionally avoids fixing final designs.
+
+```
+Note:
+The normative distinction between Defect and Domain Failure
+is defined in docs/notes/defect-vs-domain-failure.md.
+
+This document intentionally explores design space
+beyond that fixed semantic boundary.
+```
 
 The purpose is to:
 - Preserve design context

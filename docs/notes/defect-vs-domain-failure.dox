@@ -1,0 +1,209 @@
+Clarifying Defect vs Domain Failure
+=================================
+
+— Observation / Conclusion / Consequence Mapping —
+
+----------------------------------------------------------------------
+1. Purpose
+----------------------------------------------------------------------
+
+This document clarifies the semantic distinction between **Defect** and
+**Domain Failure**, and defines how each MUST be represented using:
+
+- Observation
+- Conclusion
+- Consequence
+
+This clarification is required to:
+
+- Define the correct semantics of `Conclusion.from(Throwable)`
+- Ensure RULE.md has an explicit and enforceable policy
+- Prevent exception leakage into domain logic
+
+This is a design note.
+It is normative in intent but does NOT define API or transport contracts.
+
+----------------------------------------------------------------------
+2. Core Principle
+----------------------------------------------------------------------
+
+Defects are failures of the system.
+Domain failures are outcomes of the domain.
+
+They MUST be treated differently.
+
+----------------------------------------------------------------------
+3. Definitions
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+3.1 Defect
+----------------------------------------------------------------------
+
+A **Defect** is a failure indicating that the system itself is in an
+invalid, unexpected, or unrecoverable state.
+
+Characteristics:
+
+- Indicates a programming, configuration, or infrastructure error
+- Cannot be meaningfully handled by domain logic
+- Not part of the domain’s normal behavior
+- Usually unexpected at runtime
+
+Examples:
+
+- NullPointerException
+- IllegalStateException
+- Invariant violation
+- Misconfiguration
+- Resource exhaustion
+- Unexpected external system failure
+
+----------------------------------------------------------------------
+3.2 Domain Failure
+----------------------------------------------------------------------
+
+A **Domain Failure** is a valid, expected outcome defined by the domain
+model.
+
+Characteristics:
+
+- Expresses business rules or domain constraints
+- Fully anticipated in domain logic
+- MUST NOT use exceptions
+- Is part of the domain’s language
+
+Examples:
+
+- Missing required argument
+- Invalid state transition
+- Validation failure
+- Permission denied
+- Resource not found (as a domain concept)
+
+----------------------------------------------------------------------
+4. Representation Rules
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+4.1 Domain Failure Representation
+----------------------------------------------------------------------
+
+Domain failures MUST be represented as:
+
+- Observation describing the domain fact
+- Conclusion derived from Observation
+- Consequence.Failure(conclusion)
+
+Rules:
+
+- MUST NOT throw exceptions
+- MUST carry domain meaning explicitly
+- MUST be composable and inspectable
+- MUST be deterministic
+
+Exceptions are forbidden for domain failures.
+
+----------------------------------------------------------------------
+4.2 Defect Representation
+----------------------------------------------------------------------
+
+Defects MUST be represented as:
+
+- An Observation with:
+    - CauseKind = Defect or Exception
+    - Minimal required fields only
+- A Conclusion with:
+    - WebCode = InternalError (500-equivalent)
+    - No domain semantics
+- Wrapped into Consequence.Failure
+
+Defects may originate from:
+
+- Thrown exceptions
+- Assertion failures
+- Unexpected runtime errors
+
+----------------------------------------------------------------------
+5. Throwable Boundary Rule
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+5.1 Use of Throwable
+----------------------------------------------------------------------
+
+Throwable MUST be treated as a boundary signal, not a domain signal.
+
+Rules:
+
+- Throwable MUST NOT cross domain boundaries
+- Throwable MUST NOT encode domain meaning
+- Throwable MUST be contained at system boundaries only
+
+----------------------------------------------------------------------
+5.2 Conclusion.from(Throwable)
+----------------------------------------------------------------------
+
+Conclusion.from(Throwable) exists only to:
+
+- Contain defects
+- Translate exceptions into a structured failure
+- Prevent exception leakage into the core language
+
+It MUST:
+
+- Create a Conclusion representing a Defect
+- Use WebCode = InternalError
+- Avoid inspecting framework-specific exception types
+- Avoid encoding domain meaning
+
+It MUST NOT:
+
+- Be used for domain failures
+- Be used inside domain logic
+- Perform exception classification beyond Defect vs non-Defect
+
+----------------------------------------------------------------------
+6. Mapping Summary
+----------------------------------------------------------------------
+
+Aspect               | Domain Failure            | Defect
+-------------------- | ------------------------- | ---------------------------
+Expected             | Yes                       | No
+Part of domain lang. | Yes                       | No
+Uses Exception       | No                        | Yes (input only)
+Representation       | Obs → Concl → Consq       | Throwable → Concl.from
+Domain meaning       | Explicit                  | None
+Recoverability       | Domain-defined            | Undefined
+
+----------------------------------------------------------------------
+7. Implications for RULE.md
+----------------------------------------------------------------------
+
+RULE.md MUST explicitly state:
+
+- Exceptions are for Defects only
+- Domain failures MUST use Consequence
+- Conclusion.from(Throwable) is a boundary-only construct
+- Domain logic MUST NOT depend on Throwable
+
+----------------------------------------------------------------------
+8. Non-Goals
+----------------------------------------------------------------------
+
+This document does NOT:
+
+- Define handling strategies
+- Define retries or escalation
+- Define logging or observability
+- Define transport-level mappings (HTTP, CLI, MCP)
+
+----------------------------------------------------------------------
+9. Final Statement
+----------------------------------------------------------------------
+
+Defects are contained.
+Domain failures are modeled.
+Confusing them destroys semantics.
+
+This rule is foundational to the SimpleModeling core.
