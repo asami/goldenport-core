@@ -1,5 +1,6 @@
 package org.goldenport.protocol.spec
 
+import org.goldenport.model.value.{BaseContent, DescriptiveAttributes}
 import org.goldenport.schema.*
 import org.goldenport.schema.ValueDomain
 import org.goldenport.util.{SmEnum, SmEnumClass}
@@ -12,17 +13,18 @@ import org.goldenport.util.{SmEnum, SmEnumClass}
  *  version Mar. 17, 2025
  *  version Apr.  2, 2025
  *  version Jun.  5, 2025
- * @version Dec. 26, 2025
+ * @version Dec. 30, 2025
  * @author  ASAMI, Tomoharu
  */
 case class ParameterDefinition(
-  name: String,
+  content: BaseContent,
   kind: ParameterDefinition.Kind,
   domain: ValueDomain = ValueDomain(),
   default: ParameterDefinition.Default = ParameterDefinition.Default.Undefined,
   isMagicSequence: Boolean = true,
   isEagerSequence: Boolean = false
-) {
+) extends BaseContent.BareHolder {
+  protected def baseContent: BaseContent = content
   def datatype: DataType = domain.datatype
   def multiplicity: Multiplicity = domain.multiplicity
   def constraints: Vector[Constraint] = domain.constraints
@@ -44,4 +46,67 @@ object ParameterDefinition {
     case object Empty extends Default
     case class Value(value: Any) extends Default
   }
+
+  @deprecated("Use BaseContent-based constructor", "2025-12-30")
+  def apply(
+    name: String,
+    kind: ParameterDefinition.Kind
+  ): ParameterDefinition =
+    apply(
+      name = name,
+      kind = kind,
+      domain = ValueDomain(),
+      default = ParameterDefinition.Default.Undefined,
+      isMagicSequence = true,
+      isEagerSequence = false
+    )
+
+  @deprecated("Use BaseContent-based constructor", "2025-12-30")
+  def apply(
+    name: String,
+    kind: ParameterDefinition.Kind,
+    domain: ValueDomain
+  ): ParameterDefinition =
+    apply(
+      name = name,
+      kind = kind,
+      domain = domain,
+      default = ParameterDefinition.Default.Undefined,
+      isMagicSequence = true,
+      isEagerSequence = false
+    )
+
+  @deprecated("Use BaseContent-based constructor", "2025-12-30")
+  def apply(
+    name: String,
+    kind: ParameterDefinition.Kind,
+    domain: ValueDomain,
+    default: ParameterDefinition.Default
+  ): ParameterDefinition =
+    apply(
+      name = name,
+      kind = kind,
+      domain = domain,
+      default = default,
+      isMagicSequence = true,
+      isEagerSequence = false
+    )
+
+  @deprecated("Use BaseContent-based constructor", "2025-12-30")
+  def apply(
+    name: String,
+    kind: ParameterDefinition.Kind,
+    domain: ValueDomain,
+    default: ParameterDefinition.Default,
+    isMagicSequence: Boolean,
+    isEagerSequence: Boolean
+  ): ParameterDefinition =
+    ParameterDefinition(
+      BaseContent.simple(name),
+      kind = kind,
+      domain = domain,
+      default = default,
+      isMagicSequence = isMagicSequence,
+      isEagerSequence = isEagerSequence
+    )
 }

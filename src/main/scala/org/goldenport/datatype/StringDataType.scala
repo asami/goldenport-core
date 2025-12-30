@@ -3,7 +3,7 @@ package org.goldenport.datatype
 /*
  * @since   Jul. 20, 2025
  *  version Jul. 23, 2025
- * @version Dec. 24, 2025
+ * @version Dec. 30, 2025
  * @author  ASAMI, Tomoharu
  */
 abstract class StringDataType() extends DataType() {
@@ -26,7 +26,7 @@ abstract class StringDataType() extends DataType() {
     length >= length_min && length_Min.fold(true)(_ <= length)
 
   protected final def is_valid_max: Boolean =
-    length >= length_max && length_Max.fold(true)(_ >= length)
+    length <= length_max && length_Max.fold(true)(_ >= length)
 
   protected final def is_valid_string(p: String): Boolean =
     is_valid(p) && is_Valid(p).getOrElse(true)

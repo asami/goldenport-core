@@ -7,7 +7,7 @@ import org.goldenport.protocol.handler.ProtocolHandler
 
 /*
  * @since   Dec. 28, 2025
- * @version Dec. 28, 2025
+ * @version Dec. 30, 2025
  * @author  ASAMI, Tomoharu
  */
 case class Protocol(
@@ -19,6 +19,9 @@ case class Protocol(
 
   def project[Out](kind: org.goldenport.protocol.handler.projection.ProjectionKind[Out]): Consequence[Out] =
     handler.projections.project(kind, services)
+
+  def projectByName(name: String): Consequence[Any] =
+    handler.projections.projectByName(name, services)
 
   def egress[Out](
     kind: org.goldenport.protocol.handler.egress.EgressKind[Out],

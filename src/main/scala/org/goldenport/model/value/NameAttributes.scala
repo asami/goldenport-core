@@ -6,11 +6,12 @@ import org.goldenport.datatype.Identifier
 import org.goldenport.datatype.Slug
 import org.goldenport.datatype.I18nLabel
 import org.goldenport.datatype.I18nTitle
+import org.goldenport.datatype.I18nString
 
 /*
  * @since   Aug.  1, 2025
  *  version Aug.  2, 2025
- * @version Dec. 24, 2025
+ * @version Dec. 30, 2025
  * @author  ASAMI, Tomoharu
  */
 case class NameAttributes(
@@ -35,4 +36,25 @@ object NameAttributes {
     def name: Name = name_Attributes.name
     def label: Option[I18nLabel] = name_Attributes.label
   }
+
+  trait BareHolder {
+    protected def name_Attributes: NameAttributes
+
+    def name: String = name_Attributes.name.value
+    def label: Option[I18nString] = name_Attributes.label.map(_.toI18nString)
+  }
+
+  def simple(name: String): NameAttributes =
+    simple(Name(name))
+
+  def simple(name: Name): NameAttributes =
+    NameAttributes(
+      name = name,
+      label = None,
+      title = None,
+      code = None,
+      alias = None,
+      slug = None,
+      shortid = None
+    )
 }

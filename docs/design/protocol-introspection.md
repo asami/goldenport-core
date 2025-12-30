@@ -1,14 +1,13 @@
 ======================================================================
-Protocol Introspection & Projection Design (1st Stage)
-CLI help / REST OpenAPI / MCP get_manifest
+Protocol Introspection & Projection — Final Design (Phase 1–2)
+CLI help / REST OpenAPI / MCP get_manifest / ProtocolEngine
 ======================================================================
 
-This document defines the first-stage design for protocol-based
+This document defines the design for protocol-based
 introspection and projections derived from service and operation
 definitions.
 
-This design is normative for the first stage and serves as the canonical
-reference for CLI help, REST OpenAPI generation, and MCP get_manifest.
+This document reflects the completed Phase 1 (definition metadata) and Phase 2 (ProtocolEngine integration) and is aligned with tested behavior.
 
 ----------------------------------------------------------------------
 Scope
@@ -39,6 +38,8 @@ Design Principles
 - Projections may differ in format, but not in semantics.
 - Error semantics are execution-time concerns and are not embedded in
   definitions.
+- BaseContent is the canonical source of name and descriptive metadata.
+- ProtocolEngine is the sole entry point for downstream systems.
 
 ----------------------------------------------------------------------
 Definition and Introspection
@@ -54,6 +55,27 @@ In the first stage, introspection is directly derived from definitions.
 This approach is intentionally chosen to avoid premature abstraction.
 If introspection later requires independent attributes, a dedicated
 introspection model may be introduced.
+
+----------------------------------------------------------------------
+Definition Metadata (Phase 1 — Completed)
+----------------------------------------------------------------------
+
+- BaseContent is used extensively in OperationDefinition and ParameterDefinition to provide consistent naming and descriptive metadata.
+- DescriptiveAttributes are mandatory for all named elements, though they may be empty.
+- Holder and BareHolder types are used to encapsulate optional content without resorting to Option-based fallbacks.
+- Projections do not rely on Option-based fallback mechanisms; metadata presence is guaranteed via BaseContent.
+
+----------------------------------------------------------------------
+ProtocolEngine Integration (Phase 2 — Completed)
+----------------------------------------------------------------------
+
+- The ProtocolEngine eliminates the need for downstream wrappers by providing explicit, well-defined engine-level APIs.
+- Available APIs include:
+  - openApi: for generating OpenAPI specifications.
+  - cliHelp: for generating CLI help content.
+  - getManifest: for generating MCP get_manifest projections.
+- For semi-last-resort raw access, enproject and enprojectByName methods are provided.
+- ProtocolEngine does NOT expose a generic project method; all projections are accessed via explicit APIs.
 
 ----------------------------------------------------------------------
 CLI Help Projection
@@ -90,6 +112,8 @@ Rationale:
 - Short options (e.g. -p) are reserved for future extensions.
 - The option namespace is extensible without ambiguity.
 
+Data is derived exclusively from BaseContent-backed definitions via ProtocolEngine.
+
 ----------------------------------------------------------------------
 REST OpenAPI Projection
 ----------------------------------------------------------------------
@@ -124,6 +148,8 @@ protocol-introspection-openapi.md.
 Concrete MCP get_manifest structure and semantics are defined in
 protocol-introspection-mcp.md.
 
+Data is derived exclusively from BaseContent-backed definitions via ProtocolEngine.
+
 ----------------------------------------------------------------------
 MCP get_manifest Projection
 ----------------------------------------------------------------------
@@ -154,6 +180,8 @@ The manifest is a capability declaration, not an execution contract.
 
 Default and constraint representation rules are defined in
 protocol-introspection-mcp.md.
+
+Data is derived exclusively from BaseContent-backed definitions via ProtocolEngine.
 
 ----------------------------------------------------------------------
 Datatype Representation in MCP get_manifest
@@ -273,5 +301,5 @@ Concrete error representation is intentionally deferred to
 execution-time contexts.
 
 ----------------------------------------------------------------------
-End of 1st Stage Design
+End of Phase 1–2 Design (Normative)
 ----------------------------------------------------------------------

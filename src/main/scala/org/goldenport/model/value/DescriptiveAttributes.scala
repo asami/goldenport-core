@@ -5,11 +5,13 @@ import org.goldenport.datatype.I18nBrief
 import org.goldenport.datatype.I18nSummary
 import org.goldenport.datatype.I18nDescription
 import org.goldenport.datatype.I18nText
+import org.goldenport.datatype.I18nString
 
 /*
  * @since   Aug.  1, 2025
  *  version Aug.  2, 2025
- * @version Oct.  7, 2025
+ *  version Oct.  7, 2025
+ * @version Dec. 30, 2025
  * @author  ASAMI, Tomoharu
  */
 case class DescriptiveAttributes(
@@ -27,5 +29,32 @@ case class DescriptiveAttributes(
 object DescriptiveAttributes {
   trait Holder {
     protected def descriptive_Attributes: DescriptiveAttributes
+
+    def headline: Option[I18nBrief] = descriptive_Attributes.headline
+    def brief: Option[I18nBrief] = descriptive_Attributes.brief
+    def summary: Option[I18nSummary] = descriptive_Attributes.summary
+    def description: Option[I18nDescription] = descriptive_Attributes.description
+    def lead: Option[I18nSummary] = descriptive_Attributes.lead
+    def content: Option[I18nText] = descriptive_Attributes.content
+    def `abstract`: Option[I18nSummary] = descriptive_Attributes.`abstract`
+    def remarks: Option[I18nSummary] = descriptive_Attributes.remarks
+    def tooltip: Option[I18nLabel] = descriptive_Attributes.tooltip
   }
+
+  trait BareHolder {
+    protected def descriptive_Attributes: DescriptiveAttributes
+
+    def headline: Option[I18nString] = descriptive_Attributes.headline.map(_.toI18nString)
+    def brief: Option[I18nString] = descriptive_Attributes.brief.map(_.toI18nString)
+    def summary: Option[I18nString] = descriptive_Attributes.summary.map(_.toI18nString)
+    def description: Option[I18nString] = descriptive_Attributes.description.map(_.toI18nString)
+    def lead: Option[I18nString] = descriptive_Attributes.lead.map(_.toI18nString)
+    def contentText: Option[I18nString] = descriptive_Attributes.content.map(_.toI18nString)
+    def `abstract`: Option[I18nString] = descriptive_Attributes.`abstract`.map(_.toI18nString)
+    def remarks: Option[I18nString] = descriptive_Attributes.remarks.map(_.toI18nString)
+    def tooltip: Option[I18nString] = descriptive_Attributes.tooltip.map(_.toI18nString)
+  }
+
+  val empty: DescriptiveAttributes =
+    DescriptiveAttributes(None, None, None, None, None, None, None, None, None)
 }

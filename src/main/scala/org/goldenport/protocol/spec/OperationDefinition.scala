@@ -4,6 +4,7 @@ import cats.data.NonEmptyVector
 import java.time.ZonedDateTime
 import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.I18nMessage
+import org.goldenport.model.value.BaseContent
 import org.goldenport.http.HttpRequest
 import org.goldenport.observation.Cause
 import org.goldenport.protocol.Request
@@ -17,7 +18,7 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Feb. 15, 2020
  *  version Nov. 25, 2023
  *  version Mar. 15, 2025
- * @version Dec. 29, 2025
+ * @version Dec. 30, 2025
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -215,29 +216,50 @@ abstract class OperationDefinition
 }
 
 object OperationDefinition {
+  @deprecated("Use BaseContent-based constructor", "2025-12-30")
   def apply(
     name: String,
     request: RequestDefinition,
     response: ResponseDefinition
   ): OperationDefinition =
+    Instance(Specification(name, request, response))
+
+  def apply(
+    content: BaseContent,
+    request: RequestDefinition,
+    response: ResponseDefinition
+  ): OperationDefinition =
     Instance(
       Specification(
-        name = name,
+        content = content,
         request = request,
         response = response
       )
     )
 
   case class Specification(
-    name: String,
+    content: BaseContent,
     request: RequestDefinition,
     response: ResponseDefinition
-  )
+  ) extends BaseContent.BareHolder {
+    protected def baseContent: BaseContent = content
+  }
   object Specification {
-    trait Holder {
+    def apply(
+      name: String,
+      request: RequestDefinition,
+      response: ResponseDefinition
+    ): Specification =
+      Specification(
+        content = BaseContent.simple(name),
+        request = request,
+        response = response
+      )
+
+    trait Holder extends BaseContent.BareHolder {
       def specification: Specification
 
-      def name: String = specification.name
+      protected def baseContent: BaseContent = specification.content
       def request: RequestDefinition = specification.request
       def response: ResponseDefinition = specification.response
     }

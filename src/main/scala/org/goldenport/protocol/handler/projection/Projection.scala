@@ -32,4 +32,17 @@ case class ProjectionCollection(
           .withInput(kind.name)
           .build
     }
+
+  def projectByName(
+    name: String,
+    defs: ServiceDefinitionGroup
+  ): Consequence[Any] =
+    projections.collectFirst { case p if p.kind.name == name => p } match {
+      case Some(p) => p.asInstanceOf[Projection[Any]].project(defs)
+      case None =>
+        Consequence
+          .failArgumentMissing
+          .withInput(name)
+          .build
+    }
 }
