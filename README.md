@@ -46,6 +46,13 @@ AI/Agent guidance is in `AGENTS.md`, not here.
 - Spec style and test policy: `docs/spec/spec-style.md`, `docs/spec/test-policy.md`
 - Rules and conventions: `docs/rules/` (see `docs/rules/type-modeling.md`)
 
+## Context Model (Current)
+
+- EnvironmentContext, VirtualMachineContext, and I18nContext are independent contexts.
+- ExecutionContext composes those contexts and adds no new semantics.
+- Bootstrap and factory responsibilities live in CNCF / infrastructure, not core.
+- See `docs/spec/context-overview.md` and related specs under `docs/spec/`.
+
 ## Summary
 
 - This repository defines semantic meaning, not runtime behavior.

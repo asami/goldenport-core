@@ -1,11 +1,5 @@
 package org.goldenport.context
 
-/*
- * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
- * @author  ASAMI, Tomoharu
- */
-
 import java.nio.charset.Charset
 import java.time.{Clock, ZoneId}
 import java.util.Locale
@@ -23,7 +17,7 @@ import org.goldenport.log.Logger
  */
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Dec. 31, 2025
  * @author  ASAMI, Tomoharu
  */
 abstract class ExecutionContext extends ExecutionContext.Core.Holder {
@@ -37,11 +31,14 @@ object ExecutionContext {
    * CNCF may wrap or adapt this with additional runtime state.
    */
   final case class Core(
+    environment: EnvironmentContext,
+    vm: VirtualMachineContext,
+    i18n: I18nContext,
     locale: Locale,
     timezone: ZoneId,
     encoding: Charset,
     clock: Clock,
-    mathContext: MathContext,
+    math: MathContext,
     random: RandomContext,
     logger: Logger
   )
@@ -49,12 +46,15 @@ object ExecutionContext {
     trait Holder {
       def core: Core
 
+      def environment: EnvironmentContext = core.environment
+      def vm: VirtualMachineContext = core.vm
+      def i18n: I18nContext = core.i18n
       def locale: Locale = core.locale
       def timezone: ZoneId = core.timezone
       def encoding: Charset = core.encoding
 
       def clock: Clock = core.clock
-      def mathContext: MathContext = core.mathContext
+      def math: MathContext = core.math
       def random: RandomContext = core.random
 
       def logger: Logger = core.logger

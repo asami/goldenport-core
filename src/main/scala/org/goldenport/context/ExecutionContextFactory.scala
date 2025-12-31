@@ -10,7 +10,7 @@ import org.goldenport.log.Logger
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Dec. 31, 2025
  * @author  ASAMI, Tomoharu
  */
 trait ExecutionContextFactory {
@@ -20,15 +20,21 @@ trait ExecutionContextFactory {
 
 final class DefaultExecutionContextFactory(
   defaultlogger: Logger,
-  defaultclock: Clock
+  defaultclock: Clock,
+  defaultenvironment: EnvironmentContext,
+  defaultvirtualmachine: VirtualMachineContext,
+  defaulti18n: I18nContext
 ) extends ExecutionContextFactory {
   def coreFrom(config: Config.Core): ExecutionContext.Core =
     ExecutionContext.Core(
+      environment = defaultenvironment,
+      vm = defaultvirtualmachine,
+      i18n = defaulti18n,
       locale = Locale.forLanguageTag(config.locale),
       timezone = ZoneId.of(config.timezone),
       encoding = Charset.forName(config.encoding),
       clock = defaultclock,
-      mathContext = _math_context(config.mathContext),
+      math = _math_context(config.mathContext),
       random = RandomContext.from(config.random),
       logger = defaultlogger
     )

@@ -26,9 +26,23 @@ Framework-specific concerns (CNCF, SIE, Cozy runtime) are explicitly excluded.
     - Core specifications are written in RFC-style numbered sections
     - Subsections use numeric hierarchy (e.g. 1.1, 2.3)
     - Specifications are normative; notes are non-normative
-    - docs/spec defines framework-level contracts (e.g. CNCF)
+    - docs/spec defines normative core specifications (including contracts that upper layers such as CNCF must respect)
     - docs/notes preserves exploratory and empirical design context
     - Applications (e.g. SIE) are validation sources, not spec authorities
+
+----------------------------------------------------------------------  
+0.2 Context Model Status
+----------------------------------------------------------------------  
+
+Completed:
+    - Context spec set (EnvironmentContext / VirtualMachineContext / I18nContext / ExecutionContext)
+    - ExecutionContext composition (EnvironmentContext / VirtualMachineContext / I18nContext)
+    - Executable specs for Context composition (structure-only)
+
+Next Phase:
+    - Engine-side usage guidelines aligned with Context specs (no new core convenience APIs)
+    - CNCF extension points for context detection and bootstrap
+    - Resolver / Manager implementations (outside core)
 
 ----------------------------------------------------------------------  
 1. Highest Priority Tasks (Must Do First)  
@@ -58,6 +72,7 @@ Expected behavior:
 Notes:
     - This method exists to *contain* exceptions, not encourage them
     - Design first, then implement
+    - Design note MUST be written under docs/spec/ or docs/notes before implementation
 
 ----------------------------------------------------------------------  
 1.2 Clarify Defect vs Domain Failure Mapping  
@@ -157,7 +172,7 @@ Tasks:
     - Define how `previous` (causal chaining) should be used
 
 Deliverable:
-    - docs/observation-guidelines.md (or .txt)
+    - docs/spec/observation-guidelines.md (normative) or docs/notes/observation-guidelines.md (exploratory)
 
 Notes:
     - This is a design document task
@@ -403,6 +418,7 @@ Rules:
     - Public construction MUST be explicit (from / parse / unsafe)
     - Validation failures MUST NOT throw exceptions
     - No arithmetic, unit conversion, or domain logic
+    - I18nContext (execution semantics) and I18n* data types (domain/value types) MUST remain decoupled
 
 Deliverables:
     - Scala implementations

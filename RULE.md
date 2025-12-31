@@ -76,6 +76,44 @@ Rationale:
 - Trailing underscores introduce artificial or generated semantics
   and reduce readability.
 
+#### Private vs Method-Local Helper Naming
+
+This project distinguishes **private member helpers** from
+**method-local helper functions** by underscore placement.
+
+##### Private Member Helpers
+
+- Represent class-level or object-level implementation details
+- May be referenced from multiple methods
+- MUST use a single leading underscore
+- MUST NOT use trailing underscores
+
+Example:
+```
+private def _resolve_config(key: String): Value
+private val _default_priority: Int
+```
+
+##### Method-Local Helper Functions
+
+- Defined inside a method body
+- Intended to be short-lived, local utilities
+- MUST start and end with an underscore
+
+Example:
+```
+def load(): Result =
+  def _parse_value_(raw: String): Parsed =
+    ...
+  ...
+```
+
+Rationale:
+- Leading underscore indicates non-public scope
+- Trailing underscores clearly signal *method-local lifetime*
+- This visual distinction improves readability and prevents
+  accidental promotion of local helpers to class-level APIs
+
 ## Method‑Local Helper Methods
 
 - Start and end with an underscore (`_`)
@@ -2906,6 +2944,15 @@ The following are prohibited in goldenport core code:
 Any use of such functionality MUST be mediated by ExecutionContext.
 
 ----------------------------------------------------------------------
+Context Rules
+----------------------------------------------------------------------
+
+- Contexts MUST be value-backed and immutable.
+- Contexts MUST NOT perform I/O, detection, or inference.
+- Contexts MUST be constructed explicitly during bootstrap.
+- ExecutionContext MUST only compose sub-contexts and MUST NOT add or reinterpret semantics.
+
+----------------------------------------------------------------------
 Naming and Import Rules
 ----------------------------------------------------------------------
 
@@ -2935,4 +2982,3 @@ Violation of these rules leads to:
 - non-reproducible tests
 - brittle runtime behavior
 - loss of architectural clarity
-
