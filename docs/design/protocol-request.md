@@ -174,6 +174,22 @@ ProtocolRequest is a semantic specialization of this structural idiom.
 
 ---
 
+## Request Construction from Adapters
+
+Requests constructed from adapter inputs (CLI, REST, MCP, etc.) are
+**syntactically canonicalized at the ingress boundary**.
+
+Canonicalization rules (argument, property, switch classification and
+service/operation resolution) are defined in:
+
+- `docs/design/cli-engine.md` — *Ingress Canonicalization (Syntactic Rules)*
+
+This process is strictly **syntax-only**.
+All semantic interpretation is deferred to `OperationDefinition`
+and subsequent parameter resolution.
+
+---
+
 ## Design Intent
 
 The ProtocolRequest design boundary ensures that:

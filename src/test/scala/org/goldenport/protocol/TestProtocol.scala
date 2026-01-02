@@ -68,6 +68,14 @@ object TestProtocol {
   }
 
   private object SimpleArgsIngress extends ArgsIngress {
+    override def encode(
+      services: ServiceDefinitionGroup,
+      args: Array[String]
+    ): Consequence[Request] = {
+      val _ = services
+      encode(args)
+    }
+
     override def encode(args: Array[String]): Consequence[Request] =
       if (args.isEmpty) {
         _failure("syntax error", Cause.SyntaxError)

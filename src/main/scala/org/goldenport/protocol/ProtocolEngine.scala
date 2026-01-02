@@ -7,7 +7,8 @@ import org.goldenport.protocol.handler.projection.{CliHelp, McpGetManifestProjec
 import io.circe.Json
 /*
  * @since   Dec. 26, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Jan.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolEngine(
@@ -18,19 +19,19 @@ class ProtocolEngine(
     logic.makeOperationRequest(args)
 
   def openApi(): Consequence[Json] =
-    protocol.project(OpenApi)
+    protocol.enproject(OpenApi)
 
   def cliHelp(): Consequence[String] =
-    protocol.project(CliHelp)
+    protocol.enproject(CliHelp)
 
   def getManifest(): Consequence[Json] =
-    protocol.project(McpGetManifestProjectionKind)
+    protocol.enproject(McpGetManifestProjectionKind)
 
   def enproject[Out](kind: ProjectionKind[Out]): Consequence[Out] =
-    protocol.project(kind)
+    protocol.enproject(kind)
 
   def enprojectByName(name: String): Consequence[Any] =
-    protocol.projectByName(name)
+    protocol.enprojectByName(name)
 }
 
 object ProtocolEngine {

@@ -17,9 +17,12 @@ abstract class Egress[Out] {
   def egress(c: Conclusion): Consequence[Out]
 }
 
-case class EgressCollection(
-  egresses: Vector[Egress[?]]
+final case class EgressCollection(
+  egresses: Vector[Egress[?]] = Vector.empty
 ) {
+  def ++(that: EgressCollection): EgressCollection =
+    EgressCollection(this.egresses ++ that.egresses)
+
   def egress[Out](
     kind: EgressKind[Out],
     c: Conclusion
@@ -32,6 +35,17 @@ case class EgressCollection(
           .withInput(kind.name)
           .build
     }
+}
+
+object EgressCollection {
+
+  /** Canonical empty instance */
+  val empty: EgressCollection =
+    new EgressCollection(Vector.empty)
+
+  /** Binary-compatible zero-arg constructor */
+  def apply(): EgressCollection =
+    empty
 }
 
 abstract class JsonEgress extends Egress[Json] {

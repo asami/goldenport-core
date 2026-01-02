@@ -22,7 +22,10 @@ class CanonicalIdSpec
       val entropy = new EntropySource {
         def next(): String = "entropy"
       }
-      val generator = new DefaultCanonicalIdGenerator(entropy)
+      val generator =
+        new DefaultCanonicalIdGenerator(
+          new DefaultUniversalIdGenerator(entropy)
+        )
 
       When("generating a canonical id")
       val gen = Gen.const(())

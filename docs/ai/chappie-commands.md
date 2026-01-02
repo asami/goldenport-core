@@ -212,29 +212,54 @@ Equivalent to:
 - l2-instruction-only
 - rule-compliant
 - documentation-only
-- format: text
+- format: markdown
 ```
 
 #### Meaning
 
-- Generate a **handover document** summarizing the current stable state
+- Generate a standalone handover document summarizing the current stable state
 - Intended for human readers (future self, collaborators)
 - MUST NOT modify code or specifications
-- Focus on:
-  - What was decided
-  - What is stable
-  - What is deferred
-  - How to safely resume work
+- The output MUST be reusable as-is to safely resume work later
+
+#### Required Structure
+
+The document MUST include the following sections:
+
+1. Context Summary
+2. Decisions (Final / Stable)
+3. Deferred Items
+4. Open Questions (if any)
+5. Safe Resume Instructions
+
+#### Constraints
+
+- If required information is missing or ambiguous,
+  the AI MUST explicitly state the uncertainty
+  instead of producing a vague or speculative summary.
+- The AI MUST NOT introduce new decisions or interpretations.
 
 #### Typical Use
 
 - End of a work session
-- Context switching (e.g. different day, different focus)
+- Context switching (different day, different focus)
 - Preparing for Codex-assisted batch work
 
 ---
 
-### @handoff
+### @handoff (DEPRECATED)
+
+This directive is deprecated and MUST NOT be used in new workflows.
+
+Reason:
+- The term "handoff" is semantically ambiguous and was observed to cause
+  AI behavior overlap with `@handover`.
+
+Use `@reanchor` instead.
+
+---
+
+### @reanchor
 
 #### Canonical Expansion
 
@@ -244,21 +269,33 @@ Equivalent to:
 [AI-COMMAND]
 - l2-instruction-only
 - rule-compliant
-- context-transfer
+- context-reanchor
 - format: text
 ```
 
 #### Meaning
 
-- Provide a **concise verbal handoff** of the current context
-- Shorter and higher-level than `@handover`
-- Intended to re-anchor the conversation state
+- Re-anchor the current conversation state
+- Intended to confirm shared understanding, not to produce artifacts
+
+#### Constraints
+
+- The AI MUST NOT generate a handover document
+- The AI MUST NOT reorganize, summarize, or formalize decisions
+- The AI MUST NOT introduce new structure or interpretation
+- Output MUST be concise and conversational
 
 #### Typical Use
 
-- Mid-conversation re-alignment
-- Returning after a short interruption
-- Clarifying “where we are now” before continuing
+- After receiving a handover document
+- After a brief interruption
+- To confirm “we are aligned on where we are”
+
+#### Non-Goals
+
+- Creating reusable documentation
+- Producing session summaries
+- Preparing future work instructions
 
 ---
 
@@ -434,6 +471,15 @@ Design authority remains with humans and specifications.
 If a conflict exists:
 
 RULE.md > Chappie Command Catalog > AI Intuition
+
+## Related Workflow Document
+
+Operational rules for tool selection, multi-file editing, and
+failure handling are defined in:
+
+- `docs/ai/chappie-workflow.md`
+
+This command catalog defines command semantics only.
 
 ## 11. Quick Reference Table
 

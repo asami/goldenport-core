@@ -63,6 +63,9 @@ Structural idioms describe **code shape and composition**.
 - **Holder**  
   Stable accessor facade over a value object.  
   → `holder-idiom.md`
+- **CollectionGroup**  
+  Aggregation types (Collection / Group) with binary-compatibility-friendly construction.  
+  → `collection-group-idiom.md`
 
 ---
 ---

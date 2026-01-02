@@ -8,7 +8,8 @@ import org.goldenport.protocol.spec.{OperationDefinition, ServiceDefinition}
 
 /*
  * @since   Dec. 24, 2025
- * @version Dec. 28, 2025
+ *  version Dec. 28, 2025
+ * @version Jan.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolLogic(protocol: Protocol) {
@@ -19,6 +20,7 @@ class ProtocolLogic(protocol: Protocol) {
     } yield opreq
 
   def makeOperationRequest(request: Request): Consequence[OperationRequest] = {
+    println(s"makeOperationRequest: $request")
     _resolve_service(request) match {
       case Consequence.Success(service) =>
         _resolve_operation(service, request) match {
@@ -28,6 +30,7 @@ class ProtocolLogic(protocol: Protocol) {
             Consequence.Failure(c)
         }
       case Consequence.Failure(c) =>
+        println(s"makeOperationRequest:_resolve_service: $c")
         Consequence.Failure(c)
     }
   }
@@ -61,8 +64,8 @@ class ProtocolLogic(protocol: Protocol) {
 
   def makeRequest(args: Array[String]): Consequence[Request] = {
     for {
-      in <- protocol.ingress(args)
-      req <- in.encode(args)
+      in <- protocol.argsIngress(args)
+      req <- in.encode(protocol.services, args)
     } yield req
   }
 }

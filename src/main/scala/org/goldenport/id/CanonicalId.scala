@@ -1,8 +1,6 @@
 package org.goldenport.id
 
 import java.nio.ByteBuffer
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.UUID
 
@@ -11,17 +9,15 @@ import java.util.UUID
  * @version Dec. 31, 2025
  * @author  ASAMI, Tomoharu
  */
-abstract class CanonicalId protected (val value: String) {
-  override def toString: String = value
-
-  override def equals(obj: Any): Boolean =
-    obj match {
-      case that: CanonicalId => value == that.value
-      case _ => false
-    }
-
-  override def hashCode(): Int = value.hashCode
-}
+/**
+ * CanonicalId extends UniversalId and represents identifiers that may
+ * carry semantic or canonical meaning.
+ *
+ * The canonical identifier format is defined by UniversalId and
+ * UniversalIdGenerator.
+ */
+abstract class CanonicalId protected (value: String)
+  extends UniversalId(value)
 
 trait CanonicalIdGenerator {
   def generate(
@@ -54,7 +50,7 @@ object EntropySource {
 }
 
 final class DefaultCanonicalIdGenerator(
-  entropy: EntropySource
+  delegate: UniversalIdGenerator
 ) extends CanonicalIdGenerator {
   def generate(
     service: String,
@@ -62,22 +58,11 @@ final class DefaultCanonicalIdGenerator(
     kind: String,
     clock: java.time.Clock
   ): CanonicalId = {
-    val timestamp = _format_timestamp(clock)
-    val value = s"${service}-${operation}-${kind}-${timestamp}-${entropy.next()}"
-    new CanonicalIdImpl(value)
-  }
-
-  private def _format_timestamp(clock: java.time.Clock): String = {
-    val instant = clock.instant()
-    DefaultCanonicalIdGenerator.TimestampFormatter.format(instant)
+    val uid = delegate.generate(service, operation, kind, clock)
+    new CanonicalIdImpl(uid.value)
   }
 }
 
 private final class CanonicalIdImpl(
   value: String
 ) extends CanonicalId(value)
-
-private object DefaultCanonicalIdGenerator {
-  val TimestampFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssX").withZone(ZoneOffset.UTC)
-}

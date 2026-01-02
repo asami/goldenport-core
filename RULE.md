@@ -398,6 +398,20 @@ derivedStatus
 derived_status
 ```
 
+## Execution naming
+
+- execute: evaluate or run a prepared expression/program (algebra evaluation)
+- run: drive an interpreter or execution process
+- prepare: build meaning/structure only (expression/program/AST), no execution
+
+Do not mix these responsibilities in a single API.
+
+## Collection idiom
+
+Collection/Group types MUST provide:
+- a canonical empty value
+- a zero-arg apply() for binary compatibility
+
 ---
 
 

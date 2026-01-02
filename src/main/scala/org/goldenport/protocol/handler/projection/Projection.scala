@@ -17,9 +17,12 @@ abstract class Projection[Out] {
   def project(defs: ServiceDefinitionGroup): Consequence[Out]
 }
 
-case class ProjectionCollection(
-  projections: Vector[Projection[?]]
+final case class ProjectionCollection(
+  projections: Vector[Projection[?]] = Vector.empty
 ) {
+  def ++(that: ProjectionCollection): ProjectionCollection =
+    ProjectionCollection(this.projections ++ that.projections)
+
   def project[Out](
     kind: ProjectionKind[Out],
     defs: ServiceDefinitionGroup
@@ -45,4 +48,15 @@ case class ProjectionCollection(
           .withInput(name)
           .build
     }
+}
+
+object ProjectionCollection {
+
+  /** Canonical empty instance */
+  val empty: ProjectionCollection =
+    new ProjectionCollection(Vector.empty)
+
+  /** Binary-compatible zero-arg constructor */
+  def apply(): ProjectionCollection =
+    empty
 }
