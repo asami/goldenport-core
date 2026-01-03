@@ -1,4 +1,4 @@
-package org.goldenport.test
+package org.goldenport.test.matchers
 
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.goldenport.Consequence
@@ -8,15 +8,15 @@ import org.goldenport.observation.Cause.Reason
 import org.goldenport.observation.Descriptor
 
 /*
- * @since   Dec. 28, 2025
- * @version Dec. 28, 2025
+ * @since   May. 11, 2025
+ *  version Jul.  1, 2025
+ *  version Dec. 28, 2025
+ * @version Jan.  3, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ConsequenceMatchers {
-
   // ---- success ----
-
-  def beSuccess[A]: Matcher[Consequence[A]] =
+  def be_success[A]: Matcher[Consequence[A]] =
     Matcher { c =>
       c match {
         case Consequence.Success(_) =>
@@ -34,9 +34,26 @@ trait ConsequenceMatchers {
       }
     }
 
-  // ---- failure (any) ----
+  def be_success(expected: String): Matcher[Consequence[String]] =
+    Matcher { c =>
+      c match {
+        case Consequence.Success(actual) =>
+          MatchResult(
+            actual == expected,
+            s"Expected success with value [$expected] but was [$actual]",
+            s"Success value matched [$expected]"
+          )
+        case Consequence.Failure(conclusion) =>
+          MatchResult(
+            false,
+            s"Expected success with value [$expected] but was failure with cause: ${_cause(conclusion)}",
+            s"Expected failure but was success with value [$expected]"
+          )
+      }
+    }
 
-  def beFailure[A]: Matcher[Consequence[A]] =
+  // ---- failure (any) ----
+  def be_failure[A]: Matcher[Consequence[A]] =
     Matcher { c =>
       c match {
         case Consequence.Success(_) =>
@@ -56,7 +73,7 @@ trait ConsequenceMatchers {
 
   // ---- failure with specific cause (exact match) ----
 
-  def failWith(expected: Cause): Matcher[Consequence[?]] =
+  def fail_with(expected: Cause): Matcher[Consequence[?]] =
     Matcher { c =>
       c match {
         case Consequence.Failure(conclusion) =>

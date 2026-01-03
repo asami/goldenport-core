@@ -4,13 +4,13 @@ import org.goldenport.Consequence
 import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.ServiceDefinitionGroup
 import org.goldenport.protocol.handler.ProtocolHandler
-import org.goldenport.protocol.handler.egress.EgressKind
+import org.goldenport.protocol.handler.egress.Egress
 import org.goldenport.protocol.handler.projection.ProjectionKind
 
 /*
  * @since   Dec. 28, 2025
  *  version Dec. 31, 2025
- * @version Jan.  1, 2026
+ * @version Jan.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Protocol(
@@ -46,10 +46,10 @@ case class Protocol(
     ingressOf[ArgsIngress](args)
 
   def egress[Out](
-    kind: EgressKind[Out],
-    c: org.goldenport.Conclusion
+    kind: Egress.Kind[Out],
+    res: Response
   ): Consequence[Out] =
-    handler.egresses.egress(kind, c)
+    handler.egresses.egress(kind, res)
 
   def enproject[Out](kind: ProjectionKind[Out]): Consequence[Out] =
     handler.projections.project(kind, services)

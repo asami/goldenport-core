@@ -4,11 +4,35 @@ import cats._
 import scala.util.control.NonFatal
 
 /*
- * @since   Jul. 19, 2025
- *  version Jul. 20, 2025
+ * @since   Feb. 21, 2021
+ *  version May. 30, 2021
+ *  version Jun. 20, 2021
+ *  version Oct. 25, 2021
+ *  version Nov. 30, 2021
+ *  version Dec.  5, 2021
+ *  version Jan. 30, 2022
+ *  version Mar. 10, 2022
+ *  version Apr.  3, 2022
+ *  version May. 31, 2022
+ *  version Jun. 14, 2022
+ *  version Jul. 27, 2022
+ *  version Aug.  3, 2022
+ *  version Sep.  3, 2022
+ *  version Oct. 31, 2022
+ *  version Nov. 27, 2022
+ *  version Dec. 31, 2022
+ *  version Jan. 25, 2023
+ *  version Jul. 23, 2023
+ *  version Sep. 27, 2023
+ *  version Mar.  9, 2025
+ *  version Apr. 21, 2025
+ *  version May. 16, 2025
+ *  version Jun. 15, 2025
+ *  version Jul. 27, 2025
  *  version Sep. 30, 2025
  *  version Nov. 11, 2025
- * @version Dec. 26, 2025
+ *  version Dec. 26, 2025
+ * @version Jan.  3, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] {
