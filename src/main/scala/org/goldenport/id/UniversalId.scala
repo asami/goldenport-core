@@ -1,14 +1,66 @@
 package org.goldenport.id
 
-import java.time.{Clock, ZoneOffset}
+import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
 
+/**
+ * UniversalId is an opaque, value-based operational identifier with a canonical string format.
+ *
+ * The canonical string format is:
+ *   <major>-<minor>-<kind>-<timestamp>-<entropy>
+ *
+ * Components:
+ *   - major: ASCII alphanumeric plus underscore label identifying the major category
+ *   - minor: ASCII alphanumeric plus underscore label identifying the minor category
+ *   - kind: ASCII alphanumeric plus underscore label identifying the kind of identifier
+ *   - timestamp: digits-only timestamp in UTC timezone with format yyyyMMddHHmmssSSZZ, used for identification/debugging only
+ *   - entropy: a string providing randomness/uniqueness to avoid collisions
+ *
+ * Timestamp format:
+ *   Digits-only pattern "yyyyMMddHHmmssSSZZ" in UTC; not intended for time arithmetic.
+ *
+ * Entropy:
+ *   Provides uniqueness to the identifier; typically a compact UUID string.
+ *
+ * Equality and hashCode:
+ *   Based solely on the full string value representation.
+ *
+ * Extension:
+ *   Upper layers may subclass UniversalId to fix the 'kind' component (e.g., JobId, TaskId),
+ *   but must not alter the canonical string format.
+ *
+ * Character constraints:
+ *   major, minor, and kind must match the pattern [A-Za-z0-9_]+, i.e., ASCII alphanumeric plus underscore.
+ *   Characters such as '-', '.', spaces, or non-ASCII characters are disallowed.
+ */
 /*
  * @since   Dec. 31, 2025
- * @version Jan. 1, 2026
+ *  version Jan.  1, 2026
+ * @version Jan.  4, 2026
  * @author  ASAMI, Tomoharu
  */
-abstract class UniversalId protected (val value: String) {
+abstract class UniversalId protected (
+  major: String,
+  minor: String,
+  kind: String
+) {
+  import UniversalId._
+
+  private def validateLabel(name: String, value: String): Unit = {
+    require(
+      AllowedLabelPattern.matches(value),
+      s"$name must match pattern [A-Za-z0-9_]+ but was: '$value'"
+    )
+  }
+
+  validateLabel("major", major)
+  validateLabel("minor", minor)
+  validateLabel("kind", kind)
+
+  private val _parts = UniversalId.Parts.create(major, minor, kind)
+
+  def value: String = _parts.value
+
   override def toString: String = value
 
   override def equals(obj: Any): Boolean =
@@ -20,40 +72,35 @@ abstract class UniversalId protected (val value: String) {
   override def hashCode(): Int = value.hashCode
 }
 
-trait UniversalIdGenerator {
-  def generate(
-    service: String,
-    operation: String,
-    kind: String,
-    clock: Clock
-  ): UniversalId
-}
+object UniversalId {
+  private val AllowedLabelPattern = "^[A-Za-z0-9_]+$".r
 
-final class DefaultUniversalIdGenerator(
-  entropy: EntropySource
-) extends UniversalIdGenerator {
-  def generate(
-    service: String,
-    operation: String,
+  final case class Parts(
+    major: String,
+    minor: String,
     kind: String,
-    clock: Clock
-  ): UniversalId = {
-    val timestamp = _format_timestamp(clock)
-    val value = s"${service}-${operation}-${kind}-${timestamp}-${entropy.next()}"
-    new UniversalIdImpl(value)
+    timestamp: String,
+    entropy: String
+  ) {
+    val value = s"${major}-${minor}-${kind}-${timestamp}-${entropy}"
   }
 
-  private def _format_timestamp(clock: Clock): String = {
-    val instant = clock.instant()
-    DefaultUniversalIdGenerator.TimestampFormatter.format(instant)
+  object Parts {
+    // The timestamp format is digits-only. It is intended for identification/debugging, not time arithmetic.
+    // Timezone offset is encoded without sign.
+    private val _timestamp_formatter =
+      DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSZZ")
+        .withZone(ZoneOffset.UTC)
+    def create(major: String, minor: String, kind: String): Parts = {
+      val now = Instant.now()
+      val formattedTimestamp = _timestamp_formatter.format(now)
+      Parts(
+        major,
+        minor,
+        kind,
+        formattedTimestamp,
+        CompactUuid.generateString()
+      )
+    }
   }
-}
-
-private final class UniversalIdImpl(
-  value: String
-) extends UniversalId(value)
-
-private object DefaultUniversalIdGenerator {
-  val TimestampFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssX").withZone(ZoneOffset.UTC)
 }

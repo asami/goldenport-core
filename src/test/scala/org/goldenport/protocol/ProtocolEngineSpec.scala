@@ -3,7 +3,7 @@ package org.goldenport.protocol
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 
-import org.goldenport.test.ConsequenceMatchers
+import org.goldenport.test.matchers.ConsequenceMatchers
 import org.goldenport.Consequence
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.observation.Cause
@@ -11,7 +11,7 @@ import org.goldenport.observation.Cause.Reason
 
 /*
  * @since   Dec. 28, 2025
- * @version Dec. 28, 2025
+ * @version Jan.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolEngineSpec
@@ -30,7 +30,7 @@ class ProtocolEngineSpec
 
           val result = engine.makeOperationRequest(args)
 
-          result should beSuccess
+          result should be_success
         }
       }
       "are missing" should {

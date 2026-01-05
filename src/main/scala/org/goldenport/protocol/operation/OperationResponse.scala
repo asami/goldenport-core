@@ -5,7 +5,8 @@ import org.goldenport.protocol.scalar.ScalarValue
 
 /*
  * @since   Dec. 28, 2025
- * @version Jan.  2, 2026
+ *  version Jan.  2, 2026
+ * @version Jan.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -17,8 +18,8 @@ abstract class OperationResponse {
 }
 
 object OperationResponse {
-  case object Void extends OperationResponse {
-    def toResponse = Response.Void
+  final case class Void() extends OperationResponse {
+    def toResponse: Response = Response.Void()
   }
 
   /**

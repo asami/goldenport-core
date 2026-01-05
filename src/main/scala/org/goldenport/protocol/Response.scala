@@ -8,13 +8,17 @@ import org.goldenport.protocol.scalar.ScalarValue
  */
 /*
  * @since   Jan.  1, 2026
- * @version Jan.  3, 2026
+ *  version Jan.  3, 2026
+ * @version Jan.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Response
 
 object Response {
-  case object Void extends Response
+  final case class Void() extends Response
+
+  /** JSON representation (protocol-level, transport-agnostic). */
+  final case class Json(value: String) extends Response
 
   /**
    * Scalar response value.

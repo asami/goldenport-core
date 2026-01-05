@@ -15,11 +15,13 @@ import org.goldenport.util.Strings
  *  version Oct.  8, 2018
  *  version Apr. 21, 2019
  *  version Feb. 21, 2021
- * @version Dec. 25, 2025
+ *  version Dec. 25, 2025
+ * @version Jan.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse {
-  def code: Int
+  def status: HttpStatus
+  final def code: Int = status.code
   def contentType: ContentType
   def mime: MimeType = contentType.mime
   def charset: Option[Charset] = contentType.charset
@@ -36,8 +38,8 @@ sealed trait HttpResponse {
   final def getRecords: Option[List[Record]] = None
   def json: JsValue
   def show: String
-  def isSuccess = code == 200
-  def isNotFound = code == 404
+  def isSuccess = status == HttpStatus.Ok
+  def isNotFound = status == HttpStatus.NotFound
   def toStatusCode: StatusCode = StatusCode(code)
   def toConclusion: Conclusion = Conclusion(toStatusCode)
 }
@@ -45,6 +47,7 @@ sealed trait HttpResponse {
 object HttpResponse {
   def parser(code: Int, header: Map[String, IndexedSeq[String]], in: InputStream): HttpResponse = {
     val contenttype = header.get("Content-Type").flatMap(_.headOption.map(ContentType.parse)).getOrElse(ContentType.octetstream)
+    val status = HttpStatus.fromInt(code).getOrElse(HttpStatus.InternalServerError)
     def text = {
       contenttype.charset.
         map(IoUtils.toText(in, _)).
@@ -59,9 +62,9 @@ object HttpResponse {
     }
     def binary = in.readAllBytes()
     if (contenttype.mime.isText)
-      StringResponse(code, contenttype, Bag.text(text))
+      StringResponse(status, contenttype, Bag.text(text))
     else
-      BinaryResponse(code, contenttype, Bag.binary(binary))
+      BinaryResponse(status, contenttype, Bag.binary(binary))
   }
 
   private val _regex_xml = """(?i)[<][?]xml[ ][^?]+(encoding[ ]*[=][ ]*["]([^"]+)["])""".r
@@ -98,14 +101,14 @@ object HttpResponse {
   }
 
   def html(p: String): StringResponse = StringResponse(
-    200,
+    HttpStatus.Ok,
     ContentType.html,
     Bag.text(p)
   )
 }
 
 case class StringResponse(
-  code: Int,
+  status: HttpStatus,
   contentType: ContentType,
   bag: Bag
 ) extends HttpResponse {
@@ -114,10 +117,31 @@ case class StringResponse(
 }
 
 case class BinaryResponse(
-  code: Int,
+  status: HttpStatus,
   contentType: ContentType,
   bag: Bag
 ) extends HttpResponse {
   lazy val show = s"Response(Binary[${bag.metadata.size.getOrElse(0)}])"
   def json = RAISE.unsupportedOperationFault
+}
+
+// ---------------------------------------------------------------------
+// HTTP Status abstraction (protocol-level, minimal)
+// ---------------------------------------------------------------------
+sealed abstract class HttpStatus(val code: Int)
+
+object HttpStatus {
+  case object Ok extends HttpStatus(200)
+  case object BadRequest extends HttpStatus(400)
+  case object NotFound extends HttpStatus(404)
+  case object InternalServerError extends HttpStatus(500)
+
+  def fromInt(code: Int): Option[HttpStatus] =
+    code match {
+      case 200 => Some(Ok)
+      case 400 => Some(BadRequest)
+      case 404 => Some(NotFound)
+      case 500 => Some(InternalServerError)
+      case _   => None
+    }
 }

@@ -112,6 +112,10 @@ Equivalent to:
 - Using both `@patch` and `@patch-context` together is allowed but redundant
 - Context-based inference is **forbidden unless this directive is explicitly present**
 
+DEPRECATED:
+- `@patch-context` is a deprecated alias of `@patch-current`.
+- New workflows SHOULD use `@patch-current`.
+
 #### Additional Authority (Explicit)
 
 @patch-context MAY introduce new proposals ONLY under the following conditions:
@@ -125,6 +129,43 @@ Equivalent to:
    - The required change clearly spans multiple files or responsibilities
    - The AI MUST NOT attempt to generate a direct patch
    - The AI SHOULD propose an appropriate `@codex-*` directive instead
+
+---
+
+### @patch-current  (PREFERRED)
+
+#### Canonical Expansion
+
+Equivalent to:
+
+```
+[AI-COMMAND]
+- incremental-only
+- rule-compliant
+- no-scope-expansion
+- target: current-topic-via-oboe
+- format: text
+```
+
+#### Meaning
+
+- This directive is **L1 (patch-level)**.
+- Apply a minimal, local patch to **the currently discussed target**.
+- The patch is applied via **oboe**, using the current conversational focus
+  as the authoritative patch target.
+- This directive replaces `@patch-context` for clarity.
+
+#### Constraints
+
+- Target MUST be the single, currently discussed file or code region.
+- The AI MUST NOT infer or expand scope beyond the current topic.
+- If the current patch target cannot be identified with high confidence,
+  the AI MUST stop and ask a clarification question.
+
+#### Notes
+
+- `@patch-current` includes all semantics of `@patch`.
+- `@patch-context` is a **deprecated alias** of `@patch-current`.
 
 ---
 
@@ -324,6 +365,40 @@ Equivalent to:
 - If information required to safely generate executable instructions
   is missing, the AI MUST stop and ask clarification questions only.
 
+DEPRECATED:
+- `@codex-context` is a deprecated alias of `@codex-current`.
+
+---
+
+### @codex-current  (PREFERRED)
+
+#### Canonical Expansion
+
+Equivalent to:
+
+```
+[AI-COMMAND]
+- l2-instruction-only
+- rule-compliant
+- context-synthesis
+- format: text
+```
+
+#### Meaning
+
+- This directive is **L2-only**.
+- AI MUST generate a **Codex execution instruction** that reflects
+  the **current agreed state** of the conversation.
+- The output MUST be a single, self-contained instruction that can be
+  **immediately pasted and executed** in Codex.
+- No background explanation or preparatory text is allowed.
+
+#### Notes
+
+- `@codex-current` replaces `@codex-context` to avoid ambiguity
+  around the term “context”.
+- `@codex-context` is a **deprecated alias** of `@codex-current`.
+
 ### @codex-code
 
 #### Canonical Expansion
@@ -486,8 +561,10 @@ This command catalog defines command semantics only.
 | Directive        | Level | Purpose / Intent                              | Applies Changes |
 |------------------+-------+-----------------------------------------------+-----------------|
 | @patch           | L1    | Minimal local patch (default behavior)        | Yes             |
-| @patch-context   | L1    | Minimal patch with explicit context inference | Yes             |
-| @codex-context   | L2    | Generate executable Codex instruction (discussion-based, self-contained) | No |
+| @patch-context   | L1    | Minimal patch with explicit context inference (DEPRECATED alias of `@patch-current`) | Yes             |
+| @patch-current   | L1    | Minimal patch to the currently discussed target (PREFERRED) | Yes             |
+| @codex-context   | L2    | Generate executable Codex instruction (discussion-based, self-contained) (DEPRECATED alias of `@codex-current`) | No |
+| @codex-current   | L2    | Generate executable Codex instruction reflecting current agreed state (PREFERRED) | No |
 | @codex-code      | L2    | Generate executable Codex instruction (standalone, no context assumed)   | No |
 | @spec-only       | L1    | Modify specifications only                    | Yes (spec only) |
 | @rewrite-ok      | L1    | Explicitly allow full rewrite (dangerous)     | Yes             |
