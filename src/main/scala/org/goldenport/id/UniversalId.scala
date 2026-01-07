@@ -36,14 +36,22 @@ import java.time.format.DateTimeFormatter
 /*
  * @since   Dec. 31, 2025
  *  version Jan.  1, 2026
- * @version Jan.  4, 2026
+ * @version Jan.  6, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
   major: String,
   minor: String,
-  kind: String
+  kind: String,
+  subkind: Option[String]
 ) {
+  // Auxiliary constructor for backward compatibility
+  protected def this(
+    major: String,
+    minor: String,
+    kind: String
+  ) =
+    this(major, minor, kind, None)
   import UniversalId._
 
   private def validateLabel(name: String, value: String): Unit = {
@@ -56,8 +64,9 @@ abstract class UniversalId protected (
   validateLabel("major", major)
   validateLabel("minor", minor)
   validateLabel("kind", kind)
+  subkind.foreach(validateLabel("subkind", _))
 
-  private val _parts = UniversalId.Parts.create(major, minor, kind)
+  private val _parts = UniversalId.Parts.create(major, minor, kind, subkind)
 
   def value: String = _parts.value
 
@@ -79,10 +88,15 @@ object UniversalId {
     major: String,
     minor: String,
     kind: String,
+    subkind: Option[String],
     timestamp: String,
     entropy: String
   ) {
-    val value = s"${major}-${minor}-${kind}-${timestamp}-${entropy}"
+    val value =
+      subkind match {
+        case Some(sk) => s"${major}-${minor}-${kind}-${sk}-${timestamp}-${entropy}"
+        case None     => s"${major}-${minor}-${kind}-${timestamp}-${entropy}"
+      }
   }
 
   object Parts {
@@ -91,13 +105,14 @@ object UniversalId {
     private val _timestamp_formatter =
       DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSZZ")
         .withZone(ZoneOffset.UTC)
-    def create(major: String, minor: String, kind: String): Parts = {
+    def create(major: String, minor: String, kind: String, subkind: Option[String]): Parts = {
       val now = Instant.now()
       val formattedTimestamp = _timestamp_formatter.format(now)
       Parts(
         major,
         minor,
         kind,
+        subkind,
         formattedTimestamp,
         CompactUuid.generateString()
       )

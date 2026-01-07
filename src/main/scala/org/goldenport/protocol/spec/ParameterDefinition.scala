@@ -28,6 +28,11 @@ case class ParameterDefinition(
   def datatype: DataType = domain.datatype
   def multiplicity: Multiplicity = domain.multiplicity
   def constraints: Vector[Constraint] = domain.constraints
+  def aliases: Vector[String] =
+    content.nameAttributes.alias
+      .map(_.toVector.map(_.toI18nString.displayMessage))
+      .getOrElse(Vector.empty)
+  def names: Vector[String] = name +: aliases
 }
 
 object ParameterDefinition {

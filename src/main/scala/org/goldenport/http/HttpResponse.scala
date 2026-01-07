@@ -1,7 +1,7 @@
 package org.goldenport.http
 
 import java.io.InputStream
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 import org.goldenport.bag.{Bag, BinaryBag, TextBag}
 import org.goldenport.record.Record
 import org.goldenport.util.Strings
@@ -105,6 +105,23 @@ object HttpResponse {
     ContentType.html,
     Bag.text(p)
   )
+
+  def text(
+    status: HttpStatus,
+    body: String,
+    charset: Charset = StandardCharsets.UTF_8
+  ): HttpResponse =
+    StringResponse(
+      status,
+      ContentType(MimeType("text/plain"), Some(charset)),
+      Bag.text(body)
+    )
+
+  def notFound(body: String = "not found"): HttpResponse =
+    text(HttpStatus.NotFound, body)
+
+  def internalServerError(body: String = "internal server error"): HttpResponse =
+    text(HttpStatus.InternalServerError, body)
 }
 
 case class StringResponse(

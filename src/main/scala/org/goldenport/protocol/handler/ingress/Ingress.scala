@@ -12,10 +12,12 @@ import org.goldenport.http.HttpRequest
 /*
  * @since   Dec. 28, 2025
  *  version Dec. 28, 2025
- * @version Jan.  2, 2026
+ *  version Jan.  2, 2026
+ * @version Jan.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
+  def inputClass: Class[T] = classOf[Any].asInstanceOf[Class[T]]
   def encode(op: OperationDefinition, in: T): Consequence[Request]
 }
 
@@ -37,6 +39,12 @@ final case class IngressCollection(
 ) {
   def ++(that: IngressCollection): IngressCollection =
     IngressCollection(this.ingresses ++ that.ingresses)
+
+  def findByInput[I](clazz: Class[I]): Option[Ingress[I]] =
+    ingresses.collectFirst {
+      case ingress if ingress.inputClass == clazz =>
+        ingress.asInstanceOf[Ingress[I]]
+    }
 
   def ingress(args: Array[String]): Consequence[ArgsIngress] = {
     val _ = args
@@ -75,6 +83,8 @@ object IngressCollection {
 }
 
 abstract class ArgsIngress extends Ingress[Array[String]] {
+  override def inputClass: Class[Array[String]] = classOf[Array[String]]
+
   def encode(
     services: ServiceDefinitionGroup,
     args: Array[String]
@@ -151,7 +161,7 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
   protected def parse_params(
     params: Array[String]
   ): (List[Argument], List[Switch], List[Property]) = {
-    _parse_params(params, Set.empty, Set.empty, Set.empty)
+    _parse_params(params, Map.empty, Map.empty, Map.empty)
   }
 
   protected def parse_params(
@@ -159,23 +169,17 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
     params: Array[String]
   ): (List[Argument], List[Switch], List[Property]) = {
     val definitions = op.specification.request.parameters
-    val switchnames = definitions.collect {
-      case p if p.kind == ParameterDefinition.Kind.Switch => p.name
-    }.toSet
-    val propertynames = definitions.collect {
-      case p if p.kind == ParameterDefinition.Kind.Property => p.name
-    }.toSet
-    val argumentnames = definitions.collect {
-      case p if p.kind == ParameterDefinition.Kind.Argument => p.name
-    }.toSet
+    val switchnames = _name_map(definitions, ParameterDefinition.Kind.Switch)
+    val propertynames = _name_map(definitions, ParameterDefinition.Kind.Property)
+    val argumentnames = _name_map(definitions, ParameterDefinition.Kind.Argument)
     _parse_params(params, switchnames, propertynames, argumentnames)
   }
 
   private def _parse_params(
     params: Array[String],
-    switchnames: Set[String],
-    propertynames: Set[String],
-    argumentnames: Set[String]
+    switchnames: Map[String, String],
+    propertynames: Map[String, String],
+    argumentnames: Map[String, String]
   ): (List[Argument], List[Switch], List[Property]) = {
     var arguments: List[Argument] = Nil
     var switches: List[Switch] = Nil
@@ -190,33 +194,79 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
         val parts = s.drop(2).split("=", 2)
         val key = if (parts.nonEmpty) parts(0) else ""
         val value = if (parts.length > 1) parts(1) else ""
-        if (switchnames.contains(key)) {
-          switches = switches :+ Switch(key, true, None)
-        } else {
-          properties = properties :+ Property(key, value, None)
+        switchnames.get(key) match {
+          case Some(name) =>
+            switches = switches :+ Switch(name, true, None)
+          case None =>
+            val name = propertynames.getOrElse(key, key)
+            properties = properties :+ Property(name, value, None)
         }
       } else if (s.startsWith("--")) {
         val key = s.drop(2)
-        if (switchnames.contains(key)) {
-          switches = switches :+ Switch(key, true, None)
-        } else if (i + 1 < params.length && !params(i + 1).startsWith("--")) {
-          val value = params(i + 1)
-          if (argumentnames.contains(key)) {
-            arguments = arguments :+ Argument(key, value, None)
-            consumedArguments = consumedArguments + key
-          } else {
-            properties = properties :+ Property(key, value, None)
+        switchnames.get(key) match {
+          case Some(name) =>
+            switches = switches :+ Switch(name, true, None)
+          case None if i + 1 < params.length && !params(i + 1).startsWith("-") =>
+            val value = params(i + 1)
+            argumentnames.get(key) match {
+              case Some(name) =>
+                arguments = arguments :+ Argument(name, value, None)
+                consumedArguments = consumedArguments + name
+              case None =>
+                val name = propertynames.getOrElse(key, key)
+                properties = properties :+ Property(name, value, None)
+            }
+            i += 1
+          case None =>
+            propertynames.get(key) match {
+              case Some(name) =>
+                properties = properties :+ Property(name, "", None)
+              case None =>
+                switches = switches :+ Switch(key, true, None)
+            }
+        }
+      } else if (s.startsWith("-") && s.length > 1) {
+        val keyvalue = s.drop(1)
+        if (keyvalue.contains("=")) {
+          val parts = keyvalue.split("=", 2)
+          val key = if (parts.nonEmpty) parts(0) else ""
+          val value = if (parts.length > 1) parts(1) else ""
+          switchnames.get(key) match {
+            case Some(name) =>
+              switches = switches :+ Switch(name, true, None)
+            case None =>
+              val name = propertynames.getOrElse(key, key)
+              properties = properties :+ Property(name, value, None)
           }
-          i += 1
-        } else if (propertynames.contains(key)) {
-          properties = properties :+ Property(key, "", None)
         } else {
-          switches = switches :+ Switch(key, true, None)
+          val key = keyvalue
+          switchnames.get(key) match {
+            case Some(name) =>
+              switches = switches :+ Switch(name, true, None)
+            case None if i + 1 < params.length && !params(i + 1).startsWith("-") =>
+              val value = params(i + 1)
+              argumentnames.get(key) match {
+                case Some(name) =>
+                  arguments = arguments :+ Argument(name, value, None)
+                  consumedArguments = consumedArguments + name
+                case None =>
+                  val name = propertynames.getOrElse(key, key)
+                  properties = properties :+ Property(name, value, None)
+              }
+              i += 1
+            case None =>
+              propertynames.get(key) match {
+                case Some(name) =>
+                  properties = properties :+ Property(name, "", None)
+                case None =>
+                  switches = switches :+ Switch(key, true, None)
+              }
+          }
         }
       } else {
         // positional argument
         val remaining =
-          argumentnames.diff(consumedArguments).toList.sorted
+          argumentnames.values.toSet.diff(consumedArguments).toList.sorted
         remaining match {
           case name :: _ =>
             arguments = arguments :+ Argument(name, s, None)
@@ -231,6 +281,14 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
 
     (arguments, switches, properties)
   }
+
+  private def _name_map(
+    definitions: List[ParameterDefinition],
+    kind: ParameterDefinition.Kind
+  ): Map[String, String] =
+    definitions.collect {
+      case p if p.kind == kind => p.names.map(_ -> p.name)
+    }.flatten.toMap
 
   private def _resolve_service_operation(
     services: ServiceDefinitionGroup,
@@ -268,6 +326,8 @@ object ArgsIngress {
 case class DefaultArgsIngress() extends ArgsIngress()
 
 abstract class UrlIngress extends Ingress[URL] {
+  override def inputClass: Class[URL] = classOf[URL]
+
   override def encode(op: OperationDefinition, url: URL): Consequence[Request] = {
     val _ = op
     encode(url)
@@ -277,6 +337,8 @@ abstract class UrlIngress extends Ingress[URL] {
 }
 
 abstract class RestIngress extends Ingress[HttpRequest] {
+  override def inputClass: Class[HttpRequest] = classOf[HttpRequest]
+
   override def encode(
     op: OperationDefinition,
     req: HttpRequest

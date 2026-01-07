@@ -32,7 +32,8 @@ import scala.util.control.NonFatal
  *  version Sep. 30, 2025
  *  version Nov. 11, 2025
  *  version Dec. 26, 2025
- * @version Jan.  3, 2026
+ *  version Jan.  3, 2026
+ * @version Jan.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] {
@@ -138,6 +139,15 @@ object Consequence {
 
   def failure[T](e: Throwable): Consequence[T] =
     Failure(Conclusion.from(e))
+
+  def fromOption[A](
+    opt: Option[A],
+    onNone: => String
+  ): Consequence[A] =
+    opt match {
+      case Some(v) => Success(v)
+      case None => failure(onNone)
+    }
 
   def toInt(p: String): Consequence[Int] = Consequence(p.toInt)
 

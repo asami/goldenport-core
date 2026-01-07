@@ -29,6 +29,28 @@ General Rules
 - Never reinterpret commands as writing tasks.
 - When a command appears, it has priority over normal conversation.
 
+----------------------------------------------------------------------
+Codex Instruction Purity Rule
+----------------------------------------------------------------------
+
+When generating **Codex execution instructions** (`@codex-current`):
+
+- The output MUST be written **only** for Codex.
+- The instruction MUST be **self-contained** and **immediately executable**.
+- The instruction MUST NOT contain:
+  - UI-oriented choices or prompts (e.g. “choose”, “select”, “confirm”)
+  - Execution-mode questions (e.g. “Implement with codex or direct edit?”)
+  - Mentions of ChatGPT, Chappie, the user, or conversational roles
+  - References to “direct edit”, “manual edit”, or similar UI concepts
+
+Rationale:
+- Codex does not know about ChatGPT UI concepts such as confirmation steps or execution modes.
+- Mixing human-facing workflow language into Codex instructions causes execution ambiguity.
+- Codex instructions define **what to do**, not **how the decision was made**.
+
+If a choice or confirmation is required, it MUST occur **before** `@codex-current`
+and be resolved in the conversation.
+
 ----------------------------------------------------------------------  
 Command: @codex-context
 ----------------------------------------------------------------------
