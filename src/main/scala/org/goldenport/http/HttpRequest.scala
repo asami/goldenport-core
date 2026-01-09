@@ -14,26 +14,57 @@ import org.goldenport.bag.Bag
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
  *  version Mar. 20, 2021
- * @version Dec. 25, 2025
+ *  version Dec. 25, 2025
+ * @version Jan.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 case class HttpRequest(
-  url: URL,
+  path: HttpPath,
   method: HttpRequest.Method,
   query: Record,
   form: Record,
   header: Record,
-  body: Option[org.goldenport.bag.Bag] = None
+  body: Option[org.goldenport.bag.Bag] = None,
+  context: HttpContext = HttpContext.empty,
+  @deprecated("Use path/context", "2026-01-08")
+  url: Option[URL] = None
 ) {
   import HttpRequest._
 
   def isGet = method == GET
   def isMutation = !isGet
-  def urlStringWithQuery = buildUrlStringWithQuery(url, query)
-  def pathParts: Vector[String] =
-    url.getPath.split("/").toVector.filter(_.nonEmpty)
+  def urlStringWithQuery: String = {
+    val base = context.originalUri
+      .orElse(url.map(_.toExternalForm))
+      .getOrElse(path.asString)
+    StringUtils.addUrlParams(base, query.asNameStringVector)
+  }
+  def pathParts: Vector[String] = path.segments
+  // Router must depend only on path, not on context.
   // lazy val pathName = PathName(pathname)
-  def show = s"Request(${url})"
+  def show = s"Request(${path.asString})"
+}
+
+case class HttpPath(
+  segments: Vector[String]
+) {
+  def asString: String =
+    if (segments.isEmpty) "/" else segments.mkString("/", "/", "")
+}
+
+object HttpPath {
+  def parse(path: String): HttpPath =
+    HttpPath(path.split("/").toVector.filter(_.nonEmpty))
+}
+
+case class HttpContext(
+  scheme: Option[String],
+  authority: Option[String],
+  originalUri: Option[String]
+)
+
+object HttpContext {
+  val empty: HttpContext = HttpContext(None, None, None)
 }
 
 object HttpRequest {
@@ -61,11 +92,56 @@ object HttpRequest {
     val name = "DELETE"
   }
 
-  def apply(url: URL): HttpRequest = HttpRequest(url, GET, Record.empty, Record.empty,Record.empty)
+  @deprecated("Use fromUrl or fromPath", "2026-01-08")
+  def apply(url: URL): HttpRequest = fromUrl(GET, url)
 
+  def fromUrl(
+    method: Method,
+    url: URL,
+    query: Record = Record.empty,
+    form: Record = Record.empty,
+    header: Record = Record.empty,
+    body: Option[Bag] = None
+  ): HttpRequest =
+    HttpRequest(
+      path = HttpPath.parse(url.getPath),
+      method = method,
+      query = query,
+      form = form,
+      header = header,
+      body = body,
+      context = HttpContext(
+        scheme = Option(url.getProtocol),
+        authority = Option(url.getAuthority),
+        originalUri = Option(url.toExternalForm)
+      ),
+      url = Some(url)
+    )
+
+  def fromPath(
+    method: Method,
+    path: String,
+    query: Record = Record.empty,
+    header: Record = Record.empty,
+    body: Option[Bag] = None,
+    context: HttpContext = HttpContext.empty,
+    form: Record = Record.empty
+  ): HttpRequest =
+    HttpRequest(
+      path = HttpPath.parse(path),
+      method = method,
+      query = query,
+      form = form,
+      header = header,
+      body = body,
+      context = context,
+      url = None
+    )
+
+  @deprecated("Use fromPath and HttpContext", "2026-01-08")
   def create(baseurl: String, path: String): HttpRequest = {
     val s = StringUtils.concatPath(baseurl, path)
-    apply(new URL(s))
+    fromUrl(GET, new URL(s))
   }
 
   def parseQuery(p: String): Record = {
@@ -76,12 +152,6 @@ object HttpRequest {
     }
     Record.create(xs)
   }
-
-  def buildUrlStringWithQuery(url: URL, p: Record): String =
-    buildUrlStringWithQuery(url.toExternalForm, p)
-
-  def buildUrlStringWithQuery(s: String, p: Record): String =
-    StringUtils.addUrlParams(s, p.asNameStringVector)
 
   def fromCurlLike(args: Seq[String]): Consequence[HttpRequest] =
     _from_curl_like(_curl_operation_definition, args)
@@ -98,7 +168,7 @@ object HttpRequest {
   ): Consequence[HttpRequest] = {
     val argv = Array("curl") ++ args.toArray
     for {
-      req <- Request.parseArgs(op.specification.request, argv)
+      req  <- Request.parseArgs(op.specification.request, argv)
       opreq <- op.createOperationRequest(req)
       http <- _to_http_request(opreq)
     } yield http
@@ -121,13 +191,17 @@ object HttpRequest {
     val urlstring = arguments.lastOption.map(_.value.toString)
     for {
       path <- Consequence.fromOption(urlstring, "No path specified")
-      url <- Consequence(new URL(path))
     } yield {
       val method = _method(properties)
       val header = _headers(properties)
-      val query = Option(url.getQuery).map(parseQuery).getOrElse(Record.empty)
       val body = _body(properties)
-      HttpRequest(url, method, query, Record.empty, header, body)
+      if (_is_absolute_url(path)) {
+        val url = new URL(path)
+        val query = Option(url.getQuery).map(parseQuery).getOrElse(Record.empty)
+        fromUrl(method, url, query = query, header = header, body = body)
+      } else {
+        fromPath(method, path, header = header, body = body)
+      }
     }
   }
 
@@ -168,4 +242,7 @@ object HttpRequest {
       request = RequestDefinition.curlLike,
       response = ResponseDefinition()
     )
+
+  private def _is_absolute_url(p: String): Boolean =
+    p.startsWith("http://") || p.startsWith("https://")
 }

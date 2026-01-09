@@ -1,5 +1,10 @@
 package org.goldenport.protocol
 
+import org.goldenport.Consequence
+import org.goldenport.model.value.BaseContent
+import org.goldenport.protocol.handler.ingress.ArgsIngress
+import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
+
 /*
  * @since   Oct.  4, 2018
  *  version Oct. 21, 2018
@@ -15,14 +20,64 @@ package org.goldenport.protocol
  *  version Mar. 16, 2025
  *  version Apr.  2, 2025
  *  version Jun. 10, 2025
- * @version Dec. 24, 2025
+ *  version Dec. 24, 2025
+ * @version Jan.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
+  component: Option[String],
   service: Option[String],
   operation: String,
   arguments: List[Argument],
   switches: List[Switch],
   properties: List[Property]
 ) {
+}
+
+object Request {
+  def of(
+    component: String,
+    service: String,
+    operation: String,
+    arguments: List[Argument] = Nil,
+    switches: List[Switch] = Nil,
+    properties: List[Property] = Nil
+  ): Request =
+    Request(
+      component = Some(component),
+      service = Some(service),
+      operation = operation,
+      arguments = arguments,
+      switches = switches,
+      properties = properties
+    )
+
+  def ofService(
+    service: String,
+    operation: String,
+    arguments: List[Argument] = Nil,
+    switches: List[Switch] = Nil,
+    properties: List[Property] = Nil
+  ): Request =
+    Request(
+      component = None,
+      service = Some(service),
+      operation = operation,
+      arguments = arguments,
+      switches = switches,
+      properties = properties
+    )
+
+  def parseArgs(
+    reqdef: RequestDefinition,
+    args: Array[String]
+  ): Consequence[Request] = {
+    val op = OperationDefinition(
+      content = BaseContent.simple("ingress"),
+      request = reqdef,
+      response = ResponseDefinition()
+    )
+    val ingress = ArgsIngress()
+    ingress.encode(op, args)
+  }
 }

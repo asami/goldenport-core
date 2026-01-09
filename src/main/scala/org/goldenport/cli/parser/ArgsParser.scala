@@ -37,6 +37,7 @@ class ArgsParser(config: ArgsParser.Config) {
     }
 
     Request(
+      component  = None,
       service    = Some(service.name),
       operation  = args.headOption.getOrElse(""),
       arguments  = arguments,

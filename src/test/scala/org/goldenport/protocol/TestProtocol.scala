@@ -105,6 +105,7 @@ object TestProtocol {
         } else {
           Consequence.success(
             Request(
+              component = None,
               service = None,
               operation = operation,
               arguments = List(Argument("target", args(1), None)),

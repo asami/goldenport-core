@@ -102,6 +102,7 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
 
     Consequence.success(
       Request(
+        component = None,
         service = service,
         operation = parsed.operation,
         arguments = parsed.arguments,
@@ -118,6 +119,7 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
     val parsed = parse_args(op, args)
     Consequence.success(
       Request(
+        component = None,
         service = None,
         operation = parsed.operation,
         arguments = parsed.arguments,
@@ -343,26 +345,44 @@ abstract class RestIngress extends Ingress[HttpRequest] {
     op: OperationDefinition,
     req: HttpRequest
   ): Consequence[Request] = {
-    val inputs =
-      req.method match {
-        case HttpRequest.GET     => req.query
-        case HttpRequest.POST    => req.form
-        case HttpRequest.PUT     => req.form
-        case HttpRequest.DELETE  => req.query
-      }
-
-    val arguments =
-      Ingress.recordToArguments(inputs)
-
-    Consequence.success(
-      Request(
-        service = None,
-        operation = op.name,
-        arguments = arguments,
-        switches = Nil,
-        properties = Nil
+    val isget = req.method == HttpRequest.GET
+    val queryempty = req.query.fields.isEmpty
+    val formempty = req.form.fields.isEmpty
+    val bodyempty = req.body.forall(_.metadata.size.contains(0L))
+    if (isget && queryempty && formempty && bodyempty) {
+      Consequence.success(
+        Request(
+          component = None,
+          service = None,
+          operation = op.name,
+          arguments = Nil,
+          switches = Nil,
+          properties = Nil
+        )
       )
-    )
+    } else {
+      val inputs =
+        req.method match {
+          case HttpRequest.GET     => req.query
+          case HttpRequest.POST    => req.form
+          case HttpRequest.PUT     => req.form
+          case HttpRequest.DELETE  => req.query
+        }
+
+      val arguments =
+        Ingress.recordToArguments(inputs)
+
+      Consequence.success(
+        Request(
+          component = None,
+          service = None,
+          operation = op.name,
+          arguments = arguments,
+          switches = Nil,
+          properties = Nil
+        )
+      )
+    }
   }
 }
 

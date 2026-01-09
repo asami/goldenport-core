@@ -120,6 +120,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val cli = new CliLogic(services, protocol)
 
       val request = org.goldenport.protocol.Request(
+        component = None,
         service = Some("user"),
         operation = "create",
         arguments = List(org.goldenport.protocol.Argument("first", "first", None)),
@@ -158,6 +159,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val cli = new CliLogic(services, protocol)
 
       val request = org.goldenport.protocol.Request(
+        component = None,
         service = Some("user"),
         operation = "create",
         arguments = List(
@@ -203,6 +205,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val cli = new CliLogic(services, protocol)
 
       val request = org.goldenport.protocol.Request(
+        component = None,
         service = Some("user"),
         operation = "query",
         arguments = List(
@@ -241,6 +244,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val cli = new CliLogic(services, protocol)
 
       val request = org.goldenport.protocol.Request(
+        component = None,
         service = Some("user"),
         operation = "delete",
         arguments = Nil,
@@ -271,6 +275,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val cli = new CliLogic(services, protocol)
 
       val request = org.goldenport.protocol.Request(
+        component = None,
         service = Some("unknown"),
         operation = "create",
         arguments = Nil,
@@ -478,6 +483,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val cli = new CliLogic(services, dummyProtocolEngine)
 
       val request = org.goldenport.protocol.Request(
+        component = None,
         service = Some("user"),
         operation = op.specification.name,
         arguments = Nil, // missing all params

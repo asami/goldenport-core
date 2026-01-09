@@ -73,6 +73,7 @@ class OperationDefinitionResolveParameterTemporalSpec
 
   private def requestWith(value: Any, extra: List[Any] = Nil): Request =
     Request(
+      component = None,
       service = None,
       operation = "temporal-operation",
       arguments = Argument("value", value, None) :: extra.map(v => Argument("value", v, None)),
@@ -174,6 +175,7 @@ class OperationDefinitionResolveParameterTemporalSpec
       Given("an operation with a required temporal argument")
       val op = new TemporalOperationDefinition(XDateTime)
       val missing = Request(
+        component = None,
         service = None,
         operation = "temporal-operation",
         arguments = Nil,

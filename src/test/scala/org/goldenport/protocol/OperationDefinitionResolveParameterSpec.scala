@@ -119,6 +119,7 @@ class OperationDefinitionResolveParameterSpec
 
   private def requestWith(value: Any, extra: List[Any] = Nil): Request =
     Request(
+      component = None,
       service = None,
       operation = "int-operation",
       arguments = Argument("value", value, None) :: extra.map(v => Argument("value", v, None)),
@@ -305,6 +306,7 @@ class OperationDefinitionResolveParameterSpec
 
       When("resolving a violating value through the default instance")
       val req = Request(
+        component = None,
         service = None,
         operation = "string-operation",
         arguments = List(Argument("value", "", None)),
@@ -321,6 +323,7 @@ class OperationDefinitionResolveParameterSpec
       Given("an operation with a required integer argument")
       val op = new IntOperationDefinition(XNonNegativeInteger)
       val missing = Request(
+        component = None,
         service = None,
         operation = "int-operation",
         arguments = Nil,
