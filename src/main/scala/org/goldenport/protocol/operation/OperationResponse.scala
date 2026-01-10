@@ -6,7 +6,7 @@ import org.goldenport.protocol.scalar.ScalarValue
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan.  4, 2026
+ * @version Jan. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -19,6 +19,17 @@ abstract class OperationResponse {
 
 object OperationResponse {
   final case class Void() extends OperationResponse {
+    def toResponse: Response = Response.Void()
+  }
+
+  /**
+   * Http wraps a protocol-boundary response, not a domain value.
+   *
+   * This is intended for client/CLI/server layers to interpret directly.
+   */
+  final case class Http(
+    response: org.goldenport.http.HttpResponse
+  ) extends OperationResponse {
     def toResponse: Response = Response.Void()
   }
 

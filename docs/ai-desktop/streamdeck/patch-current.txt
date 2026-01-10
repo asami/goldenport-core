@@ -1,0 +1,4 @@
+@patch-current
+
+Apply a minimal local patch to the current target only.
+Do not expand scope.

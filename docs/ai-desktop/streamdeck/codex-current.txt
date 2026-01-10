@@ -1,0 +1,8 @@
+@codex-current
+
+RULES:
+- Output ONLY a single ````text block.
+- No text outside the block.
+- Explicit file operations.
+- Numbered options only if required.
+- Immediately executable by Codex.

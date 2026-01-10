@@ -18,7 +18,8 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Feb. 15, 2020
  *  version Nov. 25, 2023
  *  version Mar. 15, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Jan. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -216,6 +217,31 @@ abstract class OperationDefinition
 }
 
 object OperationDefinition {
+  /**
+   * Rule represents invariant, model-level constraints of an operation.
+   *
+   * Rules are defined by models (e.g. CML) and must be enforced
+   * before execution. Violating a Rule must always result in rejection.
+   *
+   * This definition is runtime-agnostic and must not include
+   * environment-dependent or operational policies.
+   *
+   * NOTE:
+   * This is intentionally minimal and currently unused.
+   * It serves as a vocabulary placeholder to fix design intent.
+   */
+  final case class Rule(
+    kind: Rule.Kind,
+    allowBusinessWrite: Boolean = false,
+    allowExternalEffect: Boolean = false
+  )
+
+  object Rule {
+    sealed trait Kind
+    case object Command extends Kind
+    case object Query extends Kind
+  }
+
   @deprecated("Use BaseContent-based constructor", "2025-12-30")
   def apply(
     name: String,

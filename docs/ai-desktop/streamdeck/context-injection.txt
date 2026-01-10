@@ -1,0 +1,10 @@
+ESSION CONTEXT (ALWAYS ON):
+
+- Follow chappie-session.md rules.
+- Always present options with explicit numbering.
+- Any copy-pasteable content MUST be inside ````text.
+- Do NOT mark work as complete unless the program runs.
+- Do NOT declare work "out of scope".
+- The demo goal is to converge on final architecture, not quick hacks.
+
+Acknowledge silently and continue.

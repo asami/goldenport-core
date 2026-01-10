@@ -1,0 +1,11 @@
+ENGINEERING REALITY CHECK
+
+Answer concisely:
+
+1. What is the current work A?
+2. What is A’s completion condition?
+3. Are we still on A, or stuck in B/C?
+4. Does the program run right now?
+5. If not, what blocks A?
+
+No artifacts. No design. No execution.
