@@ -11,7 +11,7 @@ import org.goldenport.schema.{Multiplicity, ValueDomain, XString}
  *  version Feb. 16, 2020
  *  version Mar. 16, 2025
  *  version Dec. 25, 2025
- * @version Jan.  2, 2026
+ * @version Jan. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class RequestDefinition(
@@ -21,6 +21,8 @@ case class RequestDefinition(
 
 object RequestDefinition {
   val empty = new RequestDefinition()
+
+  val script: RequestDefinition = RequestDefinition() // TODO
 
   def apply(): RequestDefinition = empty
 

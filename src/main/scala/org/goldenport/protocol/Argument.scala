@@ -10,12 +10,13 @@ import org.goldenport.protocol.spec.ParameterDefinition
  *  version Jan. 30, 2022
  *  version Jul. 22, 2023
  *  version Mar. 16, 2025
- * @version Dec. 25, 2025
+ *  version Dec. 25, 2025
+ * @version Jan. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Argument(
   name: String,
   value: Any,
-  spec: Option[ParameterDefinition]
+  spec: Option[ParameterDefinition] = None
 ) extends Parameter { // with ConsequenceValueHelper {
 }

@@ -2,7 +2,8 @@ package org.goldenport.text.tc
 
 /*
  * @since   Oct.  3, 2025
- * @version Oct.  7, 2025
+ *  version Oct.  7, 2025
+ * @version Jan. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 trait Present[-A] {
@@ -17,7 +18,7 @@ trait Present[-A] {
   def pretty(a: A): String = display(a)
   def tooltip(a: A): String = embed(a, 24)
   def log(a: A): String = display(a)
-  def fingerprint(a: A): String = org.goldenport.text.PresentDefaults.sha256(print(a))
+  def fingerprint(a: A): String = org.goldenport.text.Presentable.sha256(print(a))
 }
 
 object Present {

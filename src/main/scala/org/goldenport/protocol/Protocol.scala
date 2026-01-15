@@ -2,7 +2,7 @@ package org.goldenport.protocol
 
 import org.goldenport.Consequence
 import org.goldenport.protocol.handler.ingress.ArgsIngress
-import org.goldenport.protocol.spec.ServiceDefinitionGroup
+import org.goldenport.protocol.spec.*
 import org.goldenport.protocol.handler.ProtocolHandler
 import org.goldenport.protocol.handler.egress.Egress
 import org.goldenport.protocol.handler.projection.ProjectionKind
@@ -10,12 +10,12 @@ import org.goldenport.protocol.handler.projection.ProjectionKind
 /*
  * @since   Dec. 28, 2025
  *  version Dec. 31, 2025
- * @version Jan.  2, 2026
+ * @version Jan. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Protocol(
-  services: ServiceDefinitionGroup,
-  handler: ProtocolHandler
+  services: ServiceDefinitionGroup = ServiceDefinitionGroup.empty,
+  handler: ProtocolHandler = ProtocolHandler.empty
 ) {
 
   /**
@@ -56,4 +56,33 @@ case class Protocol(
 
   def enprojectByName(name: String): Consequence[Any] =
     handler.projections.projectByName(name, services)
+}
+
+object Protocol {
+  import OperationDefinition.Builder.OperationFactory
+
+  val empty = Protocol()
+
+  def apply(p: Seq[ServiceDefinition]): Protocol =
+    Protocol(ServiceDefinitionGroup(p))
+
+  case class Builder(
+    services: ServiceDefinitionGroup = ServiceDefinitionGroup.empty,
+    handler: ProtocolHandler = ProtocolHandler.empty,
+    operationFactory: OperationFactory = OperationFactory.Default
+  ) {
+    def build(): Protocol = Protocol(services, handler)
+
+    def addOperation(
+      service: String,
+      operation: String,
+      req: RequestDefinition,
+      res: ResponseDefinition
+    ): Builder = {
+      val op = operationFactory.createOperation(operation, req, res)
+      copy(services = services.addOperation(service, op))
+    }
+  }
+  object Builder {
+  }
 }

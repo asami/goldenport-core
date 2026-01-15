@@ -1,5 +1,6 @@
 package org.goldenport.protocol.spec
 
+import cats.data.NonEmptyVector
 import org.goldenport.model.value.BaseContent
 import org.goldenport.protocol.service.Service
 
@@ -11,7 +12,7 @@ import org.goldenport.protocol.service.Service
  *  version Nov. 25, 2023
  *  version Feb.  2, 2025
  *  version Dec. 30, 2025
- * @version Jan.  3, 2026
+ * @version Jan. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class ServiceDefinition
@@ -53,6 +54,30 @@ object ServiceDefinition {
       content = BaseContent.simple(name),
       operations = operations
     )
+
+    def apply(
+      name: String,
+      operations: NonEmptyVector[OperationDefinition]
+    ): Specification = Specification(
+      content = BaseContent.simple(name),
+      operations = OperationDefinitionGroup(operations)
+    )
+
+    def apply(
+      name: String,
+      op: OperationDefinition,
+      ops: OperationDefinition*
+    ): Specification = apply(name, NonEmptyVector(op, ops.toVector))
+
+    def apply(
+      name: String,
+      opname: String,
+      req: RequestDefinition,
+      res: ResponseDefinition
+    ): Specification = apply(
+      name,
+      OperationDefinition(opname, req, res)
+    )
   }
 
   trait Factory[T <: Service] {
@@ -66,11 +91,106 @@ object ServiceDefinition {
     name: String,
     operations: OperationDefinitionGroup
   ): Instance = Instance(Specification(name, operations))
+
+  def apply(
+    name: String,
+    op: OperationDefinition,
+    ops: OperationDefinition*
+  ): Instance = Instance(Specification(name, NonEmptyVector(op, ops.toVector)))
+
+  def apply(
+    name: String,
+    opname: String,
+    req: RequestDefinition,
+    res: ResponseDefinition
+  ): Instance = Instance(Specification(name, opname, req, res))
 }
 
 case class ServiceDefinitionGroup(
-  services: Vector[ServiceDefinition]
-)
+  services: Vector[ServiceDefinition] = Vector.empty
+) {
+  def addOperation(name: String, op: OperationDefinition): ServiceDefinitionGroup = {
+    val idx = services.indexWhere(_.name == name)
+    if (idx >= 0) {
+      val oldService = services(idx)
+      val newOps = oldService.operations.add(op)
+      val newService = ServiceDefinition.Instance(
+        oldService.specification.copy(operations = newOps)
+      )
+      ServiceDefinitionGroup(services.updated(idx, newService))
+    } else {
+      val newService = ServiceDefinition.Instance(
+        ServiceDefinition.Specification(name, OperationDefinitionGroup(op))
+      )
+      ServiceDefinitionGroup(services :+ newService)
+    }
+  }
+}
+object ServiceDefinitionGroup {
+  import OperationDefinition.Builder.OperationFactory
+
+  val empty = ServiceDefinitionGroup()
+
+  def apply(ps: Seq[ServiceDefinition]): ServiceDefinitionGroup =
+    ServiceDefinitionGroup(ps.toVector)
+
+  def apply(p: ServiceDefinition, ps: ServiceDefinition*): ServiceDefinitionGroup = apply(p +: ps)
+
+  case class Builder(
+    operationFactory: OperationFactory = OperationFactory.Default,
+    opsMap: Map[String, Vector[OperationDefinition]] = Map.empty
+  ) {
+    def build(
+      services: ServiceDefinitionGroup = ServiceDefinitionGroup.empty,
+      operationFactory: OperationFactory = OperationFactory.Default
+    ): ServiceDefinitionGroup = {
+      opsMap.foldLeft(services) { case (group, (name, ops)) =>
+        val opDefs = ops match {
+          case Vector() => Vector.empty
+          case Vector(single) => Vector(single)
+          case multiple => multiple
+        }
+        val opGroup =
+          if (opDefs.isEmpty)
+            None
+          else
+            Some(OperationDefinitionGroup(NonEmptyVector.fromVectorUnsafe(opDefs.toVector)))
+        opGroup match {
+          case Some(s) =>
+            val newService = ServiceDefinition.Instance(
+              ServiceDefinition.Specification(name, s)
+            )
+            val idx = group.services.indexWhere(_.name == name)
+            if (idx >= 0)
+              group.copy(services = group.services.updated(idx, newService))
+            else
+              group.copy(services = group.services :+ newService)
+          case None => group
+        }
+      }
+    }
+
+    def addOperation(
+      name: String,
+      opname: String,
+      req: RequestDefinition,
+      res: ResponseDefinition
+    ): Builder = {
+      val op = OperationDefinition(opname, req, res)
+      addOperation(name, op)
+    }
+
+    def addOperation(
+      service: String,
+      op: OperationDefinition
+    ): Builder = {
+      val currentOps = opsMap.getOrElse(service, Vector.empty)
+      copy(opsMap = opsMap.updated(service, currentOps :+ op))
+    }
+  }
+  object Builder {
+  }
+}
 
 case class ServiceMetadata(
   description: Option[String] = None,

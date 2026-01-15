@@ -7,10 +7,15 @@ import org.goldenport.schema.DataType
  *  version Oct.  8, 2018
  *  version Feb. 24, 2019
  *  version Mar.  2, 2025
- * @version Dec. 25, 2025
+ *  version Dec. 25, 2025
+ * @version Jan. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ResponseDefinition(
   result: List[DataType] = Nil
 ) {
+}
+
+object ResponseDefinition {
+  val script = ResponseDefinition() // TODO
 }

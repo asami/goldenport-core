@@ -2,11 +2,12 @@ package org.goldenport.protocol.operation
 
 import org.goldenport.protocol.Response
 import org.goldenport.protocol.scalar.ScalarValue
+import org.goldenport.http.HttpResponse
 
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 10, 2026
+ * @version Jan. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -28,7 +29,7 @@ object OperationResponse {
    * This is intended for client/CLI/server layers to interpret directly.
    */
   final case class Http(
-    response: org.goldenport.http.HttpResponse
+    response: HttpResponse
   ) extends OperationResponse {
     def toResponse: Response = Response.Void()
   }
@@ -39,5 +40,16 @@ object OperationResponse {
    */
   final case class Scalar[T: ScalarValue](value: T) extends OperationResponse {
     def toResponse: Response = Response.Scalar(value)
+  }
+
+  final case class Opaque(value: Any) extends OperationResponse {
+    def toResponse: Response = Response.Opaque(value)
+  }
+
+  def create(p: Any): OperationResponse = p match {
+    case m: String => Scalar(m)
+    case m: HttpResponse => Http(m)
+    case m: Unit => Void()
+    case m => Opaque(m)
   }
 }

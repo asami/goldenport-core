@@ -4,6 +4,7 @@ import org.goldenport.Consequence
 import org.goldenport.model.value.BaseContent
 import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
+import org.goldenport.text.Presentable
 
 /*
  * @since   Oct.  4, 2018
@@ -21,7 +22,7 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
  *  version Apr.  2, 2025
  *  version Jun. 10, 2025
  *  version Dec. 24, 2025
- * @version Jan.  8, 2026
+ * @version Jan. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -32,6 +33,7 @@ case class Request(
   switches: List[Switch],
   properties: List[Property]
 ) {
+  def args: List[String] = arguments.map(x => Presentable.print(x.value))
 }
 
 object Request {
