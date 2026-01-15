@@ -1,11 +1,11 @@
-val scala3Version = "3.6.2"
+val scala3Version = "3.3.7"
 
 lazy val root = project
   .in(file("."))
   .settings(
     organization := "org.goldenport",
     name := "goldenport-core",
-    version := "0.1.2",
+    version := "0.2.0",
 
     scalaVersion := scala3Version,
 
