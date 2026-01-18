@@ -5,7 +5,7 @@ lazy val root = project
   .settings(
     organization := "org.goldenport",
     name := "goldenport-core",
-    version := "0.2.0",
+    version := "0.2.1",
 
     scalaVersion := scala3Version,
 
@@ -22,9 +22,19 @@ lazy val root = project
     libraryDependencies += "io.circe" %% "circe-core" % "0.14.3",
     libraryDependencies += "io.circe" %% "circe-generic" % "0.14.3",
     libraryDependencies += "io.circe" %% "circe-parser" % "0.14.3",
-    publishTo := Some(
-      "GitHub Packages" at "https://maven.pkg.github.com/asami/maven-repository"
-    ),
-    credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
-    publishMavenStyle := true
+
+    publishMavenStyle := true,
+
+    publishTo := {
+      val repo = sys.env.get("SIMPLEMODELING_MAVEN_LOCAL")
+        .map(file)
+        .getOrElse(baseDirectory.value / "maven-local")
+
+      Some(
+        Resolver.file(
+          "local-simplemodeling-maven",
+          repo
+        )
+      )
+    }
   )

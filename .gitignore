@@ -8,6 +8,7 @@ target
 .*
 boot
 WARP.md
+maven-local
 
 ### Metals (VS Code Scala extension) ###
 .metals/
