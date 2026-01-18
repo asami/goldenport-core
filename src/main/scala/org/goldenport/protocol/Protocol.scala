@@ -10,7 +10,7 @@ import org.goldenport.protocol.handler.projection.ProjectionKind
 /*
  * @since   Dec. 28, 2025
  *  version Dec. 31, 2025
- * @version Jan. 14, 2026
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Protocol(
@@ -68,7 +68,7 @@ object Protocol {
 
   case class Builder(
     services: ServiceDefinitionGroup = ServiceDefinitionGroup.empty,
-    handler: ProtocolHandler = ProtocolHandler.empty,
+    handler: ProtocolHandler = ProtocolHandler.default,
     operationFactory: OperationFactory = OperationFactory.Default
   ) {
     def build(): Protocol = Protocol(services, handler)

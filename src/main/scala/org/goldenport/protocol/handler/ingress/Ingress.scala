@@ -13,7 +13,7 @@ import org.goldenport.http.HttpRequest
  * @since   Dec. 28, 2025
  *  version Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan.  7, 2026
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -80,6 +80,9 @@ object IngressCollection {
   /** Binary-compatible zero-arg constructor */
   def apply(): IngressCollection =
     empty
+
+  def apply(p: Ingress[?], ps: Ingress[?]*): IngressCollection =
+    IngressCollection((p +: ps).toVector)
 }
 
 abstract class ArgsIngress extends Ingress[Array[String]] {

@@ -11,7 +11,7 @@ import org.goldenport.observation.Cause.Reason
 
 /*
  * @since   Dec. 28, 2025
- * @version Jan.  4, 2026
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolEngineSpec
@@ -97,8 +97,8 @@ class ProtocolEngineSpec
 
           result match {
             case Consequence.Success(opreq: OperationRequest.Core.Holder) =>
-              opreq.switches.map(_.name) should contain ("dry-run")
-              opreq.properties.map(p => (p.name, p.value)) should contain (("timeout", "30"))
+              opreq.request.switches.map(_.name) should contain ("dry-run")
+              opreq.request.properties.map(p => (p.name, p.value)) should contain (("timeout", "30"))
             case Consequence.Success(_) =>
               fail("unexpected operation request type")
             case _ =>

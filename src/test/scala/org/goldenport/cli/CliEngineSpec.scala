@@ -4,6 +4,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.GivenWhenThen
 
+import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec._
 import org.goldenport.Consequence
@@ -20,7 +21,7 @@ import cats.data.NonEmptyVector
  */
 /*
  * @since   Dec. 26, 2025
- * @version Dec. 26, 2025
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CliEngineSpec
@@ -31,7 +32,7 @@ final class CliEngineSpec
   //
   // Test fixtures
   //
-  case class Query(query: String) extends OperationRequest
+  case class Query(request: Request, query: String) extends OperationRequest
 
   object QueryOperation extends OperationDefinition {
     override val specification: OperationDefinition.Specification =
@@ -49,10 +50,10 @@ final class CliEngineSpec
       )
 
     override def createOperationRequest(
-      req: org.goldenport.protocol.Request
+      req: Request
     ): Consequence[OperationRequest] = {
-      given org.goldenport.protocol.Request = req
-      take_string("query").map(Query(_))
+      given Request = req
+      take_string("query").map(Query(req, _))
     }
   }
 
@@ -92,7 +93,7 @@ final class CliEngineSpec
       Then("it should succeed with a concrete OperationRequest")
       result match {
         case Consequence.Success(req) =>
-          req.shouldBe(Query("domain model"))
+          req.shouldBe(Query(req.request, "domain model"))
         case _ =>
           fail("makeRequest should succeed for query")
       }

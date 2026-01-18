@@ -4,6 +4,7 @@ import java.time.{LocalDateTime, OffsetDateTime, YearMonth, ZoneId, ZoneOffset, 
 import org.scalacheck.Gen
 import org.goldenport.Consequence
 import org.goldenport.observation.Cause
+import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.schema.{Multiplicity, ValueDomain, XDateTime, XLocalDateTime, XYearMonth}
@@ -14,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterTemporalSpec
@@ -23,7 +24,7 @@ class OperationDefinitionResolveParameterTemporalSpec
   with GivenWhenThen
   with ScalaCheckDrivenPropertyChecks {
 
-  private final case class TemporalRequest(value: Any) extends OperationRequest
+  private final case class TemporalRequest(request: Request, value: Any) extends OperationRequest
 
   private def assert_cause(result: Consequence[?], expected: Cause): Unit =
     result match {
@@ -62,7 +63,7 @@ class OperationDefinitionResolveParameterTemporalSpec
       val param = specification.request.parameters.head
       resolveParameter(param).flatMap {
         case ResolvedSingle(v, _) =>
-          Consequence.success(TemporalRequest(v))
+          Consequence.success(TemporalRequest(req, v))
         case ResolvedEmpty(_) =>
           Consequence.failure("parameter missing")
         case ResolvedMultiple(_, _) =>
@@ -91,22 +92,22 @@ class OperationDefinitionResolveParameterTemporalSpec
       val odt = OffsetDateTime.of(ldt, ZoneOffset.ofHours(9))
       When("resolving ZonedDateTime, OffsetDateTime, and string forms")
       op.createOperationRequest(requestWith(zdt)) match {
-        case Consequence.Success(TemporalRequest(value: ZonedDateTime)) =>
+        case Consequence.Success(TemporalRequest(req, value: ZonedDateTime)) =>
           value.shouldBe(zdt)
         case _ => fail("expected ZonedDateTime success")
       }
       op.createOperationRequest(requestWith(odt)) match {
-        case Consequence.Success(TemporalRequest(value: ZonedDateTime)) =>
+        case Consequence.Success(TemporalRequest(req, value: ZonedDateTime)) =>
           value.shouldBe(odt.toZonedDateTime)
         case _ => fail("expected OffsetDateTime success")
       }
       op.createOperationRequest(requestWith("2025-01-01T10:00:00+09:00[Asia/Tokyo]")) match {
-        case Consequence.Success(TemporalRequest(value: ZonedDateTime)) =>
+        case Consequence.Success(TemporalRequest(req, value: ZonedDateTime)) =>
           value.shouldBe(zdt)
         case _ => fail("expected zoned string success")
       }
       op.createOperationRequest(requestWith("2025-01-01T10:00:00+09:00")) match {
-        case Consequence.Success(TemporalRequest(value: ZonedDateTime)) =>
+        case Consequence.Success(TemporalRequest(req, value: ZonedDateTime)) =>
           value.shouldBe(odt.toZonedDateTime)
         case _ => fail("expected offset string success")
       }
@@ -119,12 +120,12 @@ class OperationDefinitionResolveParameterTemporalSpec
       val ymOp = new TemporalOperationDefinition(XYearMonth)
       When("resolving string and value forms")
       ldtOp.createOperationRequest(requestWith("2025-01-01T10:00:00")) match {
-        case Consequence.Success(TemporalRequest(value: LocalDateTime)) =>
+        case Consequence.Success(TemporalRequest(req, value: LocalDateTime)) =>
           value.shouldBe(LocalDateTime.parse("2025-01-01T10:00:00"))
         case _ => fail("expected LocalDateTime success")
       }
       ymOp.createOperationRequest(requestWith("2025-01")) match {
-        case Consequence.Success(TemporalRequest(value: YearMonth)) =>
+        case Consequence.Success(TemporalRequest(req, value: YearMonth)) =>
           value.shouldBe(YearMonth.parse("2025-01"))
         case _ => fail("expected YearMonth success")
       }
@@ -139,21 +140,21 @@ class OperationDefinitionResolveParameterTemporalSpec
       When("resolving arbitrary valid strings")
       forAll(_genLocalDateTime) { ldt =>
         ldtOp.createOperationRequest(requestWith(ldt.toString)) match {
-          case Consequence.Success(TemporalRequest(value: LocalDateTime)) =>
+          case Consequence.Success(TemporalRequest(req, value: LocalDateTime)) =>
             value.shouldBe(ldt)
           case _ => fail("expected LocalDateTime success")
         }
       }
       forAll(_genYearMonth) { ym =>
         ymOp.createOperationRequest(requestWith(ym.toString)) match {
-          case Consequence.Success(TemporalRequest(value: YearMonth)) =>
+          case Consequence.Success(TemporalRequest(req, value: YearMonth)) =>
             value.shouldBe(ym)
           case _ => fail("expected YearMonth success")
         }
       }
       forAll(_genOffsetDateTime) { odt =>
         dtOp.createOperationRequest(requestWith(odt.toString)) match {
-          case Consequence.Success(TemporalRequest(value: ZonedDateTime)) =>
+          case Consequence.Success(TemporalRequest(req, value: ZonedDateTime)) =>
             value.shouldBe(odt.toZonedDateTime)
           case _ => fail("expected DateTime success")
         }

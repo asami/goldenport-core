@@ -15,7 +15,7 @@ import org.goldenport.bag.Bag
  *  version Nov.  7, 2018
  *  version Mar. 20, 2021
  *  version Dec. 25, 2025
- * @version Jan.  8, 2026
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 case class HttpRequest(
@@ -177,12 +177,7 @@ object HttpRequest {
   private def _to_http_request(
     opreq: OperationRequest
   ): Consequence[HttpRequest] =
-    opreq match {
-      case holder: OperationRequest.Core.Holder =>
-        _to_http_request(holder.arguments, holder.properties)
-      case _ =>
-        Consequence.failure("unsupported operation request")
-    }
+    _to_http_request(opreq.request.arguments, opreq.request.properties)
 
   private def _to_http_request(
     arguments: List[Argument],

@@ -2,6 +2,7 @@ package org.goldenport.protocol
 
 import org.goldenport.Consequence
 import org.goldenport.observation.Cause
+import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.schema.{Constraint, DataType, Multiplicity, ValueDomain, XNonNegativeInteger, XPositiveInteger, XString}
@@ -13,7 +14,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 29, 2025
- * @version Dec. 29, 2025
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec
@@ -22,8 +23,8 @@ class OperationDefinitionResolveParameterSpec
   with GivenWhenThen
   with ScalaCheckDrivenPropertyChecks {
 
-  private final case class IntRequest(value: BigInt) extends OperationRequest
-  private final case class StringRequest(value: String) extends OperationRequest
+  private final case class IntRequest(request: Request, value: BigInt) extends OperationRequest
+  private final case class StringRequest(request: Request, value: String) extends OperationRequest
 
   private def assert_cause(result: Consequence[?], expected: Cause): Unit =
     result match {
@@ -64,7 +65,7 @@ class OperationDefinitionResolveParameterSpec
       val param = specification.request.parameters.head
       resolveParameter(param).flatMap {
         case ResolvedSingle(v: BigInt, _) =>
-          Consequence.success(IntRequest(v))
+          Consequence.success(IntRequest(req, v))
         case ResolvedSingle(_, _) =>
           Consequence.failure("unexpected parameter type")
         case ResolvedEmpty(_) =>
@@ -106,7 +107,7 @@ class OperationDefinitionResolveParameterSpec
       val param = specification.request.parameters.head
       resolveParameter(param).flatMap {
         case ResolvedSingle(v: String, _) =>
-          Consequence.success(StringRequest(v))
+          Consequence.success(StringRequest(req, v))
         case ResolvedSingle(_, _) =>
           Consequence.failure("unexpected parameter type")
         case ResolvedEmpty(_) =>

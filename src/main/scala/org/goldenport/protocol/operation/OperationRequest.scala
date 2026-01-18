@@ -1,5 +1,6 @@
 package org.goldenport.protocol.operation
 
+import org.goldenport.protocol.Request
 import org.goldenport.protocol.Argument
 import org.goldenport.protocol.Property
 import org.goldenport.protocol.Switch
@@ -14,10 +15,12 @@ import org.goldenport.protocol.Switch
  */
 /*
  * @since   Dec. 23, 2025
- * @version Dec. 26, 2025
+ *  version Dec. 26, 2025
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationRequest {
+  def request: Request
 }
 
 object OperationRequest {
@@ -29,11 +32,7 @@ object OperationRequest {
    * copy, and transform without affecting the abstract API.
    */
   final case class Core(
-    service: Option[String],
-    operation: String,
-    arguments: List[Argument],
-    switches: List[Switch],
-    properties: List[Property]
+    request: Request
   )
 
   object Core {
@@ -47,11 +46,7 @@ object OperationRequest {
     trait Holder {
       def core: Core
 
-      def service: Option[String] = core.service
-      def operation: String = core.operation
-      def arguments: List[Argument] = core.arguments
-      def switches: List[Switch] = core.switches
-      def properties: List[Property] = core.properties
+      def request: Request = core.request
     }
   }
 
@@ -66,6 +61,9 @@ object OperationRequest {
     core: Core
   ) extends OperationRequest with Core.Holder
 
+  def apply(req: Request): OperationRequest =
+    Instance(Core(req))
+
   def apply(
     service: Option[String],
     operation: String,
@@ -74,12 +72,6 @@ object OperationRequest {
     properties: List[Property]
   ): OperationRequest =
     Instance(
-      Core(
-        service,
-        operation,
-        arguments,
-        switches,
-        properties
-      )
+      Core(Request(None, service, operation, arguments, switches, properties))
     )
 }

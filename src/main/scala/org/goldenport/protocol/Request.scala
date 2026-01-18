@@ -22,7 +22,7 @@ import org.goldenport.text.Presentable
  *  version Apr.  2, 2025
  *  version Jun. 10, 2025
  *  version Dec. 24, 2025
- * @version Jan. 15, 2026
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -33,6 +33,7 @@ case class Request(
   switches: List[Switch],
   properties: List[Property]
 ) {
+  def name: String = Vector(component, service, Some(operation)).flatten.mkString(".")
   def args: List[String] = arguments.map(x => Presentable.print(x.value))
 }
 
@@ -68,6 +69,16 @@ object Request {
       arguments = arguments,
       switches = switches,
       properties = properties
+    )
+
+  def ofOperation(p: String): Request =
+    Request(
+      component = None,
+      service = None,
+      operation = p,
+      arguments = Nil,
+      switches = Nil,
+      properties = Nil
     )
 
   def parseArgs(

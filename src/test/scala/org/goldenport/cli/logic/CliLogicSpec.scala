@@ -2,8 +2,9 @@ package org.goldenport.cli.logic
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
-import org.goldenport.protocol.spec.*
 import org.goldenport.protocol.{Protocol, ProtocolEngine}
+import org.goldenport.protocol.Request
+import org.goldenport.protocol.spec.*
 import org.goldenport.protocol.handler.ProtocolHandler
 import org.goldenport.protocol.handler.egress.EgressCollection
 import org.goldenport.protocol.handler.ingress.IngressCollection
@@ -15,7 +16,8 @@ import org.goldenport.schema.Multiplicity
 
 /*
  * @since   Dec. 25, 2025
- * @version Dec. 26, 2025
+ *  version Dec. 26, 2025
+ * @version Jan. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 class CliLogicSpec extends AnyWordSpec with Matchers {
@@ -119,7 +121,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.goldenport.protocol.Request(
+      val request = Request(
         component = None,
         service = Some("user"),
         operation = "create",
@@ -158,7 +160,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.goldenport.protocol.Request(
+      val request = Request(
         component = None,
         service = Some("user"),
         operation = "create",
@@ -204,7 +206,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.goldenport.protocol.Request(
+      val request = Request(
         component = None,
         service = Some("user"),
         operation = "query",
@@ -243,7 +245,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.goldenport.protocol.Request(
+      val request = Request(
         component = None,
         service = Some("user"),
         operation = "delete",
@@ -274,7 +276,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val protocol = dummyProtocolEngine
       val cli = new CliLogic(services, protocol)
 
-      val request = org.goldenport.protocol.Request(
+      val request = Request(
         component = None,
         service = Some("unknown"),
         operation = "create",
@@ -318,6 +320,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     )
 
   private final case class TestQuery(
+    request: Request,
     id: String,
     name: String,
     birthday: Option[java.time.ZonedDateTime]
@@ -354,15 +357,15 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       )
 
     override def createOperationRequest(
-      req: org.goldenport.protocol.Request
+      req: Request
     ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
-      given org.goldenport.protocol.Request = req
+      given Request = req
 
       take_string("id")
         .zip3With(
           take_string("name"),
           get_datetime("birthday")
-        )(TestQuery(_, _, _))
+        )(TestQuery(req, _, _, _))
     }
   }
 
@@ -403,15 +406,15 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     import cats.syntax.all.*
 
     override def createOperationRequest(
-      req: org.goldenport.protocol.Request
+      req: Request
     ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
-      given org.goldenport.protocol.Request = req
+      given Request = req
 
       (
         take_string("id"),
         take_string("name"),
         get_datetime("birthday")
-      ).mapN(TestQuery(_, _, _))
+      ).mapN(TestQuery(req, _, _, _))
     }
   }
 
@@ -423,13 +426,13 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     import cats.instances.tuple.*
 
     override def createOperationRequest(
-      req: org.goldenport.protocol.Request
+      req: Request
     ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
-      given org.goldenport.protocol.Request = req
+      given Request = req
 
       (
         (take_string("id"), take_string("name"), get_datetime("birthday"))
-      ).mapN(TestQuery(_, _, _))
+      ).mapN(TestQuery(req, _, _, _))
     }
   }
 
@@ -438,15 +441,15 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     extends BaseTestOperationDefinition(name) {
 
     override def createOperationRequest(
-      req: org.goldenport.protocol.Request
+      req: Request
     ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
-      given org.goldenport.protocol.Request = req
+      given Request = req
 
       take_string("id")
         .zip3With(
           take_string("name"),
           get_datetime("birthday")
-        )(TestQuery(_, _, _))
+        )(TestQuery(req, _, _, _))
     }
   }
 
@@ -455,15 +458,15 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
     extends BaseTestOperationDefinition(name) {
 
     override def createOperationRequest(
-      req: org.goldenport.protocol.Request
+      req: Request
     ): Consequence[org.goldenport.protocol.operation.OperationRequest] = {
-      given org.goldenport.protocol.Request = req
+      given Request = req
 
       for {
         id <- take_string("id")
         name <- take_string("name")
         birthday <- get_datetime("birthday")
-      } yield TestQuery(id, name, birthday)
+      } yield TestQuery(req, id, name, birthday)
     }
   }
 
@@ -482,7 +485,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
       val services = ServiceDefinitionGroup(Vector(service))
       val cli = new CliLogic(services, dummyProtocolEngine)
 
-      val request = org.goldenport.protocol.Request(
+      val request = Request(
         component = None,
         service = Some("user"),
         operation = op.specification.name,

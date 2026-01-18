@@ -33,7 +33,7 @@ import scala.util.control.NonFatal
  *  version Nov. 11, 2025
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
- * @version Jan.  7, 2026
+ * @version Jan. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] {
@@ -163,6 +163,111 @@ object Consequence {
       case ((a, b), c) => (a, b, c)
     }
   }
+
+  def map2[A, B, C](
+    ca: Consequence[A],
+    cb: Consequence[B]
+  )(f: (A, B) => C): Consequence[C] =
+    ca.zipWith(cb)(f)
+
+  def map3[A, B, C, D](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C]
+  )(f: (A, B, C) => D): Consequence[D] =
+    ca.zip3With(cb, cc)(f)
+
+  def map4[A, B, C, D, E](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C],
+    cd: Consequence[D]
+  )(f: (A, B, C, D) => E): Consequence[E] =
+    ca.zip(cb).zip(cc).zip(cd).map {
+      case (((a, b), c), d) => f(a, b, c, d)
+    }
+
+  def map5[A, B, C, D, E, F](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C],
+    cd: Consequence[D],
+    ce: Consequence[E]
+  )(f: (A, B, C, D, E) => F): Consequence[F] =
+    ca.zip(cb).zip(cc).zip(cd).zip(ce).map {
+      case ((((a, b), c), d), e) => f(a, b, c, d, e)
+    }
+
+  def map6[A, B, C, D, E, F, G](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C],
+    cd: Consequence[D],
+    ce: Consequence[E],
+    cf: Consequence[F]
+  )(f: (A, B, C, D, E, F) => G): Consequence[G] =
+    ca.zip(cb).zip(cc).zip(cd).zip(ce).zip(cf).map {
+      case (((((a, b), c), d), e), f0) => f(a, b, c, d, e, f0)
+    }
+
+  def map7[A, B, C, D, E, F, G, H](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C],
+    cd: Consequence[D],
+    ce: Consequence[E],
+    cf: Consequence[F],
+    cg: Consequence[G]
+  )(f: (A, B, C, D, E, F, G) => H): Consequence[H] =
+    ca.zip(cb).zip(cc).zip(cd).zip(ce).zip(cf).zip(cg).map {
+      case ((((((a, b), c), d), e), f0), g) => f(a, b, c, d, e, f0, g)
+    }
+
+  def map8[A, B, C, D, E, F, G, H, I](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C],
+    cd: Consequence[D],
+    ce: Consequence[E],
+    cf: Consequence[F],
+    cg: Consequence[G],
+    ch: Consequence[H]
+  )(f: (A, B, C, D, E, F, G, H) => I): Consequence[I] =
+    ca.zip(cb).zip(cc).zip(cd).zip(ce).zip(cf).zip(cg).zip(ch).map {
+      case (((((((a, b), c), d), e), f0), g), h) => f(a, b, c, d, e, f0, g, h)
+    }
+
+  def map9[A, B, C, D, E, F, G, H, I, J](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C],
+    cd: Consequence[D],
+    ce: Consequence[E],
+    cf: Consequence[F],
+    cg: Consequence[G],
+    ch: Consequence[H],
+    ci: Consequence[I]
+  )(f: (A, B, C, D, E, F, G, H, I) => J): Consequence[J] =
+    ca.zip(cb).zip(cc).zip(cd).zip(ce).zip(cf).zip(cg).zip(ch).zip(ci).map {
+      case ((((((((a, b), c), d), e), f0), g), h), i) => f(a, b, c, d, e, f0, g, h, i)
+    }
+
+  def map10[A, B, C, D, E, F, G, H, I, J, K](
+    ca: Consequence[A],
+    cb: Consequence[B],
+    cc: Consequence[C],
+    cd: Consequence[D],
+    ce: Consequence[E],
+    cf: Consequence[F],
+    cg: Consequence[G],
+    ch: Consequence[H],
+    ci: Consequence[I],
+    cj: Consequence[J]
+  )(f: (A, B, C, D, E, F, G, H, I, J) => K): Consequence[K] =
+    ca.zip(cb).zip(cc).zip(cd).zip(ce).zip(cf).zip(cg).zip(ch).zip(ci).zip(cj).map {
+      case (((((((((a, b), c), d), e), f0), g), h), i), j) =>
+        f(a, b, c, d, e, f0, g, h, i, j)
+    }
 
   def zipN[A](xs: Seq[Consequence[A]]): Consequence[Seq[A]] = {
     val results = scala.collection.mutable.ArrayBuffer[A]()
