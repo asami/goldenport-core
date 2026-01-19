@@ -2,7 +2,8 @@ package org.goldenport.datatype
 
 /*
  * @since   Jul. 20, 2025
- * @version Jul. 23, 2025
+ *  version Jul. 23, 2025
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class Rate(value: BigDecimal) extends DataType() {
@@ -16,5 +17,5 @@ final case class Rate(value: BigDecimal) extends DataType() {
 
   def inverse: BigDecimal = 1 + value
 
-  override def toString: String = f"${(value * 100)}%.2f %%"
+  override def print: String = f"${(value * 100)}%.2f %%"
 }

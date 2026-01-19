@@ -1,5 +1,6 @@
 package org.goldenport.protocol.operation
 
+import org.goldenport.text.Presentable
 import org.goldenport.protocol.Response
 import org.goldenport.protocol.scalar.ScalarValue
 import org.goldenport.http.HttpResponse
@@ -7,20 +8,21 @@ import org.goldenport.http.HttpResponse
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 15, 2026
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
  * OperationResponse represents the semantic result of an operation execution.
  * It is converted to Response at the protocol boundary.
  */
-abstract class OperationResponse {
+abstract class OperationResponse extends Presentable {
   def toResponse: Response
 }
 
 object OperationResponse {
   final case class Void() extends OperationResponse {
     def toResponse: Response = Response.Void()
+    override def print: String = "Void"
   }
 
   /**
@@ -32,6 +34,7 @@ object OperationResponse {
     response: HttpResponse
   ) extends OperationResponse {
     def toResponse: Response = Response.Void()
+    override def print: String = toString
   }
 
   /**
@@ -40,10 +43,12 @@ object OperationResponse {
    */
   final case class Scalar[T: ScalarValue](value: T) extends OperationResponse {
     def toResponse: Response = Response.Scalar(value)
+    override def print: String = value.toString
   }
 
   final case class Opaque(value: Any) extends OperationResponse {
     def toResponse: Response = Response.Opaque(value)
+    override def print: String = value.toString
   }
 
   def create(p: Any): OperationResponse = p match {

@@ -1,5 +1,6 @@
 package org.goldenport.protocol.operation
 
+import org.goldenport.text.Presentable
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.Argument
 import org.goldenport.protocol.Property
@@ -16,11 +17,13 @@ import org.goldenport.protocol.Switch
 /*
  * @since   Dec. 23, 2025
  *  version Dec. 26, 2025
- * @version Jan. 17, 2026
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
-abstract class OperationRequest {
+abstract class OperationRequest extends Presentable {
   def request: Request
+
+  override def print: String = request.print
 }
 
 object OperationRequest {
@@ -59,7 +62,9 @@ object OperationRequest {
    */
   final case class Instance(
     core: Core
-  ) extends OperationRequest with Core.Holder
+  ) extends OperationRequest with Core.Holder {
+    override def print: String = request.print
+  }
 
   def apply(req: Request): OperationRequest =
     Instance(Core(req))

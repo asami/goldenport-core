@@ -3,15 +3,17 @@ package org.goldenport.datatype
 import scala.util.*
 import java.util.Currency
 import cats.data.NonEmptyList
+import org.goldenport.text.Presentable
 
 /*
  * @since   Apr. 11, 2025
  *  version Apr. 14, 2025
  *  version Jul. 20, 2025
- * @version Sep. 30, 2025
+ *  version Sep. 30, 2025
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
-abstract class DataType() {
+abstract class DataType() extends Presentable {
 }
 
 trait NameString {

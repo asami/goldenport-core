@@ -9,6 +9,7 @@ package org.goldenport.text
  *  version Mar.  2, 2025
  *  version Oct.  3, 2025 (from Showable)
  *  version Oct.  7, 2025
+ * @version Jan. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 trait Presentable {
@@ -43,6 +44,8 @@ trait Presentable {
   def tooltip: String = embed(24)            // ultra-short
   def log: String = display                  // k=v k2=v2 … (one line)
   def fingerprint: String = Presentable.sha256(print)
+
+  final override def toString: String = show
 }
 
 object Presentable {

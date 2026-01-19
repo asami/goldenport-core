@@ -3,13 +3,16 @@ package org.goldenport.datatype
 /*
  * @since   Jul. 20, 2025
  *  version Jul. 23, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class StringDataType() extends DataType() {
   import StringDataType._
 
   def value: String
+
+  override def print = value
 
   def length: Int = value.length
   def codePointCount: Int = value.codePointCount(0, value.length)

@@ -4,7 +4,7 @@ package org.goldenport.datatype
  * @since   Jul. 23, 2025
  *  version Jul. 23, 2025
  *  version Aug.  2, 2025
- * @version Sep. 17, 2025
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class NonNegativeInt() extends IntDataType() {

@@ -10,7 +10,7 @@ import org.goldenport.text.Presentable
 /*
  * @since   Jan.  1, 2026
  *  version Jan.  3, 2026
- * @version Jan. 15, 2026
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Response extends Presentable
@@ -40,7 +40,7 @@ object Response {
    * Structured, semantic, or document-like values are out of scope.
    */
   final case class Scalar[T: ScalarValue](value: T) extends Response {
-    def print = value.toString
+    def print = Presentable.print(value)
   }
 
   final case class Opaque(value: Any) extends Response {

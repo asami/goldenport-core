@@ -1,6 +1,7 @@
 package org.goldenport.protocol
 
 import org.goldenport.Consequence
+import org.goldenport.text.Presentable
 import org.goldenport.model.value.BaseContent
 import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
@@ -22,7 +23,7 @@ import org.goldenport.text.Presentable
  *  version Apr.  2, 2025
  *  version Jun. 10, 2025
  *  version Dec. 24, 2025
- * @version Jan. 17, 2026
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -32,9 +33,14 @@ case class Request(
   arguments: List[Argument],
   switches: List[Switch],
   properties: List[Property]
-) {
+) extends Presentable {
   def name: String = Vector(component, service, Some(operation)).flatten.mkString(".")
   def args: List[String] = arguments.map(x => Presentable.print(x.value))
+  override def display: String = name
+  override def show: String =
+    s"$name(args=${arguments.size}, switches=${switches.size}, props=${properties.size})"
+  def print: String =
+    s"Request(${component}, ${service}, ${operation}, ${arguments}, ${switches}, ${properties})"
 }
 
 object Request {

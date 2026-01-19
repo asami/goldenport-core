@@ -2,13 +2,15 @@ package org.goldenport.datatype
 
 /*
  * @since   Jul. 23, 2025
- * @version Jul. 23, 2025
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class IntDataType() extends DataType() {
   import IntDataType._
 
   def value: Int
+
+  override def print = value.toString
 
   protected def value_min: Int = Integer.MIN_VALUE
   protected def value_max: Int = Integer.MAX_VALUE

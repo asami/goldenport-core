@@ -2,6 +2,7 @@ package org.goldenport.id
 
 import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
+import org.goldenport.text.Presentable
 
 /**
  * UniversalId is an opaque, value-based operational identifier with a canonical string format.
@@ -36,7 +37,7 @@ import java.time.format.DateTimeFormatter
 /*
  * @since   Dec. 31, 2025
  *  version Jan.  1, 2026
- * @version Jan.  6, 2026
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
@@ -44,7 +45,7 @@ abstract class UniversalId protected (
   minor: String,
   kind: String,
   subkind: Option[String]
-) {
+) extends Presentable {
   // Auxiliary constructor for backward compatibility
   protected def this(
     major: String,
@@ -70,7 +71,14 @@ abstract class UniversalId protected (
 
   def value: String = _parts.value
 
-  override def toString: String = value
+  def print: String = value
+
+  override def display: String = {
+    val sk = subkind.map(sk => s"-$sk").getOrElse("")
+    s"$major-$minor-$kind$sk"
+  }
+
+  override def show: String = s"${display}-${_parts.timestamp}"
 
   override def equals(obj: Any): Boolean =
     obj match {
