@@ -9,7 +9,7 @@ package org.goldenport.text
  *  version Mar.  2, 2025
  *  version Oct.  3, 2025 (from Showable)
  *  version Oct.  7, 2025
- * @version Jan. 15, 2026
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 trait Presentable {
@@ -51,6 +51,11 @@ trait Presentable {
 object Presentable {
   def print(p: Any): String = p match {
     case m: Presentable => m.print
+    case m => _default(p)
+  }
+
+  def display(p: Any): String = p match {
+    case m: Presentable => m.display
     case m => _default(p)
   }
 

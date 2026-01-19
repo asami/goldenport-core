@@ -18,11 +18,15 @@ abstract class Response extends Presentable
 object Response {
   final case class Void() extends Response {
     def print = ""
+    override def display: String = "Void"
+    override def show: String = "Void"
   }
 
   /** JSON representation (protocol-level, transport-agnostic). */
   final case class Json(value: String) extends Response {
     def print = value
+    override def display: String = value
+    override def show: String = value
   }
 
   /**
@@ -41,9 +45,13 @@ object Response {
    */
   final case class Scalar[T: ScalarValue](value: T) extends Response {
     def print = Presentable.print(value)
+    override def display: String = Presentable.display(value)
+    override def show: String = Presentable.show(value)
   }
 
   final case class Opaque(value: Any) extends Response {
     def print = Presentable.print(value)
+    override def display: String = Presentable.display(value)
+    override def show: String = Presentable.show(value)
   }
 }

@@ -2,6 +2,7 @@ package org.goldenport
 
 import cats._
 import scala.util.control.NonFatal
+import org.goldenport.text.Presentable
 
 /*
  * @since   Feb. 21, 2021
@@ -36,7 +37,7 @@ import scala.util.control.NonFatal
  * @version Jan. 16, 2026
  * @author  ASAMI, Tomoharu
  */
-sealed trait Consequence[+T] {
+sealed trait Consequence[+T] extends Presentable {
   def take: T
 
   def RAISE: Nothing = this match {
@@ -89,6 +90,21 @@ sealed trait Consequence[+T] {
       case e @ Consequence.Failure(_) =>
         e.asInstanceOf[Consequence[U]]
     }
+
+  override def print: String = this match {
+    case Consequence.Success(v) => Presentable.print(v)
+    case Consequence.Failure(c) => c.display
+  }
+
+  override def display: String = this match {
+    case Consequence.Success(_) => "success"
+    case Consequence.Failure(c) => c.display
+  }
+
+  override def show: String = this match {
+    case Consequence.Success(v) => s"Success(${Presentable.show(v)})"
+    case Consequence.Failure(c) => s"Failure(${c.show})"
+  }
 }
 
 object Consequence {

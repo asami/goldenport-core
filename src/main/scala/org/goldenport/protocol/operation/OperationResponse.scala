@@ -34,7 +34,9 @@ object OperationResponse {
     response: HttpResponse
   ) extends OperationResponse {
     def toResponse: Response = Response.Void()
-    override def print: String = toString
+    override def print: String = response.print
+    override def display: String = response.display
+    override def show: String = response.show
   }
 
   /**
@@ -43,12 +45,16 @@ object OperationResponse {
    */
   final case class Scalar[T: ScalarValue](value: T) extends OperationResponse {
     def toResponse: Response = Response.Scalar(value)
-    override def print: String = value.toString
+    override def print: String = Presentable.print(value)
+    override def display: String = Presentable.display(value)
+    override def show: String = Presentable.show(value)
   }
 
   final case class Opaque(value: Any) extends OperationResponse {
     def toResponse: Response = Response.Opaque(value)
-    override def print: String = value.toString
+    override def print: String = Presentable.print(value)
+    override def display: String = Presentable.display(value)
+    override def show: String = Presentable.show(value)
   }
 
   def create(p: Any): OperationResponse = p match {

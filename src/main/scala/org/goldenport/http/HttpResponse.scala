@@ -2,6 +2,7 @@ package org.goldenport.http
 
 import java.io.InputStream
 import java.nio.charset.{Charset, StandardCharsets}
+import org.goldenport.text.Presentable
 import org.goldenport.bag.{Bag, BinaryBag, TextBag}
 import org.goldenport.record.Record
 import org.goldenport.util.Strings
@@ -16,10 +17,10 @@ import org.goldenport.util.Strings
  *  version Apr. 21, 2019
  *  version Feb. 21, 2021
  *  version Dec. 25, 2025
- * @version Jan.  5, 2026
+ * @version Jan. 20, 2026
  * @author  ASAMI, Tomoharu
  */
-sealed trait HttpResponse {
+sealed trait HttpResponse extends Presentable {
   def status: HttpStatus
   final def code: Int = status.code
   def contentType: ContentType
@@ -129,7 +130,8 @@ case class StringResponse(
   contentType: ContentType,
   bag: Bag
 ) extends HttpResponse {
-  lazy val show = s"Response(${getString.map(Strings.cutstring(_, 32)).getOrElse("")})"
+  def print = show
+  override lazy val show = s"Response(${getString.map(Strings.cutstring(_, 32)).getOrElse("")})"
   def json = RAISE.unsupportedOperationFault
 }
 
@@ -138,7 +140,8 @@ case class BinaryResponse(
   contentType: ContentType,
   bag: Bag
 ) extends HttpResponse {
-  lazy val show = s"Response(Binary[${bag.metadata.size.getOrElse(0)}])"
+  def print = show
+  override lazy val show = s"Response(Binary[${bag.metadata.size.getOrElse(0)}])"
   def json = RAISE.unsupportedOperationFault
 }
 

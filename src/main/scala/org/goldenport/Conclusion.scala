@@ -3,6 +3,7 @@ package org.goldenport
 import org.goldenport.observation.Observation
 
 import org.goldenport.error.{ErrorCode, ErrorStrategy}
+import org.goldenport.text.Presentable
 
 /*
  * @since   Jul. 19, 2025
@@ -14,7 +15,7 @@ case class Conclusion(
   status: Conclusion.Status,
   observation: Observation,
   previous: Option[Conclusion] = None
-) {
+) extends Presentable {
   /**
    * Returns all causal conclusions in order.
    * If this conclusion is not composite, returns a single-element list.
@@ -43,6 +44,15 @@ case class Conclusion(
 
   def RAISEC: Nothing =
     throw new ConsequenceException(Consequence.Failure(this))
+
+  override def display: String =
+    message
+
+  override def show: String =
+    s"${getClass.getSimpleName}(${message})"
+
+  override final def print: String =
+    display
 }
 
 object Conclusion {
