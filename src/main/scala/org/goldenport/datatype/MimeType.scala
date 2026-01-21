@@ -11,7 +11,7 @@ final case class MimeType(value: String) extends DataType() {
   def isHtml: Boolean = normalized.contains("html")
   def isXml: Boolean = normalized.contains("xml")
   def isText: Boolean =
-    normalized.startsWith("text/") || isHtml || isXml || normalized.contains("json")
+    normalized.startsWith("text/") || isHtml || isXml || normalized.contains("json") || normalized.contains("yaml")
 
   override def print: String = value
 

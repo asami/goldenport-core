@@ -8,7 +8,7 @@ import org.goldenport.http.HttpResponse
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 20, 2026
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -48,6 +48,20 @@ object OperationResponse {
     override def print: String = Presentable.print(value)
     override def display: String = Presentable.display(value)
     override def show: String = Presentable.show(value)
+  }
+
+  final case class Json(json: io.circe.Json) extends OperationResponse {
+    def toResponse: Response = Response.Json(json.toString) // TODO
+    override def print: String = Presentable.print(json)
+    override def display: String = Presentable.display(json)
+    override def show: String = Presentable.show(json)
+  }
+
+  final case class Yaml(yaml: String) extends OperationResponse {
+    def toResponse: Response = Response.Yaml(yaml) // TODO
+    override def print: String = Presentable.print(yaml)
+    override def display: String = Presentable.display(yaml)
+    override def show: String = Presentable.show(yaml)
   }
 
   final case class Opaque(value: Any) extends OperationResponse {

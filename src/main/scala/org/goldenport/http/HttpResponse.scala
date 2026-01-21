@@ -38,7 +38,6 @@ sealed trait HttpResponse extends Presentable {
   }
   final def getRecord: Option[Record] = None
   final def getRecords: Option[List[Record]] = None
-  def json: JsValue
   def show: String
   def isSuccess = status == HttpStatus.Ok
   def isNotFound = status == HttpStatus.NotFound
@@ -47,6 +46,25 @@ sealed trait HttpResponse extends Presentable {
 }
 
 object HttpResponse {
+  case class Text(
+    status: HttpStatus,
+    contentType: ContentType,
+    bag: TextBag
+  ) extends HttpResponse {
+    def print = show
+    override lazy val show = s"Response(${getString.map(Strings.cutstring(_, 32)).getOrElse("")})"
+    def json = RAISE.unsupportedOperationFault
+  }
+
+  case class Binary(
+    status: HttpStatus,
+    contentType: ContentType,
+    bag: BinaryBag
+  ) extends HttpResponse {
+    def print = show
+    override lazy val show = s"Response(Binary[${bag.metadata.size.getOrElse(0)}])"
+  }
+
   def parser(code: Int, header: Map[String, IndexedSeq[String]], in: InputStream): HttpResponse = {
     val contenttype = header.get("Content-Type").flatMap(_.headOption.map(ContentType.parse)).getOrElse(ContentType.APPLICATION_OCTET_STREAM)
     val status = HttpStatus.fromInt(code).getOrElse(HttpStatus.InternalServerError)
@@ -64,9 +82,9 @@ object HttpResponse {
     }
     def binary = in.readAllBytes()
     if (contenttype.mimeType.isText)
-      StringResponse(status, contenttype, Bag.text(text))
+      HttpResponse.Text(status, contenttype, Bag.text(text))
     else
-      BinaryResponse(status, contenttype, Bag.binary(binary))
+      HttpResponse.Binary(status, contenttype, Bag.binary(binary))
   }
 
   private val _regex_xml = """(?i)[<][?]xml[ ][^?]+(encoding[ ]*[=][ ]*["]([^"]+)["])""".r
@@ -102,7 +120,7 @@ object HttpResponse {
       .getOrElse(bag.toText)
   }
 
-  def html(p: String): StringResponse = StringResponse(
+  def html(p: String): HttpResponse.Text = HttpResponse.Text(
     HttpStatus.Ok,
     ContentType.TEXT_HTML,
     Bag.text(p)
@@ -113,7 +131,7 @@ object HttpResponse {
     body: String,
     charset: Charset = StandardCharsets.UTF_8
   ): HttpResponse =
-    StringResponse(
+    HttpResponse.Text(
       status,
       ContentType(MimeType("text/plain"), Some(charset)),
       Bag.text(body)
@@ -124,26 +142,6 @@ object HttpResponse {
 
   def internalServerError(body: String = "internal server error"): HttpResponse =
     text(HttpStatus.InternalServerError, body)
-}
-
-case class StringResponse(
-  status: HttpStatus,
-  contentType: ContentType,
-  bag: Bag
-) extends HttpResponse {
-  def print = show
-  override lazy val show = s"Response(${getString.map(Strings.cutstring(_, 32)).getOrElse("")})"
-  def json = RAISE.unsupportedOperationFault
-}
-
-case class BinaryResponse(
-  status: HttpStatus,
-  contentType: ContentType,
-  bag: Bag
-) extends HttpResponse {
-  def print = show
-  override lazy val show = s"Response(Binary[${bag.metadata.size.getOrElse(0)}])"
-  def json = RAISE.unsupportedOperationFault
 }
 
 // ---------------------------------------------------------------------

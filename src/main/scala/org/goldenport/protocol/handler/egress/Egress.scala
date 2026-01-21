@@ -5,9 +5,9 @@ import io.circe.Json
 import org.goldenport.Consequence
 import org.goldenport.bag.Bag
 import org.goldenport.datatype.{ContentType, MimeType}
-import org.goldenport.http.{HttpResponse, HttpStatus, StringResponse}
+import org.goldenport.http.{HttpResponse, HttpStatus}
 import org.goldenport.model.value.BaseContent
-import org.goldenport.protocol.Response
+import org.goldenport.protocol.{Response, TextResponse, BinaryResponse}
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
 
 /*
@@ -97,32 +97,44 @@ final case class RestEgress() extends Egress[HttpResponse] {
   ): HttpResponse = {
     val _ = op
     res match {
-      case Response.Void() =>
-        _ok_text("")
-      case Response.Json(value) =>
-        _ok_json(value)
-      case Response.Scalar(value) =>
-        _ok_text(value.toString)
-      case _ =>
-        StringResponse(
-          HttpStatus.InternalServerError,
-          _text_content_type,
-          Bag.text("unsupported response")
-        )
+      case m: TextResponse => HttpResponse.Text(
+        HttpStatus.Ok,
+        m.contentType,
+        m.textBag
+      )
+      case m: BinaryResponse => HttpResponse.Binary(
+        HttpStatus.Ok,
+        m.contentType,
+        m.binaryBag
+      )
     }
+    // res match {
+    //   case Response.Void() =>
+    //     _ok_text("")
+    //   case Response.Json(value) =>
+    //     _ok_json(value)
+    //   case Response.Scalar(value) =>
+    //     _ok_text(value.toString)
+    //   case _ =>
+    //     StringResponse(
+    //       HttpStatus.InternalServerError,
+    //       _text_content_type,
+    //       Bag.text("unsupported response")
+    //     )
+    // }
   }
 
-  private val _text_content_type: ContentType =
-    ContentType(MimeType("text/plain"), Some(StandardCharsets.UTF_8))
+  // private val _text_content_type: ContentType =
+  //   ContentType(MimeType("text/plain"), Some(StandardCharsets.UTF_8))
 
-  private val _json_content_type: ContentType =
-    ContentType(MimeType("application/json"), Some(StandardCharsets.UTF_8))
+  // private val _json_content_type: ContentType =
+  //   ContentType(MimeType("application/json"), Some(StandardCharsets.UTF_8))
 
-  private def _ok_text(value: String): HttpResponse =
-    StringResponse(HttpStatus.Ok, _text_content_type, Bag.text(value))
+  // private def _ok_text(value: String): HttpResponse =
+  //   StringResponse(HttpStatus.Ok, _text_content_type, Bag.text(value))
 
-  private def _ok_json(value: String): HttpResponse =
-    StringResponse(HttpStatus.Ok, _json_content_type, Bag.text(value))
+  // private def _ok_json(value: String): HttpResponse =
+  //   StringResponse(HttpStatus.Ok, _json_content_type, Bag.text(value))
 
   private val _default_operation_definition: OperationDefinition =
     OperationDefinition(
