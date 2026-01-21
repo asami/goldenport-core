@@ -1,7 +1,16 @@
 package org.goldenport.protocol.handler.ingress
 
+import java.net.URI
 import java.net.URL
+import java.net.http.HttpClient
+import java.net.http.HttpResponse.BodyHandlers
+import java.nio.file.Files
+import java.nio.file.Paths
+import scala.util.control.NonFatal
+
 import org.goldenport.Consequence
+import org.goldenport.bag.Bag
+import org.goldenport.datatype.{ContentType, MimeBody, MimeType}
 import org.goldenport.protocol.{Argument, Property, Switch}
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.spec.OperationDefinition
@@ -13,7 +22,7 @@ import org.goldenport.http.HttpRequest
  * @since   Dec. 28, 2025
  *  version Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 17, 2026
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -85,7 +94,9 @@ object IngressCollection {
     IngressCollection((p +: ps).toVector)
 }
 
-abstract class ArgsIngress extends Ingress[Array[String]] {
+abstract class ArgsIngress(
+  protected val resolver: ArgsIngress.ExternalRefResolver = ArgsIngress.defaultExternalRefResolver
+) extends Ingress[Array[String]] {
   override def inputClass: Class[Array[String]] = classOf[Array[String]]
 
   def encode(
@@ -95,7 +106,7 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
     val (service, operation, opdef, rest) =
       _resolve_service_operation(services, args)
 
-    val parsed =
+    val requestConsequence =
       opdef match {
         case Some(definition) =>
           parse_args(definition, Array(operation) ++ rest)
@@ -103,7 +114,7 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
           parse_args(Array(operation) ++ rest)
       }
 
-    Consequence.success(
+    requestConsequence.map { parsed =>
       Request(
         component = None,
         service = service,
@@ -112,15 +123,14 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
         switches = parsed.switches,
         properties = parsed.properties
       )
-    )
+    }
   }
 
   override def encode(
     op: OperationDefinition,
     args: Array[String]
   ): Consequence[Request] = {
-    val parsed = parse_args(op, args)
-    Consequence.success(
+    parse_args(op, args).map { parsed =>
       Request(
         component = None,
         service = None,
@@ -129,7 +139,7 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
         switches = parsed.switches,
         properties = parsed.properties
       )
-    )
+    }
   }
 
   def encode(args: Array[String]): Consequence[Request] =
@@ -146,33 +156,35 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
     properties: List[Property]
   )
 
-  protected def parse_args(args: Array[String]): ParsedArgs = {
+  protected def parse_args(args: Array[String]): Consequence[ParsedArgs] = {
     val operation = args.headOption.getOrElse("")
     val rest = args.drop(1)
-    val (arguments, switches, properties) = parse_params(rest)
-    ParsedArgs(operation, arguments, switches, properties)
+    parse_params(rest).map { case (arguments, switches, properties) =>
+      ParsedArgs(operation, arguments, switches, properties)
+    }
   }
 
   protected def parse_args(
     op: OperationDefinition,
     args: Array[String]
-  ): ParsedArgs = {
+  ): Consequence[ParsedArgs] = {
     val operation = args.headOption.getOrElse("")
     val rest = args.drop(1)
-    val (arguments, switches, properties) = parse_params(op, rest)
-    ParsedArgs(operation, arguments, switches, properties)
+    parse_params(op, rest).map { case (arguments, switches, properties) =>
+      ParsedArgs(operation, arguments, switches, properties)
+    }
   }
 
   protected def parse_params(
     params: Array[String]
-  ): (List[Argument], List[Switch], List[Property]) = {
+  ): Consequence[(List[Argument], List[Switch], List[Property])] = {
     _parse_params(params, Map.empty, Map.empty, Map.empty)
   }
 
   protected def parse_params(
     op: OperationDefinition,
     params: Array[String]
-  ): (List[Argument], List[Switch], List[Property]) = {
+  ): Consequence[(List[Argument], List[Switch], List[Property])] = {
     val definitions = op.specification.request.parameters
     val switchnames = _name_map(definitions, ParameterDefinition.Kind.Switch)
     val propertynames = _name_map(definitions, ParameterDefinition.Kind.Property)
@@ -185,7 +197,7 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
     switchnames: Map[String, String],
     propertynames: Map[String, String],
     argumentnames: Map[String, String]
-  ): (List[Argument], List[Switch], List[Property]) = {
+  ): Consequence[(List[Argument], List[Switch], List[Property])] = {
     var arguments: List[Argument] = Nil
     var switches: List[Switch] = Nil
     var properties: List[Property] = Nil
@@ -204,7 +216,12 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
             switches = switches :+ Switch(name, true, None)
           case None =>
             val name = propertynames.getOrElse(key, key)
-            properties = properties :+ Property(name, value, None)
+            _resolve_value(value) match {
+              case Consequence.Success(v) =>
+                properties = properties :+ Property(name, v, None)
+              case f: Consequence.Failure[_] =>
+                return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+            }
         }
       } else if (s.startsWith("--")) {
         val key = s.drop(2)
@@ -215,11 +232,21 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
             val value = params(i + 1)
             argumentnames.get(key) match {
               case Some(name) =>
-                arguments = arguments :+ Argument(name, value, None)
-                consumedArguments = consumedArguments + name
+                _resolve_value(value) match {
+                  case Consequence.Success(v) =>
+                    arguments = arguments :+ Argument(name, v, None)
+                    consumedArguments = consumedArguments + name
+                  case f: Consequence.Failure[_] =>
+                    return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+                }
               case None =>
                 val name = propertynames.getOrElse(key, key)
-                properties = properties :+ Property(name, value, None)
+                _resolve_value(value) match {
+                  case Consequence.Success(v) =>
+                    properties = properties :+ Property(name, v, None)
+                  case f: Consequence.Failure[_] =>
+                    return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+                }
             }
             i += 1
           case None =>
@@ -241,7 +268,12 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
               switches = switches :+ Switch(name, true, None)
             case None =>
               val name = propertynames.getOrElse(key, key)
-              properties = properties :+ Property(name, value, None)
+              _resolve_value(value) match {
+                case Consequence.Success(v) =>
+                  properties = properties :+ Property(name, v, None)
+                case f: Consequence.Failure[_] =>
+                  return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+              }
           }
         } else {
           val key = keyvalue
@@ -252,12 +284,22 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
               val value = params(i + 1)
               argumentnames.get(key) match {
                 case Some(name) =>
-                  arguments = arguments :+ Argument(name, value, None)
-                  consumedArguments = consumedArguments + name
+                  _resolve_value(value) match {
+                    case Consequence.Success(v) =>
+                      arguments = arguments :+ Argument(name, v, None)
+                      consumedArguments = consumedArguments + name
+                    case f: Consequence.Failure[_] =>
+                      return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+                  }
                 case None =>
                   val name = propertynames.getOrElse(key, key)
-                  properties = properties :+ Property(name, value, None)
-              }
+                  _resolve_value(value) match {
+                    case Consequence.Success(v) =>
+                      properties = properties :+ Property(name, v, None)
+                    case f: Consequence.Failure[_] =>
+                      return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+                  }
+            }
               i += 1
             case None =>
               propertynames.get(key) match {
@@ -274,17 +316,53 @@ abstract class ArgsIngress extends Ingress[Array[String]] {
           argumentnames.values.toSet.diff(consumedArguments).toList.sorted
         remaining match {
           case name :: _ =>
-            arguments = arguments :+ Argument(name, s, None)
-            consumedArguments = consumedArguments + name
+            _resolve_value(s) match {
+              case Consequence.Success(v) =>
+                arguments = arguments :+ Argument(name, v, None)
+                consumedArguments = consumedArguments + name
+              case f: Consequence.Failure[_] =>
+                return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+            }
           case Nil =>
-            posIndex += 1
-            arguments = arguments :+ Argument(s"param$posIndex", s, None)
+            _resolve_value(s) match {
+              case Consequence.Success(v) =>
+                posIndex += 1
+                arguments = arguments :+ Argument(s"param$posIndex", v, None)
+              case f: Consequence.Failure[_] =>
+                return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
+            }
         }
       }
       i += 1
     }
 
-    (arguments, switches, properties)
+    Consequence.success((arguments, switches, properties))
+  }
+
+  private def _resolve_value(value: String): Consequence[Any] = {
+    if (value.startsWith("@")) {
+      val ref = value.drop(1)
+      ArgsIngress
+        .parseExternalRef(ref)
+        .flatMap { uri =>
+          resolver.resolve(uri).map { resolved =>
+            val inferred =
+              resolved.contentType.orElse {
+                val path = Option(uri.getPath).getOrElse("")
+                val suffix =
+                  path.lastIndexOf('.') match {
+                    case -1 => ""
+                    case i  => path.substring(i + 1)
+                  }
+                MimeType.fromSuffix(suffix).map { mt =>
+                  ContentType(mt, None, Map.empty[String, String])
+                }
+              }
+            val contentType = inferred.getOrElse(ContentType.APPLICATION_OCTET_STREAM)
+            MimeBody(contentType, resolved.bag)
+          }
+        }
+    } else Consequence.success(value)
   }
 
   private def _name_map(
@@ -325,6 +403,67 @@ object ArgsIngress {
   }
 
   def apply(): ArgsIngress = new Instance()
+
+  final case class ResolvedExternalRef(
+    contentType: Option[ContentType],
+    bag: Bag
+  )
+
+  trait ExternalRefResolver {
+    def resolve(uri: URI): Consequence[ResolvedExternalRef]
+  }
+
+  def defaultExternalRefResolver: ExternalRefResolver =
+    new ExternalRefResolver {
+      private val httpClient: HttpClient = HttpClient.newHttpClient()
+
+      override def resolve(uri: URI): Consequence[ResolvedExternalRef] = {
+        val scheme = Option(uri.getScheme).getOrElse("").toLowerCase
+        scheme match {
+          case "" | "file" =>
+            Consequence {
+              val path = Paths.get(uri)
+              val bytes = Files.readAllBytes(path)
+              ResolvedExternalRef(None, Bag.fromBytes(bytes))
+            }
+          case "http" | "https" =>
+            Consequence {
+              val request = java.net.http.HttpRequest.newBuilder(uri).GET().build()
+              val response = httpClient.send(request, BodyHandlers.ofByteArray())
+              val header = response.headers().firstValue("content-type")
+              val contentType =
+                if (header.isPresent)
+                  Some(ContentType.parse(header.get()))
+                else None
+              val bag = Bag.fromBytes(response.body())
+              ResolvedExternalRef(contentType, bag)
+            }
+          case other =>
+            Consequence.failure(
+              new IllegalArgumentException(s"Unsupported @ref scheme: ${other}")
+            )
+        }
+      }
+    }
+
+  def parseExternalRef(ref: String): Consequence[URI] = {
+    try {
+      val uri = new URI(ref)
+      val scheme = Option(uri.getScheme).getOrElse("").toLowerCase
+      if (scheme == "http" || scheme == "https" || scheme == "file") {
+        Consequence.success(uri)
+      } else if (scheme == "") {
+        Consequence.success(Paths.get(ref).toUri)
+      } else {
+        Consequence.failure(
+          new IllegalArgumentException(s"Unsupported @ref scheme: ${scheme}")
+        )
+      }
+    } catch {
+      case NonFatal(e) =>
+        Consequence.failure(e)
+    }
+  }
 }
 
 // compatibility

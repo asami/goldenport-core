@@ -19,7 +19,7 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Nov. 25, 2023
  *  version Mar. 15, 2025
  *  version Dec. 30, 2025
- * @version Jan. 14, 2026
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -289,6 +289,21 @@ object OperationDefinition {
       def request: RequestDefinition = specification.request
       def response: ResponseDefinition = specification.response
     }
+
+    case class Builder(
+      content: BaseContent.Builder = BaseContent.Builder(),
+      request: RequestDefinition = RequestDefinition(),
+      response: ResponseDefinition = ResponseDefinition()
+    ) {
+      def build(): Specification = Specification(
+        content.build(),
+        request,
+        response
+      )
+    }
+    object Builder {
+      def apply(name: String): Builder = Builder(content = BaseContent.Builder(name))
+    }
   }
 
   final case class Instance(specification: Specification) extends OperationDefinition {
@@ -352,4 +367,7 @@ case class OperationDefinitionGroup(
 object OperationDefinitionGroup {
   def apply(p: OperationDefinition, ps: OperationDefinition*): OperationDefinitionGroup =
     OperationDefinitionGroup(NonEmptyVector(p, ps.toVector))
+
+  def create(ops: Seq[OperationDefinition]): OperationDefinitionGroup =
+    OperationDefinitionGroup(NonEmptyVector(ops.head, ops.tail.toVector))
 }

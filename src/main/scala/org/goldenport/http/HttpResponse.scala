@@ -2,6 +2,7 @@ package org.goldenport.http
 
 import java.io.InputStream
 import java.nio.charset.{Charset, StandardCharsets}
+import org.goldenport.datatype.{MimeType, ContentType}
 import org.goldenport.text.Presentable
 import org.goldenport.bag.{Bag, BinaryBag, TextBag}
 import org.goldenport.record.Record
@@ -17,14 +18,14 @@ import org.goldenport.util.Strings
  *  version Apr. 21, 2019
  *  version Feb. 21, 2021
  *  version Dec. 25, 2025
- * @version Jan. 20, 2026
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
   def status: HttpStatus
   final def code: Int = status.code
   def contentType: ContentType
-  def mime: MimeType = contentType.mime
+  def mime: MimeType = contentType.mimeType
   def charset: Option[Charset] = contentType.charset
   def bag: Bag
   final def getString: Option[String] = bag match {
@@ -47,22 +48,22 @@ sealed trait HttpResponse extends Presentable {
 
 object HttpResponse {
   def parser(code: Int, header: Map[String, IndexedSeq[String]], in: InputStream): HttpResponse = {
-    val contenttype = header.get("Content-Type").flatMap(_.headOption.map(ContentType.parse)).getOrElse(ContentType.octetstream)
+    val contenttype = header.get("Content-Type").flatMap(_.headOption.map(ContentType.parse)).getOrElse(ContentType.APPLICATION_OCTET_STREAM)
     val status = HttpStatus.fromInt(code).getOrElse(HttpStatus.InternalServerError)
     def text = {
       contenttype.charset.
         map(IoUtils.toText(in, _)).
         getOrElse(
-          if (contenttype.mime.isHtml)
+          if (contenttype.mimeType.isHtml)
             parseHtml(contenttype, in)
-          else if (contenttype.mime.isXml)
+          else if (contenttype.mimeType.isXml)
             parseXml(contenttype, in)
           else
             IoUtils.toText(in)
         )
     }
     def binary = in.readAllBytes()
-    if (contenttype.mime.isText)
+    if (contenttype.mimeType.isText)
       StringResponse(status, contenttype, Bag.text(text))
     else
       BinaryResponse(status, contenttype, Bag.binary(binary))
@@ -103,7 +104,7 @@ object HttpResponse {
 
   def html(p: String): StringResponse = StringResponse(
     HttpStatus.Ok,
-    ContentType.html,
+    ContentType.TEXT_HTML,
     Bag.text(p)
   )
 

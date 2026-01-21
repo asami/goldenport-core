@@ -11,7 +11,8 @@ import org.goldenport.datatype.I18nString
 /*
  * @since   Aug.  1, 2025
  *  version Aug.  2, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 case class NameAttributes(
@@ -57,4 +58,32 @@ object NameAttributes {
       slug = None,
       shortid = None
     )
+
+  case class Builder(
+    bname: Option[Name] = None,
+    blabel: Option[I18nLabel] = None,
+    btitle: Option[I18nTitle] = None,
+    bcode: Option[Identifier] = None,
+    balias: Option[NonEmptyVector[I18nLabel]] = None,
+    bslug: Option[Slug] = None,
+    bshortid: Option[Identifier] = None
+  ) {
+    def build(
+    ): NameAttributes = NameAttributes(
+      bname.get,
+      blabel,
+      btitle,
+      bcode,
+      balias,
+      bslug,
+      bshortid,
+    )
+
+    def name(p: String) = copy(bname = Some(Name(p)))
+    def label(p: String) = copy(blabel = Some(I18nLabel(p)))
+    def title(p: String) = copy(btitle = Some(I18nTitle(p)))
+  }
+  object Builder {
+    def apply(name: String): Builder = Builder(Some(Name(name)))
+  }
 }

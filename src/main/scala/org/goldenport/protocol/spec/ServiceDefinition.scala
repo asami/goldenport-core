@@ -3,6 +3,8 @@ package org.goldenport.protocol.spec
 import cats.data.NonEmptyVector
 import org.goldenport.model.value.BaseContent
 import org.goldenport.protocol.service.Service
+import org.goldenport.protocol.spec.*
+import org.goldenport.protocol.spec.OperationDefinition.Builder.OperationFactory
 
 /*
  * @since   Oct.  6, 2018
@@ -12,7 +14,7 @@ import org.goldenport.protocol.service.Service
  *  version Nov. 25, 2023
  *  version Feb.  2, 2025
  *  version Dec. 30, 2025
- * @version Jan. 15, 2026
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class ServiceDefinition
@@ -78,6 +80,29 @@ object ServiceDefinition {
       name,
       OperationDefinition(opname, req, res)
     )
+
+    case class Builder(
+      content: BaseContent.Builder = BaseContent.Builder(),
+      operations: Vector[OperationDefinition] = Vector.empty
+    ) {
+      def build() = Specification(
+        content.build(),
+        OperationDefinitionGroup.create(operations)
+      )
+
+      def name(p: String): Builder = copy(content = content.name(p))
+      def label(p: String): Builder = copy(content = content.label(p))
+      def title(p: String): Builder = copy(content = content.title(p))
+      def summary(p: String): Builder = copy(content = content.summary(p))
+      def description(p: String): Builder = copy(content = content.description(p))
+      def operation(
+        op: OperationDefinition,
+        ops: OperationDefinition*
+      ): Builder = copy(operations = operations ++ (op +: ops))
+    }
+    object Builder {
+      def apply(name: String): Builder = Builder(content = BaseContent.Builder(name))
+    }
   }
 
   trait Factory[T <: Service] {
@@ -104,6 +129,34 @@ object ServiceDefinition {
     req: RequestDefinition,
     res: ResponseDefinition
   ): Instance = Instance(Specification(name, opname, req, res))
+
+  case class Builder(
+    operationFactory: OperationFactory = OperationFactory.Default,
+    specification: Specification.Builder = Specification.Builder()
+  ) {
+    def build(): ServiceDefinition = {
+      ServiceDefinition.Instance(specification.build())
+    }
+
+    def name(p: String): Builder = copy(specification = specification.name(p))
+    def label(p: String): Builder = copy(specification = specification.label(p))
+    def title(p: String): Builder = copy(specification = specification.title(p))
+    def summary(p: String): Builder = copy(specification = specification.summary(p))
+    def description(p: String): Builder = copy(specification = specification.description(p))
+
+    def operation(
+      opname: String,
+      req: RequestDefinition,
+      res: ResponseDefinition
+    ): Builder = {
+      val op = OperationDefinition(opname, req, res)
+      operation(op)
+    }
+
+    def operation(
+      op: OperationDefinition
+    ): Builder = copy(specification = specification.operation(op))
+  }
 }
 
 case class ServiceDefinitionGroup(
@@ -170,17 +223,17 @@ object ServiceDefinitionGroup {
       }
     }
 
-    def addOperation(
+    def operation(
       name: String,
       opname: String,
       req: RequestDefinition,
       res: ResponseDefinition
     ): Builder = {
       val op = OperationDefinition(opname, req, res)
-      addOperation(name, op)
+      operation(name, op)
     }
 
-    def addOperation(
+    def operation(
       service: String,
       op: OperationDefinition
     ): Builder = {

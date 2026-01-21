@@ -6,6 +6,7 @@ import org.goldenport.model.value.BaseContent
 import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.text.Presentable
+import org.goldenport.http.HttpRequest
 
 /*
  * @since   Oct.  4, 2018
@@ -23,7 +24,7 @@ import org.goldenport.text.Presentable
  *  version Apr.  2, 2025
  *  version Jun. 10, 2025
  *  version Dec. 24, 2025
- * @version Jan. 20, 2026
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -32,7 +33,8 @@ case class Request(
   operation: String,
   arguments: List[Argument],
   switches: List[Switch],
-  properties: List[Property]
+  properties: List[Property],
+  source: Option[Request.Source] = None
 ) extends Presentable {
   def name: String = Vector(component, service, Some(operation)).flatten.mkString(".")
   def args: List[String] = arguments.map(x => Presentable.print(x.value))
@@ -44,6 +46,12 @@ case class Request(
 }
 
 object Request {
+  sealed abstract class Source
+  object Source {
+    case class Args(args: Array[String]) extends Source
+    case class Http(http: HttpRequest) extends Source
+  }
+
   def of(
     component: String,
     service: String,
@@ -60,6 +68,26 @@ object Request {
       switches = switches,
       properties = properties
     )
+
+  def ofHttpRequest(
+    req: HttpRequest,
+    component: String,
+    service: String,
+    operation: String,
+    arguments: List[Argument] = Nil,
+    switches: List[Switch] = Nil,
+    properties: List[Property] = Nil
+  ): Request =
+    Request(
+      component = Some(component),
+      service = Some(service),
+      operation = operation,
+      arguments = arguments,
+      switches = switches,
+      properties = properties,
+      source = Some(Source.Http(req))
+    )
+
 
   def ofService(
     service: String,

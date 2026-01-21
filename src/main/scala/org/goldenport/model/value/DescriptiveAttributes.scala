@@ -11,19 +11,20 @@ import org.goldenport.datatype.I18nString
  * @since   Aug.  1, 2025
  *  version Aug.  2, 2025
  *  version Oct.  7, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 case class DescriptiveAttributes(
-  headline: Option[I18nBrief],
-  brief: Option[I18nBrief],
-  summary: Option[I18nSummary],
-  description: Option[I18nDescription],
-  lead: Option[I18nSummary],
-  content: Option[I18nText],
-  `abstract`: Option[I18nSummary],
-  remarks: Option[I18nSummary],
-  tooltip: Option[I18nLabel]
+  headline: Option[I18nBrief] = None,
+  brief: Option[I18nBrief] = None,
+  summary: Option[I18nSummary] = None,
+  description: Option[I18nDescription] = None,
+  lead: Option[I18nSummary] = None,
+  content: Option[I18nText] = None,
+  `abstract`: Option[I18nSummary] = None,
+  remarks: Option[I18nSummary] = None,
+  tooltip: Option[I18nLabel] = None
 )
 
 object DescriptiveAttributes {
@@ -57,4 +58,17 @@ object DescriptiveAttributes {
 
   val empty: DescriptiveAttributes =
     DescriptiveAttributes(None, None, None, None, None, None, None, None, None)
+
+  case class Builder(
+    bsummary: Option[I18nSummary] = None,
+    bdescription: Option[I18nDescription] = None,
+  ) {
+    def build(): DescriptiveAttributes = DescriptiveAttributes(
+      summary = bsummary,
+      description = bdescription
+    )
+
+    def summary(p: String) = copy(bsummary = Some(I18nSummary(p)))
+    def description(p: String) = copy(bdescription = Some(I18nDescription(p)))
+  }
 }

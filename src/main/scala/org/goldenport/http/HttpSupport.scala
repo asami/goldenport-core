@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 
 /*
  * @since   Dec. 25, 2025
- * @version Dec. 25, 2025
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 trait NamedValueInstance {
@@ -17,34 +17,34 @@ trait EnumerationClass[A] {
   def elements: Vector[A]
 }
 
-case class MimeType(value: String) {
-  def isHtml: Boolean = value.toLowerCase.contains("html")
-  def isXml: Boolean = value.toLowerCase.contains("xml")
-  def isText: Boolean =
-    value.toLowerCase.startsWith("text/") || isHtml || isXml || value.toLowerCase.contains("json")
-}
+// case class MimeType(value: String) {
+//   def isHtml: Boolean = value.toLowerCase.contains("html")
+//   def isXml: Boolean = value.toLowerCase.contains("xml")
+//   def isText: Boolean =
+//     value.toLowerCase.startsWith("text/") || isHtml || isXml || value.toLowerCase.contains("json")
+// }
 
-case class ContentType(
-  mime: MimeType,
-  charset: Option[Charset]
-) {
-}
+// case class ContentType(
+//   mime: MimeType,
+//   charset: Option[Charset]
+// ) {
+// }
 
-object ContentType {
-  val octetstream: ContentType = ContentType(MimeType("application/octet-stream"), None)
-  val html: ContentType = ContentType(MimeType("text/html"), Some(StandardCharsets.UTF_8))
+// object ContentType {
+//   val octetstream: ContentType = ContentType(MimeType("application/octet-stream"), None)
+//   val html: ContentType = ContentType(MimeType("text/html"), Some(StandardCharsets.UTF_8))
 
-  def parse(s: String): ContentType = {
-    val parts = s.split(";").toVector.map(_.trim)
-    val mime = parts.headOption.getOrElse("application/octet-stream")
-    val charset = parts
-      .drop(1)
-      .find(_.toLowerCase.startsWith("charset="))
-      .map(_.substring("charset=".length))
-      .flatMap(name => Option(Charset.forName(name)))
-    ContentType(MimeType(mime), charset)
-  }
-}
+//   def parse(s: String): ContentType = {
+//     val parts = s.split(";").toVector.map(_.trim)
+//     val mime = parts.headOption.getOrElse("application/octet-stream")
+//     val charset = parts
+//       .drop(1)
+//       .find(_.toLowerCase.startsWith("charset="))
+//       .map(_.substring("charset=".length))
+//       .flatMap(name => Option(Charset.forName(name)))
+//     ContentType(MimeType(mime), charset)
+//   }
+// }
 
 trait ChunkBag {
   def size: Long

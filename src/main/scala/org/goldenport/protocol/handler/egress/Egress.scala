@@ -4,7 +4,8 @@ import java.nio.charset.StandardCharsets
 import io.circe.Json
 import org.goldenport.Consequence
 import org.goldenport.bag.Bag
-import org.goldenport.http.{ContentType, HttpResponse, HttpStatus, MimeType, StringResponse}
+import org.goldenport.datatype.{ContentType, MimeType}
+import org.goldenport.http.{HttpResponse, HttpStatus, StringResponse}
 import org.goldenport.model.value.BaseContent
 import org.goldenport.protocol.Response
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
@@ -12,7 +13,7 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan.  7, 2026
+ * @version Jan. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Egress[Out] {
