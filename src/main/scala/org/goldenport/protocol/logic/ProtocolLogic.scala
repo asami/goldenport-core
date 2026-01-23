@@ -2,6 +2,7 @@ package org.goldenport.protocol.logic
 
 import org.goldenport.Consequence
 import org.goldenport.protocol.Protocol
+import org.goldenport.protocol.Property
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.Response
 import org.goldenport.protocol.operation.{OperationRequest, OperationResponse}
@@ -21,6 +22,23 @@ class ProtocolLogic(protocol: Protocol) {
       req <- makeRequest(args)
       opreq <- makeOperationRequest(req)
     } yield opreq
+
+  /** CLI parsing always wins; injected properties fill gaps before operation resolution.
+    */
+  def makeOperationRequest(
+    args: Array[String],
+    initialProperties: Map[String, String]
+  ): Consequence[OperationRequest] = {
+    if (initialProperties.isEmpty) {
+      makeOperationRequest(args)
+    } else {
+      for {
+        req <- makeRequest(args)
+        enhanced = _with_initial_properties(req, initialProperties)
+        opreq <- makeOperationRequest(enhanced)
+      } yield opreq
+    }
+  }
 
   def makeOperationRequest(request: Request): Consequence[OperationRequest] = {
     _resolve_service(request) match {
@@ -76,6 +94,21 @@ class ProtocolLogic(protocol: Protocol) {
 
   def makeStringResponse(res: Response): Consequence[String] = {
     protocol.egress(Egress.Kind.`String`, res)
+  }
+
+  // CLI-provided names win; injected entries only cover missing names before defaults run.
+  private def _with_initial_properties(
+    req: Request,
+    initialProperties: Map[String, String]
+  ): Request = {
+    val existing = req.properties.map(_.name).toSet
+    val injected =
+      initialProperties.iterator.collect {
+        case (name, value) if !existing.contains(name) =>
+          Property(name, value, None)
+      }.toList
+    if (injected.isEmpty) req
+    else req.copy(properties = req.properties ++ injected)
   }
 }
 

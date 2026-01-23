@@ -18,6 +18,14 @@ class ProtocolEngine(
   def makeOperationRequest(args: Array[String]): Consequence[OperationRequest] =
     logic.makeOperationRequest(args)
 
+  /** Allows injecting runtime configuration before the CLI values are evaluated.
+    */
+  def makeOperationRequest(
+    args: Array[String],
+    initialProperties: Map[String, String]
+  ): Consequence[OperationRequest] =
+    logic.makeOperationRequest(args, initialProperties)
+
   def openApi(): Consequence[Json] =
     protocol.enproject(OpenApi)
 
