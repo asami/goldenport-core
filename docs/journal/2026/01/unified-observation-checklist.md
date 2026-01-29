@@ -12,6 +12,10 @@ This list is used to:
 - Separate observational facts from interpretation
 - Decide which fields are mandatory, optional, or deferred
 
+**Authoritative Reference:** The canonical Phase 2.9 Observation semantics are defined in
+`docs/spec/observation-phase-2.9-authoritative.md`. Use that document as the single source of
+truth; the checklist below enforces compliance with the code-backed invariants it describes.
+
 
 ----------------------------------------------------------------------
 A. Temporal and Identity Context
@@ -96,6 +100,7 @@ E. Taxonomy and Error-Specific Context
 - taxonomy (Category × Symptom)
   - What is factually wrong
   - Fixed prior to interpretation
+  - Category axis now spans `argument`, `property`, `configuration`, `resource`, `state`, `value`, `system`, `out-of-control`, and `operation`; refer to the authoritative spec for the complete enum list and symptom metadata.
 
 - cause
   - How it failed (mechanism, not responsibility)
@@ -232,39 +237,4 @@ boundaries.
 Legacy Observation Field Mapping
 ----------------------------------------------------------------------
 
-----------------------------------------------------------------------
-A. Fields Carried Over Directly
-----------------------------------------------------------------------
-
-- timestamp (REQUIRED)
-- traceId (OPTIONAL)
-- spanId (OPTIONAL)
-- subject (REQUIRED)
-- agent (REQUIRED)
-- object (REQUIRED)
-- location (REQUIRED)
-- environment (OPTIONAL)
-- message (OPTIONAL)
-- exception (OPTIONAL)
-- properties (OPTIONAL)
-- observationId (OPTIONAL / DEFERRED)
-
-----------------------------------------------------------------------
-B. Fields Absorbed by Phase 2.9 Core Axes
-----------------------------------------------------------------------
-
-- phenomenon → taxonomy
-- causeKind → Cause.Kind
-- cause → Cause.Detail
-- descriptor → Cause.Detail or properties
-- handler → Origin or Disposition layer
-- strategy → Disposition layer
-- code / detailCode → deferred or future concern
-
-----------------------------------------------------------------------
-C. Fields Reclassified or Moved
-----------------------------------------------------------------------
-
-- location → split across source / substrate / location
-- agent → retained as agent, logical origin represented by source
-- exception → retained as diagnostic, detection point represented by origin
+This section preserves historic Phase 2.9 notes that were used while the canonical Scala model stabilized. The authoritative semantics are now documented in `docs/spec/observation-phase-2.9-authoritative.md`, which describes timestamp, assessment, provenance, and descriptive context without the legacy `Cause.Kind` / `Cause.Detail` artifacts listed above. Refer to that specification for the definitive source field coverage.

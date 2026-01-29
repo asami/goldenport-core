@@ -14,6 +14,11 @@ of simplemodeling-lib is expected to satisfy.
 It serves as the grounding reference for Phase 2.9 and must be fixed
 before any specification or design changes are made.
 
+**Authoritative References:** Phase 2.9 Observation and Conclusion semantics are finalized in
+`docs/spec/observation-phase-2.9-authoritative.md` and
+`docs/spec/conclusion-phase-2.9-authoritative.md`. Consider those documents the definitive source of
+truth; this journal supplies use-case context without overriding them.
+
 This document is intentionally written as a journal artifact:
 it records intent and rationale, not normative rules.
 

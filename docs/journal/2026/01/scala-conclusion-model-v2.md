@@ -34,6 +34,10 @@ This document records the design decisions for the Scala-based
 Conclusion / Observation model established during Phase 2.9 of the
 Error Taxonomy redesign.
 
+**Authoritative Specification:** The definitive Phase 2.9 conclusion semantics are contained in
+`docs/spec/conclusion-phase-2.9-authoritative.md`. This document records related design notes and
+historical context but should not contradict that canonical reference.
+
 The primary goals of this phase are:
 
 - To treat errors as observed facts (Observation), not judgments
@@ -440,6 +444,11 @@ Design Notes (Phase 2.9)
 - Observation.severity denotes observer-recorded subjective severity at
   observation time and is distinct from any derived or presentation-level
   severity.
+
+**Authoritative Conclusion Specification:** The definitive Conclusion semantics—including status,
+causal chaining, boundary helpers, and separation of layers—are documented in
+`docs/spec/conclusion-phase-2.9-authoritative.md`. Update this document only when that canonical
+spec changes.
 
 ----------------------------------------------------------------------
 7. Out of Scope for Phase 2.9

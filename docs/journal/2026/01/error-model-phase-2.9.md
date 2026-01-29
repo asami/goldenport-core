@@ -7,6 +7,15 @@ Consequence/Conclusion implementation, and Phase 2.9 discussions.
 This document is provisional and intended to be merged into design
 documents once the model stabilizes.
 
+**Authoritative Specifications:** The canonical Phase 2.9 Observation and Conclusion models
+are documented in `docs/spec/observation-phase-2.9-authoritative.md` and
+`docs/spec/conclusion-phase-2.9-authoritative.md`, respectively. Treat those files as the definitive
+reference points; this journal provides historical context aligned with them.
+
+**Authoritative Specification:** The canonical Phase 2.9 observation semantics are now
+captured in `docs/spec/observation-phase-2.9-authoritative.md`. Consider that document the
+definitive reference; the text below preserves the historical journal conversation.
+
 ---
 ## Background
 
@@ -393,6 +402,10 @@ It must:
 
 Conclusion is the **unit of propagation** inside the system.
 
+**Authoritative Conclusion Specification:** Definitive Conclusion semantics reside in
+`docs/spec/conclusion-phase-2.9-authoritative.md`. Use that document for precise field definitions,
+status semantics, causal chaining, and boundary helper behaviors.
+
 #### Structure
 
 - observation: Observation
@@ -483,6 +496,9 @@ Compilation errors are expected and desirable.
 
 ---
 
+**Authoritative Specification:** A finalized Phase 2.9 observation model now exists in
+`docs/spec/observation-phase-2.9-authoritative.md`; the Scala drafts below are historical references.
+
 ### Scala Drafts (Codex)
 
 The drafts below mirror the Phase 2.9 mapping targets without simplification. Each subsection lifts the journal text into provisional Scala definitions under the `org.goldenport.provisional.*` namespace so reviewers can debate the fidelity before any production code lands.
@@ -515,6 +531,10 @@ case class Observation(
   scope: ScopeAxis
 )
 ```
+
+**Historical Note:** The canonical Phase 2.9 implementation now models `Cause` as a descriptor-based structure
+and drives Observation semantics from `docs/spec/observation-phase-2.9-authoritative.md`. Treat the code above as an
+archival sketch only.
 
 #### Interpretation
 

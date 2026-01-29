@@ -94,6 +94,10 @@ case class Disposition(
 
 ## Conclusion
 
+**Authoritative Specification:** The canonical Conclusion structure lives in
+`docs/spec/conclusion-phase-2.9-authoritative.md`. The code snippets below are historical
+Codex drafts; refer to the authoritative spec for definitive behavior.
+
 Conclusion transports the Observation / Interpretation / Disposition bundle through program layers.
 
 ```scala

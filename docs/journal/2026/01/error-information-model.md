@@ -9,6 +9,14 @@ The model separates factual observation from semantic interpretation
 and actionable disposition, while allowing all information to be
 physically propagated through the program as a single value.
 
+**Authoritative Specification:** The Phase 2.9 Conclusion model is defined in
+`docs/spec/conclusion-phase-2.9-authoritative.md`. Treat that file as the canonical reference
+for Conclusion semantics; the rest of this document should align with it.
+
+**Authoritative Specification:** The definitive Phase 2.9 Observation model is documented in
+`docs/spec/observation-phase-2.9-authoritative.md`. Treat that document as the canonical reference;
+the content below should be seen as contextual commentary that must remain aligned with it.
+
 ----------------------------------------------------------------------
 Overview
 ----------------------------------------------------------------------
@@ -51,6 +59,10 @@ Observation consists of the following elements:
 
 Observation must remain projection-independent and stable.
 No user guidance or recovery meaning is encoded here.
+
+The canonical, program-defined structure and category/symptom enums are detailed in
+`docs/spec/observation-phase-2.9-authoritative.md`; this section is intentionally aligned with that
+specification and should not diverge from it.
 
 ----------------------------------------------------------------------
 Interpretation
@@ -344,4 +356,3 @@ such as:
 
 Observation remains a factual record.
 Interpretation and Disposition are applied later, based on these facts.
-

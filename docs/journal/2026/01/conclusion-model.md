@@ -5,6 +5,10 @@ Conclusion Model (Draft)
 This document defines the conceptual and architectural model of
 `Conclusion` in the Goldenport / SimpleModeling core.
 
+**Authoritative Specification:** The canonical Phase 2.9 Conclusion semantics are described in
+`docs/spec/conclusion-phase-2.9-authoritative.md`. Treat that specification as the definitive
+definition of field structure, status semantics, and chaining behavior; this document supplies
+contextual background only.
 The Conclusion Model provides the *upper-level integration* of
 error-related semantics, while delegating concrete error information
 structure to subordinate specifications such as

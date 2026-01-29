@@ -15,6 +15,11 @@ Its goal is to establish a stable, interpretation-free classification
 of errors at the Observation level, before fixing APIs, error codes,
 or projection-specific behavior.
 
+**Authoritative Specification:** The canonical Phase 2.9 taxonomy is derived directly from
+`docs/spec/observation-phase-2.9-authoritative.md`. Use that document as the single source of
+truth; the prose below preserves historical terminology and rationale but does not override the
+code-defined enums.
+
 ----------------------------------------------------------------------
 ## Core Principles
 ----------------------------------------------------------------------
@@ -48,8 +53,14 @@ The core error taxonomy consists of the following top-level categories:
 - resource
 - state
 - system
+- value
+- out-of-control
+- operation
 
-Each category represents a distinct class of factual failure.
+Each category represents a distinct class of factual failure. The additional categories
+`value`, `out-of-control`, and `operation` match the enums defined in the Phase 2.9 Scala
+implementation; refer to `docs/spec/observation-phase-2.9-authoritative.md` for the authoritative
+list of constants and their metadata.
 
 ----------------------------------------------------------------------
 ## Category: argument
@@ -69,9 +80,10 @@ These errors are domain failures.
   The argument has a valid structure but an invalid representation
   (e.g. date format, encoding).
 
-- domain_value
-  The argument violates semantic or domain constraints
-  (range, multiplicity, business rule).
+- domain_value *(historical)*
+  The argument violates semantic or domain constraints (range, multiplicity, business rule).
+  Phase 2.9 canonical taxonomy now reuses `Symptom.Invalid` for these cases; see
+  `docs/spec/observation-phase-2.9-authoritative.md`.
 
 - missing
   A required argument was not provided.
@@ -96,7 +108,9 @@ or database conversions.
 
 - syntax_error
 - format_error
-- domain_value
+- domain_value *(historical)*
+  Phase 2.9 canonical taxonomy reuses `Symptom.Invalid` for domain-value violations; see
+  `docs/spec/observation-phase-2.9-authoritative.md`.
 - missing
 - unexpected
 - unsupported
@@ -113,6 +127,9 @@ system or component configuration.
 
 Its subcategories mirror `argument` and `property`, but configuration
 errors often escalate to system defects depending on context.
+
+Configuration inherits the same taxonomy of symptoms, with `domain_value` captured as
+`Symptom.Invalid` in the authoritative specification (see `docs/spec/observation-phase-2.9-authoritative.md`).
 
 ----------------------------------------------------------------------
 ## Category: resource
