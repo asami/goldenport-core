@@ -13,7 +13,7 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 21, 2026
+ * @version Jan. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Egress[Out] {
@@ -62,10 +62,7 @@ final case class EgressCollection(
     egresses.collectFirst { case p if p.kind == kind => p } match {
       case Some(p) => p.asInstanceOf[Egress[Out]].egress(res)
       case None =>
-        Consequence
-          .failArgumentMissing
-          .withInput(kind.name)
-          .build
+        Consequence.failArgumentMissingInput(kind.name)
     }
 }
 

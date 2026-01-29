@@ -7,7 +7,7 @@ import org.scalatest.matchers.{MatchResult, Matcher}
 
 /*
  * @since   Jan. 15, 2026
- * @version Jan. 15, 2026
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 object MatcherSupport {
@@ -25,7 +25,7 @@ object MatcherSupport {
     c match {
       case _ => MatchResult(
         true, // TODO
-        s"Expected not found failure: ${c.message}",
+        s"Expected not found failure: ${c.show}",
         s"Unexpeced success"
       )
     }
@@ -33,8 +33,8 @@ object MatcherSupport {
   def matchFailure(c: Conclusion): MatchResult =
     MatchResult(
       false,
-      s"Expected success but was failure with cause: ${c.message}",
-      s"Expected failure but was success: ${c.message}"
+      s"Expected success but was failure with cause: ${c.show}",
+      s"Expected failure but was success: ${c.show}"
     )
 
   def matchFailureUnexpectedSuccess(actual: Any): MatchResult =

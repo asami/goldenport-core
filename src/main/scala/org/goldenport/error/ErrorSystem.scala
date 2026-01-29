@@ -1,7 +1,7 @@
 package org.goldenport.error
 
 import org.goldenport.Conclusion
-import org.goldenport.observation.Observation
+import org.goldenport.provisional.observation.Observation
 
 /**
  * ErrorSystem is responsible for interpreting Observations
@@ -29,7 +29,7 @@ import org.goldenport.observation.Observation
  */
 /*
  * @since   Dec. 18, 2025
- * @version Dec. 18, 2025
+ * @version Jan. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ErrorSystem {

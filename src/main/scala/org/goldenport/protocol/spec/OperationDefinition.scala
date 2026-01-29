@@ -6,7 +6,7 @@ import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.I18nMessage
 import org.goldenport.model.value.BaseContent
 import org.goldenport.http.HttpRequest
-import org.goldenport.observation.Cause
+import org.goldenport.provisional.observation.Cause
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Multiplicity, ValueDomain}
@@ -19,7 +19,7 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Nov. 25, 2023
  *  version Mar. 15, 2025
  *  version Dec. 30, 2025
- * @version Jan. 21, 2026
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -63,10 +63,7 @@ abstract class OperationDefinition
     values match {
       case Nil =>
         if (_is_required(p))
-          Consequence
-            .failArgumentMissing
-            .withInput(p.name)
-            .build
+          Consequence.failArgumentMissing(p.name)
         else
           Consequence.success(ResolvedEmpty(domain))
 
@@ -83,10 +80,7 @@ abstract class OperationDefinition
             _ <- _validate_value_domain(p, normalized)
           } yield ResolvedMultiple(normalized, domain)
         } else {
-          Consequence
-            .failArgumentRedundant
-            .withInput(p.name)
-            .build
+          Consequence.failArgumentRedundantOperation(p.name, name)
         }
     }
   }
@@ -97,13 +91,16 @@ abstract class OperationDefinition
     _parameter_definition(name).flatMap { p =>
       resolveParameter(p).flatMap {
         case ResolvedSingle(v: String, _) => Consequence.success(v)
-        case ResolvedSingle(_, _) =>
-          _failure_with_cause(
-            s"parameter is not a string: ${p.name}",
-            Cause.FormatError
+        case ResolvedSingle(v, _) =>
+          Consequence.failArgumentFormatError(
+            p.name,
+            v,
+            "parameter is not a string"
           )
-        case ResolvedEmpty(_) => Consequence.failure(s"parameter missing: ${p.name}")
-        case ResolvedMultiple(_, _) => Consequence.failure(s"multiple values not allowed: ${p.name}")
+        case ResolvedEmpty(_) => Consequence.failArgumentMissing(p.name)
+        // Consequence.failure(s"parameter missing: ${p.name}")
+        case ResolvedMultiple(_, _) => Consequence.failArgumentMultipleValues(p.name)
+        // Consequence.failure(s"multiple values not allowed: ${p.name}")
       }
     }
 
@@ -160,7 +157,7 @@ abstract class OperationDefinition
   ): Consequence[Vector[Any]] =
     p.datatype match {
       case dt: CanonicalDataType[?] =>
-        dt.normalizer.normalizeAll(values).map(_.toVector)
+        dt.normalizer.normalizeAll(values).map(_.toVector).recoverConclusion(_.toCategoryArgument)
       case _ =>
         Consequence.success(values.map(_.toString))
     }
@@ -172,11 +169,11 @@ abstract class OperationDefinition
   ): Consequence[Unit] = {
     val normalized = values.collect { case v: BigInt => v }
     if (normalized.size != values.size) {
-      _failure_with_cause("format error: integer value", Cause.FormatError)
+      Consequence.failArgumentFormatError(name, normalized, dt)
     } else {
       val invalid = normalized.exists(value => !dt.isValid(value))
       if (invalid) {
-        _fail_value_domain(name)
+        Consequence.failArgumentDataType(name, normalized, dt)
       } else {
         Consequence.success(())
       }
@@ -187,33 +184,42 @@ abstract class OperationDefinition
     values: Vector[Any],
     constraints: Vector[Constraint],
     name: String
-  ): Consequence[Unit] = {
-    val invalid =
-      constraints.exists { c =>
-        values.exists(v => c.validate(v).isLeft)
-      }
+  ): Consequence[Unit] = 
+    constraints.headOption match {
+      case Some(s) =>
+        val invalid =
+          constraints.exists { c =>
+            values.exists(v => c.validate(v).isLeft)
+          }
 
-    if (invalid) _fail_value_domain(name)
-    else Consequence.success(())
-  }
+        if (invalid)
+          Consequence.failArgumentConstraint(name, values, NonEmptyVector(s, constraints.tail))
+        else
+          Consequence.success(())
+      case None => Consequence.success(())
+    }
 
-  private def _fail_value_domain[A](name: String): Consequence[A] =
-    Consequence
-      .FailureBuilder(Cause.ValueDomainError)
-      .withInput(name)
-      .build
+  // private def _fail_value_domain[A](name: String): Consequence[A] =
+  //   Consequence
+  //     .FailureBuilder(Cause.valueDomainError)
+  //     .withInput(name)
+  //     .build
 
+  // private def _failure_with_cause[A](
+  //   message: String,
+  //   cause: Cause
+  // ): Consequence[A] = {
+  //   val base = Conclusion.simple(message)
+  //   val observation = base.observation.copy(
+  //     cause = Some(cause),
+  //     message = Some(I18nMessage(message))
+  //   )
+  //   Consequence.Failure(base.copy(observation = observation))
+  // }
   private def _failure_with_cause[A](
     message: String,
     cause: Cause
-  ): Consequence[A] = {
-    val base = Conclusion.simple(message)
-    val observation = base.observation.copy(
-      cause = Some(cause),
-      message = Some(I18nMessage(message))
-    )
-    Consequence.Failure(base.copy(observation = observation))
-  }
+  ): Consequence[A] = Consequence.create(message, cause)
 }
 
 object OperationDefinition {

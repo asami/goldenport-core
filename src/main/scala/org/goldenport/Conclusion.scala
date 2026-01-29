@@ -1,19 +1,30 @@
 package org.goldenport
 
-import org.goldenport.observation.Observation
-
+import cats.data.NonEmptyVector
+import java.time.Instant
 import org.goldenport.error.{ErrorCode, ErrorStrategy}
+import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
+import org.goldenport.provisional.observation.{Observation, Taxonomy, Cause, Source, Channel, Substrate, Origin}
+import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
+import org.goldenport.observation.Phenomenon
+import org.goldenport.observation.{Subject, Agent, Resource, Severity}
 import org.goldenport.text.Presentable
+import org.goldenport.schema.DataType
+import org.goldenport.schema.Constraint
+import org.goldenport.http.HttpRequest
 
 /*
  * @since   Jul. 19, 2025
  *  version Jul. 20, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
   status: Conclusion.Status,
   observation: Observation,
+  interpretation: Interpretation,
+  disposition: Disposition,
   previous: Option[Conclusion] = None
 ) extends Presentable {
   /**
@@ -33,8 +44,8 @@ case class Conclusion(
   def ++(other: Conclusion): Conclusion =
     Conclusion.combine(this, other)
 
-  def message: String =
-    observation.displayMessage
+  def displayMessage: String =
+    observation.getEffectiveMessage.getOrElse(observation.taxonomy.print)
 
   def getException: Option[Throwable] =
     observation.exception
@@ -45,14 +56,25 @@ case class Conclusion(
   def RAISEC: Nothing =
     throw new ConsequenceException(Consequence.Failure(this))
 
-  override def display: String =
-    message
+  def isMatch(rhs: Conclusion): Boolean = (
+    status == rhs.status &&
+      observation.isMatch(rhs.observation) &&
+      interpretation == rhs.interpretation &&
+      disposition == rhs.disposition &&
+      previous == rhs.previous
+  )
 
-  override def show: String =
-    s"${getClass.getSimpleName}(${message})"
 
-  override final def print: String =
-    display
+  override def display: String = displayMessage
+
+  override def show: String = s"Conclusion(${display})"
+
+  override final def print: String = display
+
+  // for test migration
+  def cause: Cause = observation.cause
+
+  def toCategoryArgument = copy(observation = observation.toCategoryArgument)
 }
 
 object Conclusion {
@@ -64,6 +86,9 @@ object Conclusion {
     detailCodes: List[ErrorCode] = Nil,
     strategies: List[ErrorStrategy] = Nil
   )
+  object Status {
+    val badRequest = Status(WebCode.BadRequest)
+  }
 
   case class WebCode(code: Int)
   object WebCode {
@@ -82,6 +107,12 @@ object Conclusion {
     val ServiceUnavailable: WebCode = WebCode(503)
   }
 
+  // val DefaultInterpretation: Interpretation =
+  //   Interpretation(Interpretation.Kind.Defect, Disposition.Responsibility.Developer)
+
+  // val DefaultDisposition: Disposition =
+  //   Disposition(userAction = None, responsibility = None)
+
   /**
    * Boundary-only alias for clarity.
    * Prefer this method when converting a Throwable into a Conclusion.
@@ -90,28 +121,19 @@ object Conclusion {
     from(p)
 
   def from(p: Throwable): Conclusion = {
-    val observation = Observation(
-      phenomenon = org.goldenport.observation.Phenomenon.Failure,
-      causeKind  = org.goldenport.observation.CauseKind.Defect,
-      cause      = None,
-      severity   = org.goldenport.observation.Severity.Error,
-      strategy   = org.goldenport.observation.Strategy.Manual,
-      handler    = org.goldenport.observation.Handler.Developer,
-      timestamp  = java.time.Instant.EPOCH,
-      subject    = org.goldenport.observation.Subject.System,
-      `object`   = org.goldenport.observation.Resource.Unknown,
-      agent      = org.goldenport.observation.Agent.System,
-      location   = org.goldenport.observation.SystemLocation(None),
-      traceId    = None,
-      spanId     = None,
-      descriptor = org.goldenport.observation.Descriptor(),
-      message    = None,
-      exception  = Option(p),
-      properties = Map.empty
-    )
+    val observation = Option(p) match {
+      case Some(s) => _make_observation(
+        taxonomy = Taxonomy.from(s),
+        cause = Cause.from(s),
+        severity = Some(Severity.Error)
+      )
+      case None => Observation.ofcNullPointer
+    }
     Conclusion(
       status = Status(webCode = WebCode.InternalError),
       observation = observation,
+      interpretation = Interpretation.from(p),
+      disposition = Disposition.from(p),
       previous = None
     )
   }
@@ -120,24 +142,144 @@ object Conclusion {
    * Minimal conclusion for library-level validation failures.
    * No runtime metadata, no side effects.
    */
-  def simple(message: String): Conclusion =
+  def simple(message: String): Conclusion = {
+    val observationMessage = Some(message)
+    val observation = _make_observation(
+      taxonomy = Taxonomy(Taxonomy.Category.Argument, Taxonomy.Symptom.DomainValue),
+      cause = Cause.message(observationMessage),
+      message = observationMessage,
+      exception = None,
+      severity = None
+    )
     Conclusion(
-      status = Status(
-        webCode = WebCode.BadRequest
-      ),
-      observation = Observation.validationError(message),
+      status = Status(webCode = WebCode.BadRequest),
+      observation = observation,
+      interpretation = Interpretation.domainFailure,
+      disposition = Disposition.none,
       previous = None
     )
+  }
 
   def combine(a: Conclusion, b: Conclusion): Conclusion = {
     val as = a.causes
     val bs = b.causes
     val all = as ++ bs
-    val maxSeverity =
-      all.map(_.observation.severity).reduceLeft(org.goldenport.observation.Severity.max)
+    val maxSeverity = all.flatMap(_.observation.severity).reduceOption(Severity.max)
     val combined = all.reduceLeft { (acc, current) =>
       current.copy(previous = Some(acc))
     }
-    combined.copy(observation = combined.observation.copy(severity = maxSeverity))
+    combined.copy(observation = combined.observation.withSeverity(maxSeverity))
   }
+
+  private def _make_observation(
+    taxonomy: Taxonomy,
+    cause: Cause,
+    severity: Option[Severity]
+  ): Observation = _make_observation(taxonomy, cause, None, None, severity)
+
+  private def _make_observation(
+    taxonomy: Taxonomy,
+    cause: Cause,
+    message: Option[String],
+    exception: Option[Throwable],
+    severity: Option[Severity]
+  ): Observation =
+    Observation(
+      phenomenon = Phenomenon.Failure,
+      taxonomy = taxonomy,
+      cause = cause.withMessage(message).withException(exception),
+      timestamp = Instant.now()
+    ).withSeverity(severity)
+
+  // private def makeCause(kind: Cause.Kind, message: Option[String]): Cause =
+  //   Cause(kind, message.map(m => Cause.Detail(message = Some(m))))
+
+  def failArgumentMissing: Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentMissing,
+      Interpretation.argumentMissing,
+      Disposition.argumentMissing
+    )
+
+  def failArgumentMissing(name: String): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentMissing(name),
+      Interpretation.argumentMissing,
+      Disposition.argumentMissing
+    )
+
+  def failArgumentMissingInput(name: String): Conclusion =
+    ???
+
+  def failArgumentMissingInput(args: Seq[String]): Conclusion =
+    ???
+
+  def failArgumentMissingInput(req: HttpRequest): Conclusion =
+    ???
+
+  def failArgumentMissingOperation(name: String, operation: String): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentMissingOperation(name, operation),
+      Interpretation.argumentMissing,
+      Disposition.argumentMissing
+    )
+
+  def failArgumentRedundantOperation(name: String, operation: String): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentRedundantOperation(name, operation),
+      Interpretation.argumentRedundant,
+      Disposition.argumentRedundant
+    )
+
+  def failArgumentRedundantOperationInput(operation: String, args: Seq[String]): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentRedundantOperationInput(operation, args),
+      Interpretation.argumentRedundant,
+      Disposition.argumentRedundant
+    )
+
+  def failArgumentDataType(name: String, value: Any, dt: DataType): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentDataType(name, value, dt),
+      Interpretation.argumentDataType,
+      Disposition.argumentDataType
+    )
+
+  def failArgumentConstraint(name: String, value: Any, cs: NonEmptyVector[Constraint]): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentConstraint(name, value, cs),
+      Interpretation.argumentConstraint,
+      Disposition.argumentConstraint
+    )
+
+  def failOperationInvalid(name: String): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.operationInvalid(name),
+      Interpretation.operationInvalid,
+      Disposition.operationInvalid
+    )
+
+  def failValueInvalid(value: Any, dt: DataType): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.valueInvalid(value, dt),
+      Interpretation.valueInvalid,
+      Disposition.valueInvalid
+    )
+
+  def failValueFormatError(value: Any, dt: DataType): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.valueFormatError(value, dt),
+      Interpretation.valueFormatError,
+      Disposition.valueFormatError
+    )
 }

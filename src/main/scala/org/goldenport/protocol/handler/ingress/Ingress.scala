@@ -22,7 +22,7 @@ import org.goldenport.http.HttpRequest
  * @since   Dec. 28, 2025
  *  version Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 21, 2026
+ * @version Jan. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -59,11 +59,7 @@ final case class IngressCollection(
     val _ = args
     ingresses.collectFirst { case ingress: ArgsIngress => ingress } match {
       case Some(ingress) => Consequence.success(ingress)
-      case None =>
-        Consequence
-          .failArgumentMissing
-          .withInput("args")
-          .build
+      case None => Consequence.failArgumentMissingInput(args)
     }
   }
 
@@ -71,11 +67,7 @@ final case class IngressCollection(
     val _ = req
     ingresses.collectFirst { case ingress: RestIngress => ingress } match {
       case Some(ingress) => Consequence.success(ingress)
-      case None =>
-        Consequence
-          .failArgumentMissing
-          .withInput("http")
-          .build
+      case None => Consequence.failArgumentMissingInput(req)
     }
   }
 }

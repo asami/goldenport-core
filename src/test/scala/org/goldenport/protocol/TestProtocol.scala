@@ -13,7 +13,8 @@ import org.goldenport.protocol.spec._
 
 /*
  * @since   Dec. 28, 2025
- * @version Dec. 28, 2025
+ *  version Dec. 28, 2025
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 object TestProtocol {
@@ -78,30 +79,34 @@ object TestProtocol {
 
     override def encode(args: Array[String]): Consequence[Request] =
       if (args.isEmpty) {
-        _failure("syntax error", Cause.SyntaxError)
+        // _failure("syntax error", Cause.SyntaxError)
+        Consequence.failArgumentMissing
       } else {
         val operation = args.head
         if (operation != "query") {
-          _failure(
-            "invalid operation",
-            Cause.Argument(Cause.Reason.ValidationError),
-            Vector(Descriptor.Aspect.Operation(operation))
-          )
+          // _failure(
+          //   "invalid operation",
+          //   Cause.Argument(Cause.Reason.ValidationError),
+          //   Vector(Descriptor.Aspect.Operation(operation))
+          // )
+          Consequence.failOperationInvalid(operation)
         } else if (args.length == 1) {
-          _failure(
-            "missing argument",
-            Cause.Argument(Cause.Reason.Missing),
-            Vector(
-              Descriptor.Aspect.Operation(operation),
-              Descriptor.Aspect.Input(name = Some("target"), value = None)
-            )
-          )
+          // _failure(
+          //   "missing argument",
+          //   Cause.Argument(Cause.Reason.Missing),
+          //   Vector(
+          //     Descriptor.Aspect.Operation(operation),
+          //     Descriptor.Aspect.Input(name = Some("target"), value = None)
+          //   )
+          // )
+          Consequence.failArgumentMissingOperation("target", operation)
         } else if (args.length > 2) {
-          _failure(
-            "redundant argument",
-            Cause.Argument(Cause.Reason.Redundant),
-            Vector(Descriptor.Aspect.Operation(operation))
-          )
+          // _failure(
+          //   "redundant argument",
+          //   Cause.Argument(Cause.Reason.Redundant),
+          //   Vector(Descriptor.Aspect.Operation(operation))
+          // )
+          Consequence.failArgumentRedundantOperationInput(operation, args.tail)
         } else {
           Consequence.success(
             Request(
@@ -120,16 +125,16 @@ object TestProtocol {
   private object DefaultArgsIngress extends ArgsIngress {
   }
 
-  private def _failure[A](
-    message: String,
-    cause: Cause,
-    aspects: Vector[Descriptor.Aspect] = Vector.empty
-  ): Consequence[A] = {
-    val base = Conclusion.simple(message)
-    val observation = base.observation.copy(
-      cause = Some(cause),
-      descriptor = Descriptor(aspects)
-    )
-    Consequence.Failure(base.copy(observation = observation))
-  }
+  // private def _failure[A](
+  //   message: String,
+  //   cause: Cause,
+  //   facets: Vector[Descriptor.Facet] = Vector.empty
+  // ): Consequence[A] = {
+  // val base = Conclusion.simple(message)
+  // val observation = base.observation.copy(
+  //   cause = Some(cause),
+  //   descriptor = Descriptor(facets)
+  // )
+  // Consequence.Failure(base.copy(observation = observation))
+  // }
 }

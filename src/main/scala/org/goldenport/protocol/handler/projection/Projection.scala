@@ -5,7 +5,8 @@ import org.goldenport.protocol.spec.ServiceDefinitionGroup
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Jan. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ProjectionKind[Out] {
@@ -30,10 +31,7 @@ final case class ProjectionCollection(
     projections.collectFirst { case p if p.kind == kind => p } match {
       case Some(p) => p.asInstanceOf[Projection[Out]].project(defs)
       case None =>
-        Consequence
-          .failArgumentMissing
-          .withInput(kind.name)
-          .build
+        Consequence.failArgumentMissingInput(kind.name)
     }
 
   def projectByName(
@@ -43,10 +41,7 @@ final case class ProjectionCollection(
     projections.collectFirst { case p if p.kind.name == name => p } match {
       case Some(p) => p.asInstanceOf[Projection[Any]].project(defs)
       case None =>
-        Consequence
-          .failArgumentMissing
-          .withInput(name)
-          .build
+        Consequence.failArgumentMissingInput(name)
     }
 }
 

@@ -11,7 +11,7 @@ import org.goldenport.observation.Cause.Reason
 
 /*
  * @since   Dec. 28, 2025
- * @version Jan. 17, 2026
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolEngineSpec
@@ -34,7 +34,7 @@ class ProtocolEngineSpec
         }
       }
       "are missing" should {
-        "fail with SyntaxError when no arguments are given" in {
+        "fail with Missing argument when no arguments are given" in {
           val protocol = TestProtocol.simple
           val engine   = ProtocolEngine.create(protocol)
 
@@ -42,7 +42,7 @@ class ProtocolEngineSpec
 
           val result = engine.makeOperationRequest(args)
 
-          result should fail_syntax_error_with()
+          result should be_argument_missing_failure
         }
         "fail with Missing argument when required parameter is absent" in {
           val protocol = TestProtocol.simple
@@ -81,7 +81,7 @@ class ProtocolEngineSpec
 
           val result = engine.makeOperationRequest(args)
 
-          result should fail_argument_validation_error
+          result should be_operation_invalid_failure
         }
       }
     }

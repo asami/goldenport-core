@@ -102,3 +102,12 @@ Notes / Exploration:
   the agreed use cases captured in the journal
 - Any ambiguity must be resolved at the semantic level,
   not deferred to presentation or transport layers
+
+Open Design Questions (Deferred)
+--------------------------------
+
+Observability Review Items
+- Phenomenon abstraction (Failure / Deviation modeling)
+- Debug-oriented metadata (Descriptor / Aspect or successor)
+
+See. docs/journal/2026/01/phase-2.9-error-concept-alignment.md

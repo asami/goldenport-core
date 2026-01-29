@@ -1,37 +1,60 @@
 package org.goldenport.protocol
 
 import org.goldenport.Consequence
-import org.goldenport.observation.Cause
+// import org.goldenport.observation.Cause
+import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.schema.{Constraint, DataType, Multiplicity, ValueDomain, XNonNegativeInteger, XPositiveInteger, XString}
+import org.goldenport.test.matchers.ConsequenceMatchers
 import org.scalacheck.Gen
+import org.scalacheck.Shrink
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-
 /*
  * @since   Dec. 29, 2025
- * @version Jan. 17, 2026
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec
   extends AnyWordSpec
   with Matchers
   with GivenWhenThen
-  with ScalaCheckDrivenPropertyChecks {
+  with ScalaCheckDrivenPropertyChecks
+  with ConsequenceMatchers {
+
+  implicit val noShrink: Shrink[Long] = Shrink.shrinkAny
 
   private final case class IntRequest(request: Request, value: BigInt) extends OperationRequest
   private final case class StringRequest(request: Request, value: String) extends OperationRequest
 
-  private def assert_cause(result: Consequence[?], expected: Cause): Unit =
+  private def assert_taxonomy(result: Consequence[?], expected: Taxonomy): Unit =
     result match {
       case Consequence.Failure(conclusion) =>
-        conclusion.observation.cause.shouldBe(Some(expected))
-      case _ =>
-        fail("expected Failure")
+        conclusion.observation.taxonomy.shouldBe(expected)
+      case Consequence.Success(r) =>
+        fail(s"expected Failure but Success: $r")
+    }
+
+  private def assert_datatype(result: Consequence[?]): Unit =
+    result match {
+      case Consequence.Failure(conclusion) =>
+        conclusion.observation.taxonomy.shouldBe(Taxonomy.argumentInvalid)
+        conclusion.observation.cause.getDataType.nonEmpty.shouldBe(true)
+      case Consequence.Success(r) =>
+        fail(s"expected Failure but Success: $r")
+    }
+
+  private def assert_constraint(result: Consequence[?]): Unit =
+    result match {
+      case Consequence.Failure(conclusion) =>
+        conclusion.observation.taxonomy.shouldBe(Taxonomy.argumentInvalid)
+        conclusion.observation.cause.getConstraints.nonEmpty.shouldBe(true)
+      case Consequence.Success(r) =>
+        fail(s"expected Failure but Success: $r")
     }
 
   private final class IntOperationDefinition(
@@ -176,8 +199,10 @@ class OperationDefinitionResolveParameterSpec
 
       When("resolving domain-violating values")
       Then("each failure reports ValueDomainError")
-      assert_cause(nonNegative.createOperationRequest(requestWith("-1")), Cause.ValueDomainError)
-      assert_cause(positive.createOperationRequest(requestWith("0")), Cause.ValueDomainError)
+      // assert_taxonomy(nonNegative.createOperationRequest(requestWith("-1")), Taxonomy.argumentInvalid)
+      // assert_taxonomy(positive.createOperationRequest(requestWith("0")), Taxonomy.argumentInvalid)
+      nonNegative.createOperationRequest(requestWith("-1")) should be_argument_invalid_failure
+      positive.createOperationRequest(requestWith("0")) should be_argument_invalid_failure
     }
 
     "fail with ValueDomainError property-wise for negative values" in {
@@ -186,9 +211,8 @@ class OperationDefinitionResolveParameterSpec
       When("resolving negative values")
       forAll(Gen.chooseNum(Long.MinValue, -1L)) { value =>
         Then("each failure reports ValueDomainError")
-        assert_cause(
-          nonNegative.createOperationRequest(requestWith(value.toString)),
-          Cause.ValueDomainError
+        assert_datatype(
+          nonNegative.createOperationRequest(requestWith(value.toString))
         )
       }
     }
@@ -198,7 +222,10 @@ class OperationDefinitionResolveParameterSpec
       val op = new IntOperationDefinition(XPositiveInteger)
       When("resolving a non-numeric string")
       Then("the failure reports FormatError")
-      assert_cause(op.createOperationRequest(requestWith("abc")), Cause.FormatError)
+      assert_taxonomy(
+        op.createOperationRequest(requestWith("abc")),
+        Taxonomy.argumentFormatError
+      )
     }
 
     "fail with FormatError property-wise for alphabetic strings" in {
@@ -207,7 +234,10 @@ class OperationDefinitionResolveParameterSpec
       When("resolving alphabetic strings")
       forAll(Gen.alphaStr.suchThat(_.nonEmpty)) { value =>
         Then("each failure reports FormatError")
-        assert_cause(op.createOperationRequest(requestWith(value)), Cause.FormatError)
+        assert_taxonomy(
+          op.createOperationRequest(requestWith(value)),
+          Taxonomy.argumentFormatError
+        )
       }
     }
 
@@ -228,7 +258,9 @@ class OperationDefinitionResolveParameterSpec
 
       When("resolving a disallowed value")
       Then("the failure reports ValueDomainError")
-      assert_cause(op.createOperationRequest(requestWith("c")), Cause.ValueDomainError)
+      assert_constraint(
+        op.createOperationRequest(requestWith("c"))
+      )
     }
 
     "validate numeric range constraints during OperationRequest construction" in {
@@ -252,8 +284,12 @@ class OperationDefinitionResolveParameterSpec
 
       When("resolving values outside the range")
       Then("each failure reports ValueDomainError")
-      assert_cause(op.createOperationRequest(requestWith("-1")), Cause.ValueDomainError)
-      assert_cause(op.createOperationRequest(requestWith("11")), Cause.ValueDomainError)
+      assert_datatype(
+        op.createOperationRequest(requestWith("-1"))
+      )
+      assert_constraint(
+        op.createOperationRequest(requestWith("11"))
+      )
     }
 
     "validate range constraints property-wise" in {
@@ -278,10 +314,14 @@ class OperationDefinitionResolveParameterSpec
 
       When("resolving values outside the range")
       forAll(Gen.oneOf(Gen.chooseNum(-10L, -1L), Gen.chooseNum(11L, 20L))) { value =>
-        assert_cause(
-          op.createOperationRequest(requestWith(value.toString)),
-          Cause.ValueDomainError
-        )
+        if (value < 0)
+          assert_datatype(
+            op.createOperationRequest(requestWith(value.toString))
+          )
+        else
+          assert_constraint(
+            op.createOperationRequest(requestWith(value.toString))
+          )
       }
     }
 
@@ -317,7 +357,7 @@ class OperationDefinitionResolveParameterSpec
       val result = op.createOperationRequest(req)
 
       Then("the failure reports ValueDomainError")
-      assert_cause(result, Cause.ValueDomainError)
+      assert_constraint(result)
     }
 
     "keep Argument Missing and Redundant semantics" in {
@@ -334,12 +374,12 @@ class OperationDefinitionResolveParameterSpec
 
       When("resolving a request with a missing argument")
       Then("Missing is reported as Argument error")
-      assert_cause(op.createOperationRequest(missing), Cause.Argument(Cause.Reason.Missing))
+      assert_taxonomy(op.createOperationRequest(missing), Taxonomy.argumentMissing)
 
       When("resolving a request with redundant arguments")
       val redundant = requestWith("1", extra = List("2"))
       Then("Redundant is reported as Argument error")
-      assert_cause(op.createOperationRequest(redundant), Cause.Argument(Cause.Reason.Redundant))
+      assert_taxonomy(op.createOperationRequest(redundant), Taxonomy.argumentRedundant)
     }
   }
 }

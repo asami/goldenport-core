@@ -1,7 +1,8 @@
 package org.goldenport.error
 
 import org.goldenport.Conclusion
-import org.goldenport.observation.Observation
+import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
+import org.goldenport.provisional.observation.Observation
 
 /**
  * DefaultErrorSystem is the minimal core implementation.
@@ -24,7 +25,7 @@ import org.goldenport.observation.Observation
  */
 /*
  * @since   Dec. 18, 2025
- * @version Dec. 18, 2025
+ * @version Jan. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 object DefaultErrorSystem extends ErrorSystem {
@@ -48,6 +49,8 @@ object DefaultErrorSystem extends ErrorSystem {
             webCode = Conclusion.WebCode(500)
           ),
           observation = observation,
+          interpretation = Interpretation.defect,
+          disposition = Disposition.defect,
           previous = None
         )
       case None =>
@@ -56,6 +59,8 @@ object DefaultErrorSystem extends ErrorSystem {
             webCode = Conclusion.WebCode(200)
           ),
           observation = observation,
+          interpretation = Interpretation.success,
+          disposition = Disposition.none,
           previous = None
         )
     }

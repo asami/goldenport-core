@@ -1,11 +1,16 @@
 package org.goldenport.provisional.observation
 
+import cats.data.NonEmptyVector
 import java.time.Instant
 import org.goldenport.text.Presentable
 import org.goldenport.id.UniversalId
+import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.{TraceId, SpanId}
 import org.goldenport.observation.{Subject, Agent, Resource}
 import org.goldenport.observation.Severity
+import org.goldenport.observation.Descriptor
+import org.goldenport.schema.DataType
+import org.goldenport.schema.Constraint
 
 /**
  * Unified Observation (Phase 2.9 Design-Fixed Model)
@@ -32,36 +37,220 @@ import org.goldenport.observation.Severity
  * @since   Jul. 19, 2025
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
- * @version Jan. 25, 2026
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
+  phenomenon: Phenomenon,
   taxonomy: Taxonomy,
   cause: Cause,
-  source: Source,
-  channel: Channel,
-  substrate: Substrate,
-  origin: Origin,
 
   // --- Observability core ---
   timestamp: Instant,
 
-  subject: Subject,
-  agent: Agent,
-  `object`: Resource,
+  assessment: Assessment = Assessment.empty,
+  occurrence: Option[Occurrence] = None,
+  involvement: Option[Involvement] = None,
 
   // --- Observability extensions ---
-  severity: Option[Severity] = None, // Log level
+  origin: Option[Origin] = None,
   traceId: Option[TraceId] = None,
   spanId: Option[SpanId] = None,
   environment: Option[Environment] = None,
 
-  message: Option[String] = None,
-  exception: Option[Throwable] = None,
+  // message: Option[String] = None, // I18nMessage
+  // exception: Option[Throwable] = None,
   properties: Map[String, String] = Map.empty,
 
   observationId: Option[ObservationId] = None
-)
+) {
+  def severity: Option[Severity] = assessment.severity
+  def exception: Option[Throwable] = cause.getException
+  def getMessage: Option[String] = cause.getMessage
+  def getEffectiveMessage: Option[String] = cause.getEffectiveMessage
+
+  def isMatch(rhs: Observation): Boolean = (
+    phenomenon == rhs.phenomenon &&
+      taxonomy == rhs.taxonomy &&
+      cause == rhs.cause &&
+      assessment == rhs.assessment &&
+      occurrence == rhs.occurrence &&
+      involvement == rhs.involvement &&
+      origin == rhs.origin &&
+      traceId == rhs.traceId &&
+      spanId == rhs.spanId &&
+      environment == rhs.environment &&
+      properties == rhs.properties &&
+      observationId == rhs.observationId
+  )
+
+  def withSeverity(p: Option[Severity]): Observation = p.fold(this)(withSeverity)
+  def withSeverity(p: Severity): Observation = copy(assessment = assessment.withSeverity(p))
+
+  def toCategoryArgument = copy(taxonomy = taxonomy.toCategoryArgument)
+}
+
+object Observation {
+  // Argument
+  def argumentMissing: Observation = rejection(
+    Taxonomy.argumentMissing
+  )
+
+  def argumentMissing(name: String): Observation = rejection(
+    Taxonomy.argumentMissing,
+    Descriptor.Facet.Parameter.argument(name)
+  )
+
+  def argumentMissingOperation(name: String, operation: String): Observation = rejection(
+    Taxonomy.argumentMissing,
+    Descriptor.argumentOperation(name, operation)
+  )
+
+  def argumentRedundant(name: String): Observation = rejection(
+    Taxonomy.argumentRedundant,
+    Descriptor.Facet.Parameter.argument(name)
+  )
+
+  def argumentRedundantOperation(name: String, operation: String): Observation = rejection(
+    Taxonomy.argumentRedundant,
+    Descriptor.argumentOperation(name, operation)
+  )
+
+  def argumentRedundantOperationInput(
+    operation: String,
+    input: Seq[String]
+  ): Observation = rejection(
+    Taxonomy.argumentRedundant,
+    Descriptor.operationInput(operation, input)
+  )
+
+  def argumentInvalid(name: String): Observation = rejection(
+    Taxonomy.argumentInvalid,
+    Descriptor.Facet.Parameter.argument(name)
+  )
+
+  def argumentInvalid(name: String, message: String): Observation = rejection(
+    Taxonomy.argumentInvalid,
+    Descriptor.Facet.Parameter.argument(name),
+    Descriptor.Facet.Message(message)
+  )
+
+  // Format / Syntax
+  def argumentFormatError(message: String): Observation = rejection(
+    Taxonomy.argumentFormatError,
+    Descriptor.Facet.Message(message)
+  )
+
+  def argumentSyntaxError(message: String): Observation = rejection(
+    Taxonomy.argumentSyntaxError,
+    Descriptor.Facet.Message(message)
+  )
+
+  def argumentDataType(name: String, value: Any, dt: DataType): Observation = rejection(
+    Taxonomy.argumentDataType,
+    Descriptor.Facet.Parameter.argument(name),
+    Descriptor.Facet.Value(value),
+    Descriptor.Facet.DataType(dt)
+  )
+
+  def argumentConstraint(name: String, value: Any, cs: NonEmptyVector[Constraint]): Observation = rejection(
+    Taxonomy.argumentDataType,
+    Descriptor.Facet.Parameter.argument(name),
+    Descriptor.Facet.Value(value),
+    Descriptor.Facet.Constraint(cs)
+  )
+
+  // Operation
+  def operationInvalid(name: String): Observation = rejection(
+    Taxonomy.operationInvalid,
+    Descriptor.Facet.Operation(name)
+  )
+
+  // Data
+  def valueInvalid(value: Any, datatype: DataType): Observation = rejection(
+    Taxonomy.valueInvalid,
+    Descriptor.Facet.DataType(datatype)
+  )
+
+  def valueFormatError(value: Any, datatype: DataType): Observation = rejection(
+    Taxonomy.valueFormatError,
+    Descriptor.Facet.DataType(datatype)
+  )
+
+  // Resource
+  def resourceNotFound(id: String): Observation = rejection(
+    Taxonomy.resourceNotFound,
+    Descriptor.Facet.Id(id)
+  )
+
+  def resourceSyntaxError(message: String): Observation = failure(
+    Taxonomy.resourceSyntaxError,
+    Descriptor.Facet.Message(message)
+  )
+
+  // State
+  def stateConflict(state: String): Observation = failure(
+    Taxonomy.stateConflict,
+    Descriptor.Facet.State(state)
+  )
+
+  // OutOfControl
+  def ofcNullPointer: Observation = failure(Taxonomy.ofcNullPointer)
+
+  def rejection(
+    t: Taxonomy,
+    facet: Descriptor.Facet,
+    facets: Descriptor.Facet*
+  ): Observation =
+    rejection(t, Cause.create(facet, facets))
+
+  def rejection(
+    t: Taxonomy,
+    descriptor: Descriptor
+  ): Observation =
+    rejection(t, Cause(descriptor))
+
+  def rejection(t: Taxonomy, c: Cause): Observation = Observation(
+    Phenomenon.Rejection, t, c, Instant.now()
+  )
+
+  def rejection(t: Taxonomy): Observation = Observation(
+    Phenomenon.Rejection, t, Cause.empty, Instant.now()
+  )
+
+  def failure(t: Taxonomy): Observation = failure(t, Cause.empty)
+
+  def failure(
+    t: Taxonomy,
+    facet: Descriptor.Facet,
+    facets: Descriptor.Facet*
+  ): Observation =
+    failure(t, Cause.create(facet, facets))
+
+  def failure(t: Taxonomy, c: Cause): Observation = Observation(
+    Phenomenon.Failure,
+    t,
+    c,
+    Instant.now(),
+    Assessment.failure
+  )
+
+  // def create(t: Taxonomy, c: Cause, msg: String): Observation =
+  //   create(t, c, Descriptor.Facet.Message(msg))
+
+  // def create(t: Taxonomy, c: Cause, facet: Descriptor.Facet): Observation =
+  //   create(t, c.addFacet(facet))
+
+  // def create(t: Taxonomy, c: Cause): Observation = Observation(
+  //   Phenomenon.Failure, t, c, Instant.now()
+  // )
+
+  // def create(t: Taxonomy, msg: String): Observation =
+  //   create(t, Cause.message(msg))
+
+  // def create(t: Taxonomy, facet: Descriptor.Facet): Observation =
+  //   create(t, Cause(facet))
+}
 
 /**
  * Taxonomy classifies what is factually wrong.
@@ -77,7 +266,9 @@ case class Taxonomy(
   category: Taxonomy.Category,
   symptom: Taxonomy.Symptom
 ) extends Presentable {
-  def print = s"$category-$symptom"
+  def print = s"$category.$symptom"
+
+  def toCategoryArgument = copy(category = Taxonomy.Category.Argument)
 }
 object Taxonomy {
   enum Category(val name: String, val value: Int) {
@@ -86,26 +277,37 @@ object Taxonomy {
       * It does not imply caller responsibility or fault.
       */
     case Argument extends Category("argument", 1)
+
     /** The problem is observed in properties or attributes of a domain object or entity.
       * This category is used when the issue concerns stored or derived attribute values, not direct input arguments.
       */
     case Property extends Category("property", 2)
+
     /** The problem is observed in runtime or environment configuration.
       * This category is used for issues related to configuration values, settings, or parameters that control system behavior.
       */
     case Configuration extends Category("configuration", 3)
+
     /** The problem is observed in a resource or reference to a resource.
       * This category covers existence, availability, integrity, and reference-related issues of internal or external resources.
       */
     case Resource extends Category("resource", 4)
+
     /** The problem is observed in the state of a system, component, or domain entity.
       * This category is used when the issue concerns invalid or prohibited states or state transitions.
       */
     case State extends Category("state", 5)
+
+    case Value extends Category("value", 7)
+
     /** The problem is observed at the system level and cannot be meaningfully attributed to argument, property, configuration, resource, or state.
       * This category is used as a last resort for fundamental or infrastructural failures.
       */
     case System extends Category("system", 6)
+
+    case OutOfControl extends Category("out-of-control", 8)
+
+    case Operation extends Category("operation", 9)
   }
 
   enum Symptom(val name: String, val value: Int) {
@@ -114,9 +316,11 @@ object Taxonomy {
     /** The observed data is syntactically valid but does not match the expected format or representation. */
     case FormatError extends Symptom("format-error", 2)
     /** The observed value violates domain-level constraints or rules, despite being syntactically and structurally valid. */
-    case DomainValue extends Symptom("domain-value", 3)
+    case DomainValue extends Symptom("domain-value", 3) // unused, use Invalid instead.
     /** A required value or element is not provided or not present where it is expected to exist. */
     case Missing extends Symptom("missing", 4)
+    /** ??? */
+    case Redundant extends Symptom("missing", 14) // TODO
     /** An observed value, element, or condition appears that is not expected in the given context. */
     case Unexpected extends Symptom("unexpected", 5)
     /** The observed value, operation, or condition is explicitly not supported by the system or component. */
@@ -135,35 +339,248 @@ object Taxonomy {
     case Invalid extends Symptom("invalid", 12)
     /** The observed data or resource is damaged, inconsistent, or internally broken in a way that prevents correct use. */
     case Corrupted extends Symptom("corrupted", 13)
+
+    // OutOfControl
+    case UnreachableReaced extends Symptom("unreachable-reached", 14)
+
+    case ImpossibleState extends Symptom("impossible-state", 16)
+
+    case NotImplemented extends Symptom("not-implemented", 20)
+
+    case InvariantViolation extends Symptom("invariant-violation", 17)
+    case PreconditionViolation extends Symptom("precondition-violation", 18)
+    case PostconditionViolation extends Symptom("postcondition-violation", 19)
+
+    case NullPointer extends Symptom("null-pointer", 15)
   }
+
+  // Argument
+  val argumentMissing: Taxonomy = Taxonomy(
+    Category.Argument,
+    Symptom.Missing
+  )
+  val argumentRedundant: Taxonomy = Taxonomy(
+    Category.Argument,
+    Symptom.Redundant
+  )
+  val argumentInvalid: Taxonomy = Taxonomy(
+    Category.Argument,
+    Symptom.Invalid
+  )
+  val argumentDataType: Taxonomy = Taxonomy(
+    Category.Argument,
+    Symptom.Invalid
+  )
+  val argumentConstraint: Taxonomy = Taxonomy(
+    Category.Argument,
+    Symptom.Invalid
+  )
+  val argumentFormatError: Taxonomy = Taxonomy(
+    Category.Argument,
+    Symptom.FormatError
+  )
+  val argumentSyntaxError: Taxonomy = Taxonomy(
+    Category.Argument,
+    Symptom.FormatError
+  )
+
+  // Operation
+  val operationInvalid: Taxonomy = Taxonomy(
+    Category.Operation,
+    Symptom.Invalid
+  )
+
+  // Resource
+  val resourceNotFound: Taxonomy = Taxonomy(
+    Category.Resource,
+    Symptom.NotFound
+  )
+  val resourceSyntaxError: Taxonomy = Taxonomy(
+    Category.Resource,
+    Symptom.SyntaxError
+  )
+
+  // State
+  val stateConflict: Taxonomy = Taxonomy(
+    Category.State,
+    Symptom.Conflict
+  )
+
+  // Value
+  val valueInvalid: Taxonomy = Taxonomy(
+    Category.Value,
+    Symptom.Invalid
+  )
+
+  val valueFormatError: Taxonomy = Taxonomy(
+    Category.Value,
+    Symptom.FormatError
+  )
+
+  val ofcNullPointer: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.NullPointer
+  )
+
+  def from(p: Throwable): Taxonomy =
+    Taxonomy(Taxonomy.Category.System, Taxonomy.Symptom.Corrupted) // TODO
 }
 
 case class Cause(
-  kind: Cause.Kind,
-  detail: Option[Cause.Detail]
-)
+//  kind: Cause.Kind,
+//  detail: Option[Cause.Detail] = None
+  descriptor: Descriptor = Descriptor.empty
+) extends Presentable {
+  // def addFacet(p: Descriptor.Facet) = detail match {
+  //   case None => copy(detail = Some(Cause.Detail(p)))
+  //   case Some(s) => copy(detail = Some(s.addFacet(p)))
+  // }
+
+  def print = s"${descriptor.display}"
+  override def show = s"Cause($print)"
+
+  def addFacet(p: Descriptor.Facet): Cause = copy(descriptor = descriptor.add(p))
+
+  def withMessage(p: Option[String]): Cause = p.fold(this)(withMessage)
+
+  def withMessage(p: String): Cause = addFacet(Descriptor.Facet.Message(p))
+
+  def withException(p: Option[Throwable]): Cause = p.fold(this)(withException)
+
+  def withException(p: Throwable): Cause = addFacet(Descriptor.Facet.Exception(p))
+
+  def getMessage: Option[String] = descriptor.getMessage
+  def getEffectiveMessage: Option[String] = descriptor.getEffectiveMessage
+  def getException: Option[Throwable] = descriptor.getException
+  def getDataType: Option[DataType] = descriptor.getDataType
+  def getConstraints: Option[NonEmptyVector[Constraint]] = descriptor.getConstraints
+}
 object Cause {
-  enum Kind(val name: String, val value: Int) {
-    case Parse extends Kind("parse", 1)
-    case Validate extends Kind("validate", 2)
-    case Lookup extends Kind("lookup", 3)
-    case Resolve extends Kind("resolve", 4)
-    case Execute extends Kind("execute", 5)
-    case Communicate extends Kind("communicate", 6)
-    case Timeout extends Kind("timeout", 7)
-    case Conflict extends Kind("conflict", 8)
-    case Unknown extends Kind("unknown", 9)
-  }
+  val empty = Cause()
+
+  // enum Kind(val name: String, val value: Int) {
+  //   case Parse extends Kind("parse", 1)
+  //   case Validate extends Kind("validate", 2)
+  //   case Lookup extends Kind("lookup", 3)
+  //   case Resolve extends Kind("resolve", 4)
+  //   case Execute extends Kind("execute", 5)
+  //   case Communicate extends Kind("communicate", 6)
+  //   case Timeout extends Kind("timeout", 7)
+  //   case Conflict extends Kind("conflict", 8)
+  //   case Unknown extends Kind("unknown", 9)
+  // }
 
   /**
    * Optional, non-authoritative detail about the failure mechanism.
    * This information is descriptive only and must not affect interpretation.
    */
   case class Detail(
-    message: Option[String] = None,
-    data: Map[String, String] = Map.empty
-  )
+    descriptor: Descriptor = Descriptor.empty
+  ) {
+    def addFacet(p: Descriptor.Facet) = copy(descriptor = descriptor.add(p))
+  }
+  object Detail {
+    val empty = Detail()
+
+    def apply(p: Descriptor.Facet, ps: Descriptor.Facet*): Detail =
+      Detail(Descriptor(p, ps))
+
+    def createMessage(msg: Option[String]): Detail =
+      msg.fold(empty)(x => Detail(Descriptor.Facet.Message(x)))
+  }
+
+  // private def withDetail(kind: Cause.Kind, message: Option[String] = None): Cause =
+  //   Cause(kind, message.map(m => Cause.Detail(message = Some(m))))
+
+  // val argumentInvalid: Cause = Cause(Kind.Validate)
+  // val argumentMissing: Cause = Cause(Kind.Validate)
+  // val argumentRedundant: Cause = Cause(Kind.Validate)
+  // val argumentValidationError: Cause = Cause(Kind.Validate)
+  // val syntaxError: Cause = Cause(Kind.Parse)
+  // val formatError: Cause = Cause(Kind.Validate)
+  // val valueDomainError: Cause = Cause(Kind.Validate)
+  // val resourceNotFound: Cause = Cause(Kind.Lookup)
+  // val stateConflict: Cause = Cause(Kind.Conflict)
+
+  // def from(p: Taxonomy): Cause = p.symptom match {
+  //   case Taxonomy.Symptom.SyntaxError => Cause(Kind.Parse)
+  //   case Taxonomy.Symptom.FormatError => Cause(Kind.Validate)
+  //   case Taxonomy.Symptom.DomainValue => Cause(Kind.Validate)
+  //   case Taxonomy.Symptom.Missing => Cause(Kind.Validate)
+  //   case Taxonomy.Symptom.Redundant => Cause(Kind.Validate)
+  //   case Taxonomy.Symptom.Unexpected => ???
+  //   case Taxonomy.Symptom.NotFound => Cause(Kind.Lookup)
+  //   case Taxonomy.Symptom.Unavailable => ???
+  //   case Taxonomy.Symptom.Conflict => ???
+  //   case Taxonomy.Symptom.InvalidReference => ???
+  //   case Taxonomy.Symptom.Illegal => ???
+  //   case Taxonomy.Symptom.Invalid => Cause(Kind.Validate)
+  //   case Taxonomy.Symptom.Corrupted => ???
+  // }
+
+  // // Argument
+  // def argumentMissing(name: String): Cause = create(???, ???, ???)
+  // def argumentRedundant(name: String): Cause = create(???, ???, ???)
+  // def argumentInvalid(name: String, message: String): Cause = create(???, ???, ???)
+
+  // // Format / Syntax
+  // def formatError(message: String): Cause = create(???, ???, ???)
+  // def syntaxError(message: String): Cause = create(???, ???, ???)
+
+  // // Resource
+  // def resourceNotFound(id: String): Cause = create(???, ???, ???)
+
+  // // State
+  // def stateConflict(state: String): Cause = create(???, ???, ???)
+
+  // def create(t: Cause, c: Cause, msg: String): Cause = {
+  //   ???
+  // }
+
+  // def createWithMessage(kind: Cause.Kind, message: Option[String]): Cause =
+  //   Cause(kind, Some(Cause.Detail.createMessage(message)))
+
+  def apply(p: Descriptor.Facet, ps: Descriptor.Facet*): Cause =
+    Cause(Descriptor(p, ps))
+
+  def from(p: Throwable): Cause = Cause(Descriptor.from(p))
+
+  def create(p: Descriptor.Facet, ps: Seq[Descriptor.Facet]): Cause =
+    Cause(Descriptor(p, ps))
+
+  def message(msg: String): Cause =
+    Cause(Descriptor.message(msg))
+
+  def message(msg: Option[String]): Cause =
+    msg.fold(Cause.empty)(x => Cause(Descriptor.message(x)))
 }
+
+case class Assessment(
+  severity: Option[Severity] = None,
+  nature: Option[Nature] = None
+) {
+  def withSeverity(p: Severity) = copy(severity = Some(p))
+}
+object Assessment {
+  val empty = Assessment()
+  val failure = Assessment(Some(Severity.Error), Some(Nature.Fault))
+}
+
+enum Nature {
+  case Fault, Defect, Anomaly
+}
+
+case class Occurrence(
+  source: Source,
+  channel: Channel,
+  substrate: Substrate
+)
+
+case class Involvement(
+  subject: Subject,
+  agent: Agent,
+  `object`: Resource
+)
 
 /**
  * Interaction represents a concrete form of interaction or access
@@ -218,7 +635,7 @@ object Interaction {
  */
 case class Source(
   kind: Source.Kind,
-  detail: Option[Source.Detail]
+  detail: Option[Source.Detail] = None
 )
 object Source {
   enum Kind(val name: String, val value: Int) {
@@ -245,6 +662,8 @@ object Source {
       interaction: Interaction
     ) extends Detail
   }
+
+  val inMemory = Source(Kind.InMemory)
 }
 
 /**
@@ -255,7 +674,7 @@ object Source {
  */
 case class Channel(
   kind: Channel.Kind,
-  detail: Option[Channel.Detail]
+  detail: Option[Channel.Detail] = None
 )
 
 object Channel {
@@ -286,6 +705,8 @@ object Channel {
       interaction: Interaction
     ) extends Detail
   }
+
+  val command = Channel(Kind.Command)
 }
 
 /**
@@ -297,7 +718,7 @@ object Channel {
  */
 case class Substrate(
   kind: Substrate.Kind,
-  detail: Option[Substrate.Detail]
+  detail: Option[Substrate.Detail] = None
 )
 
 object Substrate {
@@ -367,6 +788,8 @@ object Substrate {
     description: String,
     properties: Map[String, String] = Map.empty
   ) extends Detail
+
+  val jvm = Substrate(Kind.Jvm)
 }
 
 /**

@@ -3,7 +3,7 @@ package org.goldenport.schema
 import java.time.YearMonth
 import org.scalacheck.Gen
 import org.goldenport.Consequence
-import org.goldenport.observation.Cause
+import org.goldenport.test.matchers.ConclusionMatchers
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -11,26 +11,35 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Jan. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 class YearMonthNormalizerSpec
   extends AnyWordSpec
   with Matchers
   with GivenWhenThen
-  with ScalaCheckDrivenPropertyChecks {
+  with ScalaCheckDrivenPropertyChecks
+  with ConclusionMatchers {
 
-  private def assert_success(value: Any, expected: YearMonth): Unit = {
-    YearMonthNormalizer.normalize(value) match {
+  private def _assert_success(value: Any, expected: YearMonth): Unit = {
+    YearMonthNormalizer(XYearMonth).normalize(value) match {
       case Consequence.Success(result) => result.shouldBe(expected)
       case _ => fail(s"expected Success for value: ${value}")
     }
   }
 
-  private def assert_format_error(value: Any): Unit = {
-    YearMonthNormalizer.normalize(value) match {
+  private def _assert_invalid(value: Any): Unit = {
+    YearMonthNormalizer(XYearMonth).normalize(value) match {
       case Consequence.Failure(conclusion) =>
-        conclusion.observation.cause.shouldBe(Some(Cause.FormatError))
+        conclusion should be_invalid_failure_conclusion
+      case _ => fail(s"expected Failure for value: ${value}")
+    }
+  }
+
+  private def _assert_format_error(value: Any): Unit = {
+    YearMonthNormalizer(XYearMonth).normalize(value) match {
+      case Consequence.Failure(conclusion) =>
+        conclusion should be_format_error_failure_conclusion
       case _ => fail(s"expected Failure for value: ${value}")
     }
   }
@@ -40,8 +49,8 @@ class YearMonthNormalizerSpec
       Given("a YearMonthNormalizer")
       val ym = YearMonth.parse("2025-01")
       When("normalizing year-month values and strings")
-      assert_success(ym, ym)
-      assert_success("2025-01", ym)
+      _assert_success(ym, ym)
+      _assert_success("2025-01", ym)
       Then("inputs normalize to YearMonth")
     }
 
@@ -49,7 +58,7 @@ class YearMonthNormalizerSpec
       Given("a YearMonthNormalizer")
       When("normalizing arbitrary year-month values")
       forAll(_genYearMonth) { ym =>
-        YearMonthNormalizer.normalize(ym.toString) match {
+        YearMonthNormalizer(XYearMonth).normalize(ym.toString) match {
           case Consequence.Success(result) => result.shouldBe(ym)
           case _ => fail("expected Success for year-month string")
         }
@@ -60,10 +69,10 @@ class YearMonthNormalizerSpec
     "reject invalid year-month inputs as FormatError" in {
       Given("a YearMonthNormalizer")
       When("normalizing invalid inputs")
-      assert_format_error("not-a-year-month")
-      assert_format_error(true)
-      assert_format_error(1.0d)
-      assert_format_error(null)
+      _assert_format_error("not-a-year-month")
+      _assert_invalid(true)
+      _assert_invalid(1.0d)
+      _assert_invalid(null)
       Then("each input fails with FormatError")
     }
   }

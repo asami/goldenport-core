@@ -3,14 +3,17 @@ package org.goldenport.consequence
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 import org.goldenport.Conclusion
+import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.{CauseKind, Severity}
+import org.goldenport.test.matchers.ConclusionMatchers
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
-class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers {
+class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers
+  with ConclusionMatchers {
 
   "Conclusion.fromThrowable(Throwable)" should {
 
@@ -20,7 +23,7 @@ class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers {
       val c = Conclusion.fromThrowable(ex)
 
       c.observation.exception shouldBe Some(ex)
-      c.observation.causeKind shouldBe CauseKind.Defect
+      c.observation.phenomenon shouldBe Phenomenon.Failure
     }
 
     "use InternalError as WebCode" in {
@@ -36,7 +39,7 @@ class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers {
 
       val c = Conclusion.fromThrowable(ex)
 
-      c.observation.severity shouldBe Severity.Error
+      c.observation.severity shouldBe Some(Severity.Error)
     }
 
     "not encode domain meaning" in {
@@ -44,25 +47,26 @@ class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers {
 
       val c = Conclusion.fromThrowable(ex)
 
-      c.observation.message shouldBe None
+      c.observation.getMessage shouldBe None
     }
 
-    "be deterministic for the same Throwable instance" in {
+    "be deterministic for the same Throwable instance without timestamp" in {
       val ex = new RuntimeException("same")
 
       val c1 = Conclusion.fromThrowable(ex)
       val c2 = Conclusion.fromThrowable(ex)
 
-      c1 shouldBe c2
+      c1 should be_equal_conclusion(c2)
     }
 
     "treat null Throwable as a Defect" in {
       val c = Conclusion.fromThrowable(null)
 
       c.observation.exception shouldBe None
-      c.observation.causeKind shouldBe CauseKind.Defect
+      // c.observation.causeKind shouldBe CauseKind.Defect
+      c.observation.phenomenon shouldBe Phenomenon.Failure
       c.status.webCode shouldBe Conclusion.WebCode.InternalError
-      c.observation.severity shouldBe Severity.Error
+      c.observation.severity shouldBe Some(Severity.Error)
     }
   }
 }

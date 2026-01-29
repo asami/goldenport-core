@@ -1,8 +1,16 @@
 package org.goldenport
 
 import cats._
+import cats.data.NonEmptyVector
 import scala.util.control.NonFatal
 import org.goldenport.text.Presentable
+import org.goldenport.schema.DataType
+import org.goldenport.schema.Constraint
+import org.goldenport.provisional.observation.Observation
+import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Descriptor
+import org.goldenport.http.HttpRequest
 
 /*
  * @since   Feb. 21, 2021
@@ -34,10 +42,12 @@ import org.goldenport.text.Presentable
  *  version Nov. 11, 2025
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
- * @version Jan. 16, 2026
+ * @version Jan. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
+  def get: Option[T]
+
   def take: T
 
   def RAISE: Nothing = this match {
@@ -91,6 +101,23 @@ sealed trait Consequence[+T] extends Presentable {
         e.asInstanceOf[Consequence[U]]
     }
 
+  def transform[U](
+    s: T => Consequence[U],
+    c: Conclusion => Consequence[U]
+  ): Consequence[U]
+
+  def recoverWith[U >: T](f: Conclusion => Consequence[U]): Consequence[U]
+
+  def recover[U >: T](f: Conclusion => U): Consequence[U]
+
+  def recoverConclusion(f: Conclusion => Conclusion): Consequence[T]
+
+  def fold[U >: T](c: Conclusion => U, s: T => U): U
+
+  def foldIdntity[U >: T](c: Conclusion => U): U
+
+  def getOrElse[U >: T](body: => U): U
+
   override def print: String = this match {
     case Consequence.Success(v) => Presentable.print(v)
     case Consequence.Failure(c) => c.display
@@ -111,11 +138,52 @@ object Consequence {
   case class Success[+T](
     result: T
   ) extends Consequence[T] {
+    def get: Option[T] = Some(result)
+
     def take = result
+
+    def transform[U](
+      s: T => Consequence[U],
+      c: Conclusion => Consequence[U]
+    ): Consequence[U] = s(result)
+
+    def recoverWith[U >: T](f: Conclusion => Consequence[U]): Consequence[U] = this
+
+    def recover[U >: T](f: Conclusion => U): Consequence[U] = this
+
+    def recoverConclusion(f: Conclusion => Conclusion): Consequence[T] = this
+
+    def fold[U >: T](c: Conclusion => U, s: T => U): U = s(result)
+
+    def foldIdntity[U >: T](c: Conclusion => U): U = result
+
+    def getOrElse[U >: T](body: => U): U = result
   }
 
   case class Failure[+T](conclusion: Conclusion) extends Consequence[T] {
-    def take = ???
+    def get: Option[T] = None
+
+    def take = RAISEC
+
+    def transform[U](
+      s: T => Consequence[U],
+      c: Conclusion => Consequence[U]
+    ): Consequence[U] = Consequence.run(c(conclusion))
+
+    def recoverWith[U >: T](f: Conclusion => Consequence[U]): Consequence[U] =
+      Consequence.run(f(conclusion))
+
+    def recover[U >: T](f: Conclusion => U): Consequence[U] =
+      Consequence(f(conclusion))
+
+    def recoverConclusion(f: Conclusion => Conclusion): Consequence[T] =
+      Consequence.run(Consequence.Failure(f(conclusion)))
+
+    def fold[U >: T](c: Conclusion => U, s: T => U): U = c(conclusion)
+
+    def foldIdntity[U >: T](c: Conclusion => U): U = c(conclusion)
+
+    def getOrElse[U >: T](body: => U): U = body
   }
 
   implicit object ConsequenceMonad extends Monad[Consequence] {
@@ -306,62 +374,131 @@ object Consequence {
   }
 
   // FailureBuilder API for Observation/Descriptor-based failures
-  def failArgumentMissing: FailureBuilder =
-    FailureBuilder(org.goldenport.observation.Cause.Argument(
-      org.goldenport.observation.Cause.Reason.Missing
-    ))
+  // def failArgumentMissing: FailureBuilder =
+  //   FailureBuilder(org.goldenport.observation.Cause.Argument(
+  //     org.goldenport.observation.Cause.Reason.Missing
+  //   ))
 
-  def failArgumentRedundant: FailureBuilder =
-    FailureBuilder(org.goldenport.observation.Cause.Argument(
-      org.goldenport.observation.Cause.Reason.Redundant
-    ))
+  // def failArgumentRedundant: FailureBuilder =
+  //   FailureBuilder(org.goldenport.observation.Cause.Argument(
+  //     org.goldenport.observation.Cause.Reason.Redundant
+  //   ))
 
-  def failArgumentValidationError: FailureBuilder =
-    FailureBuilder(org.goldenport.observation.Cause.Argument(
-      org.goldenport.observation.Cause.Reason.ValidationError
-    ))
+  // def failArgumentValidationError: FailureBuilder =
+  //   FailureBuilder(org.goldenport.observation.Cause.Argument(
+  //     org.goldenport.observation.Cause.Reason.ValidationError
+  //   ))
+//  def failArgumentMissing: FailureBuilder = ???
+//  def failArgumentRedundant: FailureBuilder = ???
+  def failArgumentValidationError: FailureBuilder = ???
 
   final case class FailureBuilder(
-    cause: org.goldenport.observation.Cause,
+    cause: Cause,
     descriptor: org.goldenport.observation.Descriptor =
       org.goldenport.observation.Descriptor()
   ) {
     def withOperation(name: String): FailureBuilder =
-      copy(descriptor = _add_aspect(org.goldenport.observation.Descriptor.Aspect.Operation(name)))
+      copy(descriptor = _add_facet(org.goldenport.observation.Descriptor.Facet.Operation(name)))
 
     def withInput(name: String, value: Option[String] = None): FailureBuilder =
-      copy(descriptor = _add_aspect(
-        org.goldenport.observation.Descriptor.Aspect.Input(
+      copy(descriptor = _add_facet(
+        org.goldenport.observation.Descriptor.Facet.Input(
           name = Some(name),
           value = value
         )
       ))
 
-    private def _add_aspect(
-      aspect: org.goldenport.observation.Descriptor.Aspect
+    private def _add_facet(
+      facet: org.goldenport.observation.Descriptor.Facet
     ): org.goldenport.observation.Descriptor =
-      descriptor.copy(aspects = descriptor.aspects :+ aspect)
+      descriptor.copy(facets = descriptor.facets :+ facet)
 
-    def build[A]: Consequence[A] = {
-      val base = Conclusion.simple("validation error")
-      val observation = base.observation.copy(
-        cause = Some(cause),
-        descriptor = descriptor
-      )
-      Failure(base.copy(observation = observation))
-    }
+    // def build[A]: Consequence[A] = {
+    //   val base = Conclusion.simple("validation error")
+    //   val observation = base.observation.copy(
+    //     cause = Some(cause),
+    //     descriptor = descriptor
+    //   )
+    //   Failure(base.copy(observation = observation))
+    // }
+    def build[A]: Consequence[A] = create("validation error", cause, descriptor)
   }
+
+  // Test migration
+  def create[A](message: String, cause: Cause): Consequence[A] = ???
+  def create[A](message: String, cause: Cause, descriptor: org.goldenport.observation.Descriptor): Consequence[A] = ???
+
+  // def createFormatError[A](message: String): Consequence[A] = {
+  //   ???
+  // }
+
+  // Fail
+  def fail[A](o: Observation): Consequence.Failure[A] = ???
+
+  def fail[A](taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]):Consequence[A] = {
+    ???
+  }
+
+  // def failArgumentEmpty[A]: Consequence.Failure[A] =
+  //   Consequence.Failure(Conclusion.failArgumentEmpty)
+
+  def failArgumentFormatError[A](name: String, value: Any, dt: DataType): Consequence.Failure[A] = ???
+
+  def failArgumentFormatError[A](name: String, value: Any, msg: String): Consequence.Failure[A] = ???
+
+  def failArgumentFormatError[A](name: String, value: Option[Any], msg: Option[String]): Consequence.Failure[A] = ???
+
+  def failArgumentMissing[A]: Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissing)
+
+  def failArgumentMissing[A](name: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissing(name))
+
+  def failArgumentMissingInput[A](name: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissingInput(name))
+
+  def failArgumentMissingInput[A](args: Seq[String]): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissingInput(args))
+
+  def failArgumentMissingInput[A](req: HttpRequest): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissingInput(req))
+
+  def failArgumentMissingOperation[A](name: String, operation: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissingOperation(name, operation))
+
+  def failArgumentRedundantOperation[A](name: String, operation: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentRedundantOperation(name, operation))
+
+  def failArgumentRedundantOperationInput[A](operation: String, args: Seq[String]): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentRedundantOperationInput(operation, args))
+
+  def failArgumentDataType[A](name: String, value: Any, dt: DataType): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentDataType(name, value, dt))
+
+  def failArgumentConstraint[A](name: String, value: Any, constraints: NonEmptyVector[Constraint]): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentConstraint(name, value, constraints))
+
+  def failArgumentMultipleValues[A](name: String): Consequence.Failure[A] = ???
+
+  def failOperationInvalid[A](name: String): Consequence[A] =
+    Consequence.Failure(Conclusion.failOperationInvalid(name))
+
+  def failValueInvalid[A](value: Any, dt: DataType): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failValueInvalid(value, dt))
+
+  def failValueFormatError[A](value: Any, dt: DataType): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failValueFormatError(value, dt))
 }
 
 class ConsequenceException(
   val consequence: Consequence[?]
 ) extends RuntimeException(consequence match {
-  case Consequence.Failure(c) => c.message
+  case Consequence.Failure(c) => c.displayMessage
   case _ => "ConsequenceException"
 }) {
   override def getMessage: String =
     consequence match {
-      case Consequence.Failure(c) => c.message
+      case Consequence.Failure(c) => c.displayMessage
       case _ => super.getMessage
     }
 }

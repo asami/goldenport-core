@@ -1,7 +1,8 @@
 package org.goldenport.schema
 
 import org.goldenport.Consequence
-import org.goldenport.observation.Cause
+import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.test.matchers.ConclusionMatchers
 import org.scalacheck.Gen
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
@@ -10,26 +11,35 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 29, 2025
- * @version Dec. 29, 2025
+ * @version Jan. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 class BigIntNormalizerSpec
   extends AnyWordSpec
   with Matchers
   with GivenWhenThen
-  with ScalaCheckDrivenPropertyChecks {
+  with ScalaCheckDrivenPropertyChecks
+  with ConclusionMatchers {
 
   private def assert_success(value: Any, expected: BigInt): Unit = {
-    BigIntNormalizer.normalize(value) match {
+    BigIntNormalizer(XInteger).normalize(value) match {
       case Consequence.Success(result) => result.shouldBe(expected)
       case _ => fail(s"expected Success for value: ${value}")
     }
   }
 
-  private def assert_format_error(value: Any): Unit = {
-    BigIntNormalizer.normalize(value) match {
+  private def _assert_format_error(value: Any): Unit = {
+    BigIntNormalizer(XInteger).normalize(value) match {
       case Consequence.Failure(conclusion) =>
-        conclusion.observation.cause.shouldBe(Some(Cause.FormatError))
+        conclusion should be_format_error_failure_conclusion
+      case _ => fail(s"expected Failure for value: ${value}")
+    }
+  }
+
+  private def _assert_invalid(value: Any): Unit = {
+    BigIntNormalizer(XInteger).normalize(value) match {
+      case Consequence.Failure(conclusion) =>
+        conclusion should be_invalid_failure_conclusion
       case _ => fail(s"expected Failure for value: ${value}")
     }
   }
@@ -63,11 +73,11 @@ class BigIntNormalizerSpec
     "reject invalid integer inputs as FormatError" in {
       Given("a BigIntNormalizer")
       When("normalizing unsupported or malformed representations")
-      assert_format_error("abc")
-      assert_format_error("")
-      assert_format_error(1.0d)
-      assert_format_error(true)
-      assert_format_error(null)
+      _assert_format_error("abc")
+      _assert_format_error("")
+      _assert_invalid(1.0d)
+      _assert_invalid(true)
+      _assert_invalid(null)
       Then("each input fails with FormatError")
     }
 
@@ -75,7 +85,7 @@ class BigIntNormalizerSpec
       Given("a BigIntNormalizer")
       When("normalizing alphabetic strings")
       forAll(Gen.alphaStr.suchThat(_.nonEmpty)) { value =>
-        assert_format_error(value)
+        _assert_format_error(value)
       }
       Then("each string fails with FormatError")
     }
@@ -83,7 +93,7 @@ class BigIntNormalizerSpec
     "reject non-canonical whitespace strings as FormatError" in {
       Given("a BigIntNormalizer")
       When("normalizing a whitespace-prefixed string")
-      assert_format_error(" 1")
+      _assert_format_error(" 1")
       Then("the input fails with FormatError")
     }
   }
