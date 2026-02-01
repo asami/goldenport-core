@@ -9,6 +9,7 @@ import org.goldenport.observation.{TraceId, SpanId}
 import org.goldenport.observation.{Subject, Agent, Resource}
 import org.goldenport.observation.Severity
 import org.goldenport.observation.Descriptor
+import org.goldenport.observation.SourcePosition
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
 
@@ -37,7 +38,8 @@ import org.goldenport.schema.Constraint
  * @since   Jul. 19, 2025
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
- * @version Jan. 29, 2026
+ *  version Jan. 31, 2026
+ * @version Feb.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -195,6 +197,30 @@ object Observation {
   )
 
   // OutOfControl
+  def unreachableReached(pos: SourcePosition): Observation = failure(
+    Taxonomy.unreachableReached,
+    Descriptor.Facet.SrcPos(pos)
+  )
+
+  def unreachableReached(msg: String): Observation = failure(Taxonomy.unreachableReached)
+
+  def impossibleState(msg: String): Observation = failure(Taxonomy.impossibleState)
+
+  def unsupported(msg: String): Observation = failure(Taxonomy.unsupported)
+
+  def notImplemented(pos: SourcePosition): Observation = failure(
+    Taxonomy.notImplemented,
+    Descriptor.Facet.SrcPos(pos)
+  )
+
+  def notImplemented(msg: String): Observation = failure(Taxonomy.notImplemented)
+
+  def invariantViolation(msg: String): Observation = failure(Taxonomy.invariantViolation)
+
+  def preconditionViolation(msg: String): Observation = failure(Taxonomy.preconditionViolation)
+
+  def postconditionViolation(msg: String): Observation = failure(Taxonomy.postconditionViolation)
+
   def ofcNullPointer: Observation = failure(Taxonomy.ofcNullPointer)
 
   def rejection(
@@ -341,7 +367,7 @@ object Taxonomy {
     case Corrupted extends Symptom("corrupted", 13)
 
     // OutOfControl
-    case UnreachableReaced extends Symptom("unreachable-reached", 14)
+    case UnreachableReached extends Symptom("unreachable-reached", 14)
 
     case ImpossibleState extends Symptom("impossible-state", 16)
 
@@ -415,6 +441,42 @@ object Taxonomy {
   val valueFormatError: Taxonomy = Taxonomy(
     Category.Value,
     Symptom.FormatError
+  )
+
+  // Out of Control
+  val unreachableReached: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.UnreachableReached
+  )
+
+  val impossibleState: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.ImpossibleState
+  )
+
+  val unsupported: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.Unsupported
+  )
+
+  val notImplemented: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.NotImplemented
+  )
+
+  val invariantViolation: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.InvariantViolation
+  )
+
+  val preconditionViolation: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.PreconditionViolation
+  )
+
+  val postconditionViolation: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.PostconditionViolation
   )
 
   val ofcNullPointer: Taxonomy = Taxonomy(

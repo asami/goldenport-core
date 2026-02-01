@@ -8,6 +8,7 @@ import org.goldenport.provisional.observation.{Observation, Taxonomy, Cause, Sou
 import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
 import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.{Subject, Agent, Resource, Severity}
+import org.goldenport.observation.SourcePosition
 import org.goldenport.text.Presentable
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
@@ -17,7 +18,8 @@ import org.goldenport.http.HttpRequest
  * @since   Jul. 19, 2025
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
- * @version Jan. 29, 2026
+ *  version Jan. 31, 2026
+ * @version Feb.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -88,6 +90,7 @@ object Conclusion {
   )
   object Status {
     val badRequest = Status(WebCode.BadRequest)
+    val internalServerError = Status(WebCode.InternalServerError)
   }
 
   case class WebCode(code: Int)
@@ -102,7 +105,7 @@ object Conclusion {
     val NotFound: WebCode = WebCode(404)
     val Conflict: WebCode = WebCode(409)
 
-    val InternalError: WebCode = WebCode(500)
+    val InternalServerError: WebCode = WebCode(500)
     val NotImplemented: WebCode = WebCode(501)
     val ServiceUnavailable: WebCode = WebCode(503)
   }
@@ -130,7 +133,7 @@ object Conclusion {
       case None => Observation.ofcNullPointer
     }
     Conclusion(
-      status = Status(webCode = WebCode.InternalError),
+      status = Status(webCode = WebCode.InternalServerError),
       observation = observation,
       interpretation = Interpretation.from(p),
       disposition = Disposition.from(p),
@@ -281,5 +284,75 @@ object Conclusion {
       Observation.valueFormatError(value, dt),
       Interpretation.valueFormatError,
       Disposition.valueFormatError
+    )
+
+  def failUnreachableReached(pos: SourcePosition): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.unreachableReached(pos),
+      Interpretation.unreachableReached,
+      Disposition.unreachableReached
+    )
+
+  def failUnreachableReached(msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.unreachableReached(msg),
+      Interpretation.unreachableReached,
+      Disposition.unreachableReached
+    )
+
+  def failImpossibleState(msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.impossibleState(msg),
+      Interpretation.impossibleState,
+      Disposition.impossibleState
+    )
+
+  def failUnsupported(msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.unsupported(msg),
+      Interpretation.unsupported,
+      Disposition.unsupported
+    )
+
+  def failNotImplemented(pos: SourcePosition): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.notImplemented(pos),
+      Interpretation.notImplemented,
+      Disposition.notImplemented
+    )
+
+  def failNotImplemented(msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.notImplemented(msg),
+      Interpretation.notImplemented,
+      Disposition.notImplemented
+    )
+
+  def failInvariantViolation(msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.invariantViolation(msg),
+      Interpretation.invariantViolation,
+      Disposition.invariantViolation
+    )
+  def failPreconditionViolation(msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.preconditionViolation(msg),
+      Interpretation.preconditionViolation,
+      Disposition.preconditionViolation
+    )
+  def failPostconditionViolation(msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.postconditionViolation(msg),
+      Interpretation.postconditionViolation,
+      Disposition.postconditionViolation
     )
 }

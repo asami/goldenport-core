@@ -1,5 +1,6 @@
 package org.goldenport.protocol
 
+import org.goldenport.text.Presentable
 import org.goldenport.protocol.spec.ParameterDefinition
 
 /*
@@ -11,7 +12,8 @@ import org.goldenport.protocol.spec.ParameterDefinition
  *  version Jul. 22, 2023
  *  version Mar. 16, 2025
  *  version Dec. 25, 2025
- * @version Jan. 15, 2026
+ *  version Jan. 15, 2026
+ * @version Feb.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Argument(
@@ -19,4 +21,5 @@ case class Argument(
   value: Any,
   spec: Option[ParameterDefinition] = None
 ) extends Parameter { // with ConsequenceValueHelper {
+  def printValue: String = Presentable.print(value)
 }

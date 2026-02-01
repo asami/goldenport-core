@@ -6,6 +6,7 @@ import scala.util.control.NonFatal
 import org.goldenport.text.Presentable
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
+import org.goldenport.consequence.Failures
 import org.goldenport.provisional.observation.Observation
 import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.provisional.observation.Cause
@@ -42,7 +43,8 @@ import org.goldenport.http.HttpRequest
  *  version Nov. 11, 2025
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
- * @version Jan. 29, 2026
+ *  version Jan. 31, 2026
+ * @version Feb.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -488,6 +490,46 @@ object Consequence {
 
   def failValueFormatError[A](value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failValueFormatError(value, dt))
+
+  inline def failUnreachableReached: Consequence.Failure[Nothing] =
+    Failures.unreachableReached
+
+  def failUnreachableReached[A](msg: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failUnreachableReached(msg))
+
+  def failImpossibleState[A](msg: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failImpossibleState(msg))
+
+  def failUnsupported[A](msg: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failUnsupported(msg))
+
+  inline def failNotImplemented: Consequence.Failure[Nothing] =
+    Failures.notImplemented
+
+  def failNotImplemented[A](msg: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failNotImplemented(msg))
+
+  def failInvariantViolation[A](msg: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failInvariantViolation(msg))
+
+  def failPreconditionViolation[A](msg: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failPreconditionViolation(msg))
+
+  def failPostconditionViolation[A](msg: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failPostconditionViolation(msg))
+
+  // RAISE
+  object RAISE {
+    def UnreachableReached: Nothing = failUnreachableReached.RAISE
+    def UnreachableReached(msg: String): Nothing = failUnreachableReached(msg).RAISE
+    def ImpossibleState(msg: String): Nothing = failImpossibleState(msg).RAISE
+    def Unsupported(msg: String): Nothing = failUnsupported(msg).RAISE
+    def NotImplemented: Nothing = failNotImplemented.RAISE
+    def NotImplemented(msg: String): Nothing = failNotImplemented(msg).RAISE
+    def InvariantViolation(msg: String): Nothing = failInvariantViolation(msg).RAISE
+    def PreconditionViolation(msg: String): Nothing = failPreconditionViolation(msg).RAISE
+    def PostconditionViolation(msg: String): Nothing = failPostconditionViolation(msg).RAISE
+  }
 }
 
 class ConsequenceException(

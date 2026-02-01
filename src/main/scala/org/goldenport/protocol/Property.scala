@@ -1,5 +1,6 @@
 package org.goldenport.protocol
 
+import org.goldenport.text.Presentable
 import org.goldenport.protocol.spec.ParameterDefinition
 
 /*
@@ -7,7 +8,8 @@ import org.goldenport.protocol.spec.ParameterDefinition
  *  version Oct.  8, 2018
  *  version Apr. 25, 2021
  *  version Mar. 16, 2025
- * @version Dec. 25, 2025
+ *  version Dec. 25, 2025
+ * @version Feb.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Property(
@@ -15,4 +17,5 @@ case class Property(
   value: Any,
   spec: Option[ParameterDefinition]
 ) extends Parameter {
+  def arg: String = s"--$name=${Presentable.print(value)}"
 }

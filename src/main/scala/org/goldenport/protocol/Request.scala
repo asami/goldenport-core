@@ -24,7 +24,8 @@ import org.goldenport.http.HttpRequest
  *  version Apr.  2, 2025
  *  version Jun. 10, 2025
  *  version Dec. 24, 2025
- * @version Jan. 21, 2026
+ *  version Jan. 30, 2026
+ * @version Feb.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -43,6 +44,30 @@ case class Request(
     s"$name(args=${arguments.size}, switches=${switches.size}, props=${properties.size})"
   def print: String =
     s"Request(${component}, ${service}, ${operation}, ${arguments}, ${switches}, ${properties})"
+
+  def withOperation(name: String) = copy(operation = name)
+
+  def toArgs: Array[String] = {
+    val a = Vector(name) ++ args ++ switches.flatMap(_.getArg) ++ properties.map(_.arg)
+    a.toArray
+  }
+
+  def toSubCommand: Request = copy(
+    operation = arguments.headOption.fold("")(_.printValue),
+    arguments = arguments.drop(1).zipWithIndex.map(_adjust_name)
+  )
+
+  private val _Arg_Pattern = """arg(\d+)""".r
+
+  private def _adjust_name(p: (Argument, Int)): Argument = p match {
+    case (arg, index) =>
+      arg.name match {
+        case _Arg_Pattern(_) =>
+          arg.copy(name = s"arg${index + 1}")
+        case _ =>
+          arg
+      }
+  }
 }
 
 object Request {

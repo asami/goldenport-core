@@ -1,6 +1,6 @@
 # Phase 2.9 — Error Model Realignment (Core)
 
-status = active
+status = close
 phase = 2.9
 
 ----------------------------------------------------------------------

@@ -5,7 +5,7 @@ import org.goldenport.provisional.observation.Cause
 
 /*
  * @since   Jan. 25, 2026
- * @version Jan. 29, 2026
+ * @version Jan. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -43,6 +43,13 @@ object Interpretation {
   def operationInvalid = domainFailure
   def valueInvalid = domainFailure
   def valueFormatError = domainFailure
+  def unreachableReached = defect
+  def impossibleState = defect
+  def unsupported = defect
+  def notImplemented = defect
+  def invariantViolation = defect
+  def preconditionViolation = defect
+  def postconditionViolation = defect
 
   def from(e: Throwable): Interpretation = e match {
     case _ => systemFailure // TODO
@@ -79,6 +86,13 @@ object Disposition {
   def operationInvalid = fix
   def valueInvalid = fix
   def valueFormatError = fix
+  def unreachableReached = defect
+  def impossibleState = defect
+  def unsupported = defect
+  def notImplemented = defect
+  def invariantViolation = defect
+  def preconditionViolation = defect
+  def postconditionViolation = defect
 
   def from(e: Throwable): Disposition = e match {
     case _ => none

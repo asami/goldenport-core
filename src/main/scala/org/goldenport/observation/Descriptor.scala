@@ -12,7 +12,7 @@ import org.goldenport.text.Presentable
  */
 /*
  * @since   Dec. 28, 2025
- * @version Jan. 29, 2026
+ * @version Jan. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -133,6 +133,10 @@ object Descriptor {
       def display: String = s"""args:${Presentable.display(args)}"""
     }
 
+    case class SrcPos(pos: SourcePosition) extends Facet {
+      def display: String = s"""source:${pos.display}"""
+    }
+
     // Legacy
     case class File(
       path: Option[URI] = None,
@@ -186,4 +190,12 @@ object Descriptor {
 
   def operationInput(operation: String, args: Seq[String]): Descriptor =
     Descriptor(Vector(Facet.Operation(operation), Facet.Args(args)))
+}
+
+case class SourcePosition(
+  file: String,
+  line: Int,
+  column: Int
+) extends Presentable {
+  def print = s"$file[$line,$column]"
 }
