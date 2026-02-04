@@ -2,6 +2,7 @@ package org.goldenport
 
 import cats._
 import cats.data.NonEmptyVector
+import scala.util.{Failure => TryFailure, Success => TrySuccess, Try}
 import scala.util.control.NonFatal
 import org.goldenport.text.Presentable
 import org.goldenport.schema.DataType
@@ -44,7 +45,7 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
- * @version Feb.  1, 2026
+ * @version Feb.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -122,7 +123,7 @@ sealed trait Consequence[+T] extends Presentable {
 
   override def print: String = this match {
     case Consequence.Success(v) => Presentable.print(v)
-    case Consequence.Failure(c) => c.display
+    case Consequence.Failure(c) => c.print
   }
 
   override def display: String = this match {
@@ -218,6 +219,85 @@ object Consequence {
     case NonFatal(e) => Failure(Conclusion.from(e))
   }
 
+  private def _using[R, T](
+    acquire: Consequence[R],
+    use: R => Consequence[T],
+    release: R => Consequence[Unit]
+  ): Consequence[T] = {
+    acquire.flatMap { r =>
+      val result: Consequence[T] =
+        try {
+          use(r)
+        } catch {
+          case NonFatal(e) =>
+            Failure(Conclusion.from(e))
+        }
+      result.transform(
+        s => {
+          // success path: always release (best-effort)
+          try {
+            release(r)
+          } catch {
+            case NonFatal(_) => ()
+          }
+          Success(s)
+        },
+        c => {
+          // failure path: always release (best-effort)
+          try {
+            release(r)
+          } catch {
+            case NonFatal(_) => ()
+          }
+          Failure(c)
+        }
+      )
+    }
+  }
+
+  /**
+    * NOTE:
+    * `using` here is a Consequence-level resource lifecycle combinator,
+    * unrelated to Scala 3 context-parameter `using` syntax.
+    * If Scala language semantics change in the future,
+    * this name can be revised without affecting the underlying model.
+    */
+  def using[R, T](
+    acquire: Consequence[R]
+  )(
+    use: R => Consequence[T]
+  )(
+    release: R => Consequence[Unit]
+  ): Consequence[T] = _using(acquire, use, release)
+
+  def using[R <: AutoCloseable, T](
+    resource: Consequence[R]
+  )(
+    use: R => Consequence[T]
+  ): Consequence[T] =
+    _using(resource, use, r =>
+      Consequence {
+        try {
+          r.close()
+        } catch {
+          case NonFatal(_) => ()
+        }
+      }
+    )
+
+  /**
+    * NOTE:
+    * This overload assumes that resource acquisition has already succeeded.
+    * Prefer the Consequence[R] variant when acquisition can fail
+    * or needs to produce observations.
+    */
+  def using[R <: AutoCloseable, T](
+    resource: R
+  )(
+    use: R => Consequence[T]
+  ): Consequence[T] =
+    using(Consequence.success(resource))(use)
+
   def success[T](p: T): Consequence[T] = Success(p)
 
   def failure[T](message: String): Consequence[T] =
@@ -234,6 +314,11 @@ object Consequence {
       case Some(v) => Success(v)
       case None => failure(onNone)
     }
+
+  def fromTry[T](p: Try[T]): Consequence[T] = p match {
+    case TrySuccess(s) => success(s)
+    case TryFailure(e) => failure(e)
+  }
 
   def toInt(p: String): Consequence[Int] = Consequence(p.toInt)
 
@@ -485,6 +570,9 @@ object Consequence {
   def failOperationInvalid[A](name: String): Consequence[A] =
     Consequence.Failure(Conclusion.failOperationInvalid(name))
 
+  inline def failResourceInconsistency: Consequence.Failure[Nothing] =
+    Failures.resourceInconsistency
+
   def failValueInvalid[A](value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failValueInvalid(value, dt))
 
@@ -496,6 +584,12 @@ object Consequence {
 
   def failUnreachableReached[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failUnreachableReached(msg))
+
+  inline def failUninitializedState[A]: Consequence.Failure[A] =
+    Failures.uninitializedState
+
+  inline def failUninitializedState[A](conclusion: Conclusion): Consequence.Failure[A] =
+    Failures.uninitializedState(conclusion)
 
   def failImpossibleState[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failImpossibleState(msg))
@@ -520,15 +614,17 @@ object Consequence {
 
   // RAISE
   object RAISE {
-    def UnreachableReached: Nothing = failUnreachableReached.RAISE
-    def UnreachableReached(msg: String): Nothing = failUnreachableReached(msg).RAISE
-    def ImpossibleState(msg: String): Nothing = failImpossibleState(msg).RAISE
-    def Unsupported(msg: String): Nothing = failUnsupported(msg).RAISE
-    def NotImplemented: Nothing = failNotImplemented.RAISE
-    def NotImplemented(msg: String): Nothing = failNotImplemented(msg).RAISE
-    def InvariantViolation(msg: String): Nothing = failInvariantViolation(msg).RAISE
-    def PreconditionViolation(msg: String): Nothing = failPreconditionViolation(msg).RAISE
-    def PostconditionViolation(msg: String): Nothing = failPostconditionViolation(msg).RAISE
+    inline def UnreachableReached: Nothing = failUnreachableReached.RAISE
+    inline def UnreachableReached(msg: String): Nothing = failUnreachableReached(msg).RAISE
+    inline def UninitializedState: Nothing = failUninitializedState.RAISE
+    inline def UninitializedState(c: Conclusion): Nothing = failUninitializedState(c).RAISE
+    inline def ImpossibleState(msg: String): Nothing = failImpossibleState(msg).RAISE
+    inline def Unsupported(msg: String): Nothing = failUnsupported(msg).RAISE
+    inline def NotImplemented: Nothing = failNotImplemented.RAISE
+    inline def NotImplemented(msg: String): Nothing = failNotImplemented(msg).RAISE
+    inline def InvariantViolation(msg: String): Nothing = failInvariantViolation(msg).RAISE
+    inline def PreconditionViolation(msg: String): Nothing = failPreconditionViolation(msg).RAISE
+    inline def PostconditionViolation(msg: String): Nothing = failPostconditionViolation(msg).RAISE
   }
 }
 

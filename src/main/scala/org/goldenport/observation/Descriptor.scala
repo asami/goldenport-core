@@ -5,6 +5,7 @@ import java.net.URI
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
 import org.goldenport.text.Presentable
+import org.goldenport.util.StringUtils
 
 /**
  * Structural description of where and how a phenomenon was observed.
@@ -12,15 +13,18 @@ import org.goldenport.text.Presentable
  */
 /*
  * @since   Dec. 28, 2025
- * @version Jan. 31, 2026
+ *  version Jan. 31, 2026
+ * @version Feb.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
   facets: Vector[Descriptor.Facet] = Vector.empty
-) {
+) extends Presentable {
   import Descriptor.*
 
-  def display: String = facets.map(_.display).mkString(";")
+  def print: String = facets.map(_.print).mkString(";")
+  override def display: String = facets.map(_.display).mkString(";")
+  override def show: String = facets.map(_.show).mkString(";")
 
   def add(p: Descriptor.Facet) = copy(facets = facets :+ p)
 
@@ -51,8 +55,7 @@ case class Descriptor(
 object Descriptor {
   val empty = Descriptor()
 
-  sealed abstract class Facet {
-    def display: String
+  sealed abstract class Facet extends Presentable {
   }
 
   object Facet {
@@ -62,7 +65,7 @@ object Descriptor {
     ) extends Facet {
       import Parameter.Kind._
 
-      def display: String = kind match {
+      def print: String = kind match {
         case Argument => s"argument:${name}"
         case Property => s"property:${name}"
         case Switch => s"switch:${name}"
@@ -78,7 +81,7 @@ object Descriptor {
       kind: Resource.Kind,
       uri: URI
     ) extends Facet {
-      def display: String = s"resource:${Presentable.display(uri)}}"
+      def print: String = s"resource:${Presentable.print(uri)}}"
     }
 
     object Resource {
@@ -86,55 +89,56 @@ object Descriptor {
     }
 
     case class Line(no: Int) extends Facet {
-      def display: String = s"line:${no}"
+      def print: String = s"line:${no}"
     }
 
 
     case class Message(message: String) extends Facet {
-      def display: String = s"message:${message}"
+      def print: String = s"message:${message}"
     }
 
 
     case class Value(value: Any) extends Facet {
-      def display: String = s"value:${Presentable.display(value)}"
+      def print: String = s"value:${Presentable.print(value)}"
     }
 
 
     case class Id(id: String) extends Facet {
-      def display: String = s"id:${id}"
+      def print: String = s"id:${id}"
     }
 
 
     case class State(state: String) extends Facet {
-      def display: String = s"id:${state}"
+      def print: String = s"id:${state}"
     }
 
 
     case class Exception(e: Throwable) extends Facet {
-      def display: String = s"exception:${e}"
+      def print: String = s"exception:${e}"
     }
 
 
     case class Properties(properties: Map[String, String]) extends Facet {
-      def display: String = s"properties:${Presentable.display(properties)}"
+      def print: String = s"properties:${Presentable.print(properties)}"
     }
 
 
     case class DataType(datatype: org.goldenport.schema.DataType) extends Facet {
-      def display: String = s"datatype:${datatype.display}"
+      def print: String = s"datatype:${datatype.print}"
     }
 
 
     case class Constraint(constraints: NonEmptyVector[org.goldenport.schema.Constraint]) extends Facet {
-      def display: String = s"constraint:${Presentable.display(constraints)}"
+      def print: String = s"constraint:${Presentable.print(constraints)}"
     }
 
     case class Args(args: Seq[String]) extends Facet {
-      def display: String = s"""args:${Presentable.display(args)}"""
+      def print: String = s"""args:${Presentable.print(args)}"""
     }
 
     case class SrcPos(pos: SourcePosition) extends Facet {
-      def display: String = s"""source:${pos.display}"""
+      def print: String = s"""source:${pos.print}"""
+      override def show: String = s"""source:${pos.show}"""
     }
 
     // Legacy
@@ -142,7 +146,7 @@ object Descriptor {
       path: Option[URI] = None,
       operation: Option[String] = None
     ) extends Facet {
-      def display: String = "not supported yet"
+      def print: String = "not supported yet"
     }
 
     case class Database(
@@ -150,7 +154,7 @@ object Descriptor {
       table: Option[String] = None,
       operation: Option[String] = None
     ) extends Facet {
-      def display: String = "not supported yet"
+      def print: String = "not supported yet"
     }
 
     case class ExceptionLegacy(
@@ -158,21 +162,21 @@ object Descriptor {
       message: Option[String] = None,
       stackTrace: Option[Vector[String]] = None
     ) extends Facet {
-      def display: String = "not supported yet"
+      def print: String = "not supported yet"
     }
 
     case class Operation(
       name: String,
       phase: Option[String] = None
     ) extends Facet {
-      def display: String = "not supported yet"
+      def print: String = "not supported yet"
     }
 
     case class Input(
       name: Option[String] = None,
       value: Option[String] = None
     ) extends Facet {
-      def display: String = "not supported yet"
+      def print: String = "not supported yet"
     }
   }
 
@@ -198,4 +202,5 @@ case class SourcePosition(
   column: Int
 ) extends Presentable {
   def print = s"$file[$line,$column]"
+  override def show = s"${StringUtils.pathLeaf(file)}[$line,$column]"
 }

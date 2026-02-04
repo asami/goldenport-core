@@ -9,7 +9,8 @@ import org.goldenport.test.matchers.ConclusionMatchers
 
 /*
  * @since   Dec. 30, 2025
- * @version Jan. 29, 2026
+ *  version Jan. 29, 2026
+ * @version Feb.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers
@@ -31,7 +32,7 @@ class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers
 
       val c = Conclusion.fromThrowable(ex)
 
-      c.status.webCode shouldBe Conclusion.WebCode.InternalError
+      c.status.webCode shouldBe Conclusion.WebCode.InternalServerError
     }
 
     "use Error severity" in {
@@ -65,7 +66,7 @@ class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers
       c.observation.exception shouldBe None
       // c.observation.causeKind shouldBe CauseKind.Defect
       c.observation.phenomenon shouldBe Phenomenon.Failure
-      c.status.webCode shouldBe Conclusion.WebCode.InternalError
+      c.status.webCode shouldBe Conclusion.WebCode.InternalServerError
       c.observation.severity shouldBe Some(Severity.Error)
     }
   }

@@ -19,7 +19,7 @@ import org.goldenport.http.HttpRequest
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  1, 2026
+ * @version Feb.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -47,7 +47,7 @@ case class Conclusion(
     Conclusion.combine(this, other)
 
   def displayMessage: String =
-    observation.getEffectiveMessage.getOrElse(observation.taxonomy.print)
+    observation.getEffectiveMessage.getOrElse(observation.show)
 
   def getException: Option[Throwable] =
     observation.exception
@@ -270,6 +270,14 @@ object Conclusion {
       Disposition.operationInvalid
     )
 
+  def failResourceInconsistency(pos: SourcePosition): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.resourceInconsistency(pos),
+      Interpretation.resourceInconsistency,
+      Disposition.resourceInconsistency
+    )
+
   def failValueInvalid(value: Any, dt: DataType): Conclusion =
     Conclusion(
       Status.badRequest,
@@ -300,6 +308,14 @@ object Conclusion {
       Observation.unreachableReached(msg),
       Interpretation.unreachableReached,
       Disposition.unreachableReached
+    )
+
+  def failUninitializedState(pos: SourcePosition): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.uninitializedState(pos),
+      Interpretation.uninitializedState,
+      Disposition.uninitializedState
     )
 
   def failImpossibleState(msg: String): Conclusion =

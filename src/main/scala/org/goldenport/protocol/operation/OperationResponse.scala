@@ -1,5 +1,6 @@
 package org.goldenport.protocol.operation
 
+import org.goldenport.Consequence
 import org.goldenport.text.Presentable
 import org.goldenport.protocol.Response
 import org.goldenport.protocol.scalar.ScalarValue
@@ -8,7 +9,8 @@ import org.goldenport.http.HttpResponse
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 21, 2026
+ *  version Jan. 21, 2026
+ * @version Feb.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -43,8 +45,8 @@ object OperationResponse {
    * Scalar requires an implicit ScalarValue[T].
    * It guarantees the result can safely exit via Protocol.egress.
    */
-  final case class Scalar[T: ScalarValue](value: T) extends OperationResponse {
-    def toResponse: Response = Response.Scalar(value)
+  final case class Scalar[T](value: T)(using val scalarValue: ScalarValue[T]) extends OperationResponse {
+    def toResponse: Response = Response.Scalar(value)(using scalarValue)
     override def print: String = Presentable.print(value)
     override def display: String = Presentable.display(value)
     override def show: String = Presentable.show(value)
@@ -75,6 +77,15 @@ object OperationResponse {
     case m: String => Scalar(m)
     case m: HttpResponse => Http(m)
     case m: Unit => Void()
+    case m: Response => from(m)
     case m => Opaque(m)
+  }
+
+  def from(p: Response): OperationResponse = p match {
+    case m: Response.Void => Void()
+    case Response.Json(value) => Consequence.failNotImplemented.RAISE
+    case Response.Yaml(value) => Yaml(value)
+    case m: Response.Scalar[?] => Scalar(m.value)(using m.scalarValue)
+    case Response.Opaque(value) => Opaque(value)
   }
 }

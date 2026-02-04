@@ -4,12 +4,19 @@ import scala.util.*
 
 /*
  * @since   Apr. 12, 2025
- * @version Apr. 12, 2025
+ * @version Feb.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 object StringUtils {
   def concatPath(base: String, path: String): String =
     if (base.endsWith("/")) base + path.stripPrefix("/") else base + "/" + path.stripPrefix("/")
+
+  def pathLeaf(path: String): String =
+    path
+      .stripSuffix("/")
+      .split("/")
+      .lastOption
+      .getOrElse("")
 
   def tokeyvalue(s: String, delimiter: String): (String, String) = {
     val xs = s.split(java.util.regex.Pattern.quote(delimiter), 2)

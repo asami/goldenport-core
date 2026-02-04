@@ -70,7 +70,7 @@ object Response {
    * It MUST be used only for atomic Scala values.
    * Structured, semantic, or document-like values are out of scope.
    */
-  final case class Scalar[T: ScalarValue](value: T) extends TextResponse {
+  final case class Scalar[T](value: T)(using val scalarValue: ScalarValue[T]) extends TextResponse {
     def mimeType = MimeType.TEXT_PLAIN
     def print = Presentable.print(value)
     override def display: String = Presentable.display(value)

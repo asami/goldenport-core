@@ -39,7 +39,7 @@ import org.goldenport.schema.Constraint
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  1, 2026
+ * @version Feb.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -65,11 +65,14 @@ case class Observation(
   properties: Map[String, String] = Map.empty,
 
   observationId: Option[ObservationId] = None
-) {
+) extends Presentable {
   def severity: Option[Severity] = assessment.severity
   def exception: Option[Throwable] = cause.getException
   def getMessage: Option[String] = cause.getMessage
   def getEffectiveMessage: Option[String] = cause.getEffectiveMessage
+
+  def print = s"${taxonomy.print}[${cause.print}]"
+  override def show = s"${taxonomy.show}[${cause.show}]"
 
   def isMatch(rhs: Observation): Boolean = (
     phenomenon == rhs.phenomenon &&
@@ -190,6 +193,11 @@ object Observation {
     Descriptor.Facet.Message(message)
   )
 
+  def resourceInconsistency(pos: SourcePosition): Observation = failure(
+    Taxonomy.resourceInvalid,
+    Descriptor.Facet.SrcPos(pos)
+  )
+
   // State
   def stateConflict(state: String): Observation = failure(
     Taxonomy.stateConflict,
@@ -203,6 +211,11 @@ object Observation {
   )
 
   def unreachableReached(msg: String): Observation = failure(Taxonomy.unreachableReached)
+
+  def uninitializedState(pos: SourcePosition): Observation = failure(
+    Taxonomy.uninitializedState,
+    Descriptor.Facet.SrcPos(pos)
+  )
 
   def impossibleState(msg: String): Observation = failure(Taxonomy.impossibleState)
 
@@ -234,7 +247,7 @@ object Observation {
     t: Taxonomy,
     descriptor: Descriptor
   ): Observation =
-    rejection(t, Cause(descriptor))
+    rejection(t, Cause(None, descriptor))
 
   def rejection(t: Taxonomy, c: Cause): Observation = Observation(
     Phenomenon.Rejection, t, c, Instant.now()
@@ -369,7 +382,9 @@ object Taxonomy {
     // OutOfControl
     case UnreachableReached extends Symptom("unreachable-reached", 14)
 
-    case ImpossibleState extends Symptom("impossible-state", 16)
+    case UninitializedState extends Symptom("uninitialized-state", 16)
+
+    case ImpossibleState extends Symptom("impossible-state", 21)
 
     case NotImplemented extends Symptom("not-implemented", 20)
 
@@ -425,6 +440,10 @@ object Taxonomy {
     Category.Resource,
     Symptom.SyntaxError
   )
+  val resourceInvalid: Taxonomy = Taxonomy(
+    Category.Resource,
+    Symptom.Invalid
+  )
 
   // State
   val stateConflict: Taxonomy = Taxonomy(
@@ -447,6 +466,11 @@ object Taxonomy {
   val unreachableReached: Taxonomy = Taxonomy(
     Category.OutOfControl,
     Symptom.UnreachableReached
+  )
+
+  val uninitializedState: Taxonomy = Taxonomy(
+    Category.OutOfControl,
+    Symptom.UninitializedState
   )
 
   val impossibleState: Taxonomy = Taxonomy(
@@ -489,7 +513,7 @@ object Taxonomy {
 }
 
 case class Cause(
-//  kind: Cause.Kind,
+  kind: Option[Cause.Kind] = None,
 //  detail: Option[Cause.Detail] = None
   descriptor: Descriptor = Descriptor.empty
 ) extends Presentable {
@@ -499,7 +523,7 @@ case class Cause(
   // }
 
   def print = s"${descriptor.display}"
-  override def show = s"Cause($print)"
+  override def show = s"${descriptor.show}"
 
   def addFacet(p: Descriptor.Facet): Cause = copy(descriptor = descriptor.add(p))
 
@@ -519,6 +543,16 @@ case class Cause(
 }
 object Cause {
   val empty = Cause()
+
+  enum Kind(val name: String, val value: Int) {
+    case Limit extends Kind("limit", 1)
+    case Exhaustion extends Kind("exhaustion", 2)
+    case Timeout extends Kind("timeout", 3)
+    case Conflict extends Kind("conflict", 4)
+    case Inconsistency extends Kind("inconsistency", 5)
+    case Corruption extends Kind("corruption", 6)
+    case Unknown extends Kind("unknown", 99)
+  }
 
   // enum Kind(val name: String, val value: Int) {
   //   case Parse extends Kind("parse", 1)
@@ -604,6 +638,8 @@ object Cause {
 
   def apply(p: Descriptor.Facet, ps: Descriptor.Facet*): Cause =
     Cause(Descriptor(p, ps))
+
+  def apply(p: Descriptor): Cause = Cause(None, p)
 
   def from(p: Throwable): Cause = Cause(Descriptor.from(p))
 

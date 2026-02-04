@@ -5,7 +5,8 @@ import org.goldenport.provisional.observation.Cause
 
 /*
  * @since   Jan. 25, 2026
- * @version Jan. 31, 2026
+ *  version Jan. 31, 2026
+ * @version Feb.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -13,7 +14,9 @@ case class Conclusion(
   interpretation: Interpretation,
   disposition: Disposition,
   previous: Option[Conclusion] = None
-)
+) {
+  def withPrevious(p: Conclusion) = copy(previous = Some(p))
+}
 
 case class Interpretation(
   kind: Interpretation.Kind,
@@ -41,9 +44,11 @@ object Interpretation {
   def argumentDataType = domainFailure
   def argumentConstraint = domainFailure
   def operationInvalid = domainFailure
+  def resourceInconsistency = domainFailure
   def valueInvalid = domainFailure
   def valueFormatError = domainFailure
   def unreachableReached = defect
+  def uninitializedState = defect
   def impossibleState = defect
   def unsupported = defect
   def notImplemented = defect
@@ -84,9 +89,11 @@ object Disposition {
   def argumentDataType = fix
   def argumentConstraint = fix
   def operationInvalid = fix
+  def resourceInconsistency = fix
   def valueInvalid = fix
   def valueFormatError = fix
   def unreachableReached = defect
+  def uninitializedState = defect
   def impossibleState = defect
   def unsupported = defect
   def notImplemented = defect
