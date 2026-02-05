@@ -22,6 +22,9 @@ These rules apply to **Working Specifications**.
 A specification in SimpleModeling is not a test of execution,
 but a **description of semantic interpretation**.
 
+Executable Specifications prioritize readability as normative documents over
+authoring flexibility.
+
 Specifications define *what a model means*,
 not *what a system does at runtime*.
 
@@ -31,9 +34,12 @@ not *what a system does at runtime*.
 
 Specifications MUST be written using:
 
-- `AnyWordSpec`
+- `AnyWordSpec` (default)
 - `Matchers`
 - `GivenWhenThen`
+
+`AnyFreeSpec` MAY be used only when the semantic structure cannot be adequately
+expressed within the structural constraints of `AnyWordSpec`.
 
 This combination provides:
 - Natural-language structure
@@ -78,6 +84,11 @@ ProtocolEngineSpec
 ```
 
 This structured approach ensures that specifications remain **semantic interpretations**, not runtime tests, and serve as **living documentation** that clearly communicates model meaning and responsibilities.
+
+The fixed grammatical roles of `should` / `when` / `in` in `AnyWordSpec` are
+intentionally leveraged to make specification structure immediately obvious
+to readers (human or AI). Structural freedom should not be introduced unless
+it is required to express semantic complexity.
 
 ---
 

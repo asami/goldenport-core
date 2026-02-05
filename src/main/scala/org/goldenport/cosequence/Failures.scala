@@ -3,10 +3,11 @@ package org.goldenport.consequence
 import scala.quoted.*
 import org.goldenport.Consequence
 import org.goldenport.Conclusion
+import org.goldenport.record.Record
 
 /*
  * @since   Jan. 31, 2026
- * @version Feb.  4, 2026
+ * @version Feb.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {
@@ -19,6 +20,14 @@ object Failures {
        Consequence.Failure(Conclusion.failResourceInconsistency(pos))
      }
 
+  inline def recordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
+    ${ recordNotFound('key, 'rec) }
+
+  private def recordNotFound(key: Expr[String], rec: Expr[Record])(using Quotes): Expr[Consequence.Failure[Nothing]] =
+    '{
+       val pos = ${ SourcePositionMacro.capture }
+       Consequence.Failure(Conclusion.failRecordNotFound(pos, ${key}, ${rec}))
+     }
 
   inline def unreachableReached: Consequence.Failure[Nothing] =
     ${ _unreachable_reached }

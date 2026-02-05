@@ -1,26 +1,40 @@
 package org.goldenport.record
 
+import org.goldenport.Consequence
+import org.goldenport.text.Presentable
 import org.goldenport.convert.ValueReader
+import org.goldenport.datatype.PathName
 
 /*
  * @since   Oct. 17, 2025
  *  version Nov.  7, 2025
  *  version Dec. 25, 2025
- * @version Jan. 10, 2026
+ *  version Jan. 10, 2026
+ * @version Feb.  5, 2026
  * @author  ASAMI, Tomoharu
  */
-case class Record(fields: Vector[Field] = Vector.empty) {
-  lazy val asMap: Map[String, Any] = fields.map(x => (x.key, x.value.single)).toMap
-  def asNameStringVector: Vector[(String, String)] =
-    fields.map(x => x.key -> x.value.single.toString)
+case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
+  def print: String = fields.map(_.print).mkString(",")
 
   def getAs[T](key: String)(using reader: ValueReader[T]): Option[T] =
-    fields.find(_.key == key).flatMap(reader.read)
+    fields.find(_.key == key).flatMap { field =>
+      field.value match {
+        case Field.Value.Single(v) => reader.read(v)
+      }
+    }
 
-  def as[T](using reader: ValueReader[T]): Option[T] =
-    reader.read(asMap)
+  def as[T](key: String)(using reader: ValueReader[T]): T =
+    asC(key).RAISE
+
+  def asC[T](key: String)(using reader: ValueReader[T]): Consequence[T] =
+    Consequence.successOrRecordNotFound(getAs(key), key, this)
 
   def keySet: Set[String] = asMap.keySet
+
+  lazy val asMap: Map[String, Any] = fields.map(x => (x.key, x.value.single)).toMap
+
+  def asNameStringVector: Vector[(String, String)] =
+    fields.map(x => x.key -> x.value.single.toString)
 
   def ++(rhs: Record): Record = copy(fields = fields ++ rhs.fields)
 
@@ -38,7 +52,36 @@ case class Record(fields: Vector[Field] = Vector.empty) {
   def getString(key: String): Option[String] =
     asMap.get(key).map(_to_string)
 
+  def getString(path: PathName): Option[String] =
+    _value_for_segments(path.segments).map(_to_string)
+
+  private def _value_for_segments(segments: Vector[String]): Option[Any] =
+    segments match {
+      case Vector() => None
+      case _ =>
+        val pathKey = segments.mkString("/")
+        asMap.get(pathKey) match {
+          case Some(value) => Some(value)
+          case None =>
+            fields.find(_.key == segments.head).flatMap { field =>
+              val value = field.value match {
+                case Field.Value.Single(v) => v
+              }
+              if (segments.tail.isEmpty)
+                Some(value)
+              else
+                value match {
+                  case r: Record => r._value_for_segments(segments.tail)
+                  case _ => None
+                }
+            }
+        }
+    }
+
   private def _to_string(p: Any): String = p.toString // TODO
+
+  private def _record_as[T](reader: ValueReader[T]): Option[T] =
+    reader.read(asMap)
 }
 
 object Record {

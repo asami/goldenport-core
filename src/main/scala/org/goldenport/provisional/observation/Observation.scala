@@ -2,6 +2,7 @@ package org.goldenport.provisional.observation
 
 import cats.data.NonEmptyVector
 import java.time.Instant
+import org.goldenport.record.Record
 import org.goldenport.text.Presentable
 import org.goldenport.id.UniversalId
 import org.goldenport.observation.Phenomenon
@@ -39,7 +40,7 @@ import org.goldenport.schema.Constraint
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  4, 2026
+ * @version Feb.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -198,6 +199,12 @@ object Observation {
     Descriptor.Facet.SrcPos(pos)
   )
 
+  def recordNotFound(pos: SourcePosition, key: String, rec: Record): Observation = failure(
+    Taxonomy.recordNotFound,
+    Descriptor.Facet.Key(key),
+    Descriptor.Facet.Record(rec)
+  )
+
   // State
   def stateConflict(state: String): Observation = failure(
     Taxonomy.stateConflict,
@@ -339,6 +346,8 @@ object Taxonomy {
 
     case Value extends Category("value", 7)
 
+    case Record extends Category("value", 8)
+
     /** The problem is observed at the system level and cannot be meaningfully attributed to argument, property, configuration, resource, or state.
       * This category is used as a last resort for fundamental or infrastructural failures.
       */
@@ -443,6 +452,12 @@ object Taxonomy {
   val resourceInvalid: Taxonomy = Taxonomy(
     Category.Resource,
     Symptom.Invalid
+  )
+
+  // Record
+  val recordNotFound: Taxonomy = Taxonomy(
+    Category.Record,
+    Symptom.NotFound
   )
 
   // State

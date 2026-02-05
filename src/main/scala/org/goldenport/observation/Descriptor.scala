@@ -14,7 +14,7 @@ import org.goldenport.util.StringUtils
 /*
  * @since   Dec. 28, 2025
  *  version Jan. 31, 2026
- * @version Feb.  4, 2026
+ * @version Feb.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -92,41 +92,37 @@ object Descriptor {
       def print: String = s"line:${no}"
     }
 
-
     case class Message(message: String) extends Facet {
       def print: String = s"message:${message}"
     }
 
+    case class Key(key: String) extends Facet {
+      def print: String = s"key:${key}"
+    }
 
     case class Value(value: Any) extends Facet {
       def print: String = s"value:${Presentable.print(value)}"
     }
 
-
     case class Id(id: String) extends Facet {
       def print: String = s"id:${id}"
     }
-
 
     case class State(state: String) extends Facet {
       def print: String = s"id:${state}"
     }
 
-
     case class Exception(e: Throwable) extends Facet {
       def print: String = s"exception:${e}"
     }
-
 
     case class Properties(properties: Map[String, String]) extends Facet {
       def print: String = s"properties:${Presentable.print(properties)}"
     }
 
-
     case class DataType(datatype: org.goldenport.schema.DataType) extends Facet {
       def print: String = s"datatype:${datatype.print}"
     }
-
 
     case class Constraint(constraints: NonEmptyVector[org.goldenport.schema.Constraint]) extends Facet {
       def print: String = s"constraint:${Presentable.print(constraints)}"
@@ -139,6 +135,11 @@ object Descriptor {
     case class SrcPos(pos: SourcePosition) extends Facet {
       def print: String = s"""source:${pos.print}"""
       override def show: String = s"""source:${pos.show}"""
+    }
+
+    case class Record(record: org.goldenport.record.Record) extends Facet {
+      def print: String = s"""record:${record.print}"""
+      override def show: String = s"""record:${record.show}"""
     }
 
     // Legacy

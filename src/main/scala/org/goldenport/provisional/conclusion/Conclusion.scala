@@ -6,7 +6,7 @@ import org.goldenport.provisional.observation.Cause
 /*
  * @since   Jan. 25, 2026
  *  version Jan. 31, 2026
- * @version Feb.  4, 2026
+ * @version Feb.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -45,6 +45,7 @@ object Interpretation {
   def argumentConstraint = domainFailure
   def operationInvalid = domainFailure
   def resourceInconsistency = domainFailure
+  def recordNotFound = domainFailure
   def valueInvalid = domainFailure
   def valueFormatError = domainFailure
   def unreachableReached = defect
@@ -90,6 +91,7 @@ object Disposition {
   def argumentConstraint = fix
   def operationInvalid = fix
   def resourceInconsistency = fix
+  def recordNotFound = fix
   def valueInvalid = fix
   def valueFormatError = fix
   def unreachableReached = defect

@@ -4,10 +4,11 @@ import cats._
 import cats.data.NonEmptyVector
 import scala.util.{Failure => TryFailure, Success => TrySuccess, Try}
 import scala.util.control.NonFatal
+import org.goldenport.consequence.Failures
 import org.goldenport.text.Presentable
+import org.goldenport.record.Record
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
-import org.goldenport.consequence.Failures
 import org.goldenport.provisional.observation.Observation
 import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.provisional.observation.Cause
@@ -45,7 +46,7 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
- * @version Feb.  4, 2026
+ * @version Feb.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -519,10 +520,18 @@ object Consequence {
   //   ???
   // }
 
+  // Success or Fail
+
+  inline def successOrRecordNotFound[T](p: Option[T], key: String, rec: Record): Consequence[T] =
+    p match {
+      case Some(s) => Consequence.success(s)
+      case None => failRecordNotFound(key, rec)
+    }
+
   // Fail
   def fail[A](o: Observation): Consequence.Failure[A] = ???
 
-  def fail[A](taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]):Consequence[A] = {
+  def fail[A](taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]): Consequence[A] = {
     ???
   }
 
@@ -572,6 +581,9 @@ object Consequence {
 
   inline def failResourceInconsistency: Consequence.Failure[Nothing] =
     Failures.resourceInconsistency
+
+  inline def failRecordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
+    Failures.recordNotFound(key, rec)
 
   def failValueInvalid[A](value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failValueInvalid(value, dt))

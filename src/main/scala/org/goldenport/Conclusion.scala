@@ -2,6 +2,7 @@ package org.goldenport
 
 import cats.data.NonEmptyVector
 import java.time.Instant
+import org.goldenport.record.Record
 import org.goldenport.error.{ErrorCode, ErrorStrategy}
 import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
 import org.goldenport.provisional.observation.{Observation, Taxonomy, Cause, Source, Channel, Substrate, Origin}
@@ -19,7 +20,7 @@ import org.goldenport.http.HttpRequest
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  4, 2026
+ * @version Feb.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -276,6 +277,14 @@ object Conclusion {
       Observation.resourceInconsistency(pos),
       Interpretation.resourceInconsistency,
       Disposition.resourceInconsistency
+    )
+
+  def failRecordNotFound(pos: SourcePosition, key: String, rec: Record): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.recordNotFound(pos, key, rec),
+      Interpretation.recordNotFound,
+      Disposition.recordNotFound
     )
 
   def failValueInvalid(value: Any, dt: DataType): Conclusion =
