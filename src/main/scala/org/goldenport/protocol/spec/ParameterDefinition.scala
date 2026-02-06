@@ -13,7 +13,8 @@ import org.goldenport.util.{SmEnum, SmEnumClass}
  *  version Mar. 17, 2025
  *  version Apr.  2, 2025
  *  version Jun.  5, 2025
- * @version Dec. 30, 2025
+ *  version Dec. 30, 2025
+ * @version Feb.  6, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ParameterDefinition(
@@ -33,6 +34,8 @@ case class ParameterDefinition(
       .map(_.toVector.map(_.toI18nString.displayMessage))
       .getOrElse(Vector.empty)
   def names: Vector[String] = name +: aliases
+
+  def print(p: Any): String = datatype.print(p)
 }
 
 object ParameterDefinition {

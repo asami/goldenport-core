@@ -18,7 +18,8 @@ import org.goldenport.util.Strings
  *  version Apr. 21, 2019
  *  version Feb. 21, 2021
  *  version Dec. 25, 2025
- * @version Jan. 21, 2026
+ *  version Jan. 21, 2026
+ * @version Feb.  6, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
@@ -29,7 +30,7 @@ sealed trait HttpResponse extends Presentable {
   def charset: Option[Charset] = contentType.charset
   def bag: Bag
   final def getString: Option[String] = bag match {
-    case t: TextBag => Some(t.toText)
+    case t: TextBag => Some(t.toTextUnsafe)
     case _ => None
   }
   final def getBinary: Option[BinaryBag] = bag match {

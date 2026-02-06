@@ -19,7 +19,8 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Nov. 25, 2023
  *  version Mar. 15, 2025
  *  version Dec. 30, 2025
- * @version Jan. 29, 2026
+ *  version Jan. 29, 2026
+ * @version Feb.  6, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -30,21 +31,12 @@ abstract class OperationDefinition
 
   def createOperationRequest(req: Request): Consequence[OperationRequest]
 
-  // Typed ResolvedValue
-  protected sealed trait ResolvedValue {
-    def domain: ValueDomain
-  }
-  protected final case class ResolvedSingle(
-    value: Any,
-    domain: ValueDomain
-  ) extends ResolvedValue
-  protected final case class ResolvedMultiple(
-    values: Vector[Any],
-    domain: ValueDomain
-  ) extends ResolvedValue
-  protected final case class ResolvedEmpty(
-    domain: ValueDomain
-  ) extends ResolvedValue
+  def getParameter(name: String): Option[ParameterDefinition] =
+    request.parameters.find(_.name == name)
+
+  def arguments = request.arguments
+  def properties = request.properties
+  def switches = request.switches
 
   // Typed resolveParameter using DataType as parser/factory
   protected final def resolveParameter(
@@ -248,6 +240,22 @@ object OperationDefinition {
     case object Query extends Kind
   }
 
+  // Typed ResolvedValue
+  protected sealed trait ResolvedValue {
+    def domain: ValueDomain
+  }
+  protected final case class ResolvedSingle(
+    value: Any,
+    domain: ValueDomain
+  ) extends ResolvedValue
+  protected final case class ResolvedMultiple(
+    values: Vector[Any],
+    domain: ValueDomain
+  ) extends ResolvedValue
+  protected final case class ResolvedEmpty(
+    domain: ValueDomain
+  ) extends ResolvedValue
+
   @deprecated("Use BaseContent-based constructor", "2025-12-30")
   def apply(
     name: String,
@@ -261,32 +269,48 @@ object OperationDefinition {
     request: RequestDefinition,
     response: ResponseDefinition
   ): OperationDefinition =
-    Instance(
-      Specification(
-        content = content,
+    Instance(Specification(content, request, response))
+
+  abstract class Specification(
+  ) extends BaseContent.BareHolder with Specification.Core.Holder {
+    def core: Specification.Core
+    protected def baseContent: BaseContent = content
+  }
+  object Specification {
+    case class Core(
+      content: BaseContent,
+      request: RequestDefinition,
+      response: ResponseDefinition
+    )
+    object Core {
+      trait Holder {
+        def core: Core
+
+        def content = core.content
+        def request = core.request
+        def response = core.response
+      }
+    }
+
+    case class Instance(core: Core) extends Specification
+
+    def apply(
+      name: String,
+      request: RequestDefinition,
+      response: ResponseDefinition
+    ): Specification = Instance(
+      Core(
+        content = BaseContent.simple(name),
         request = request,
         response = response
       )
     )
 
-  case class Specification(
-    content: BaseContent,
-    request: RequestDefinition,
-    response: ResponseDefinition
-  ) extends BaseContent.BareHolder {
-    protected def baseContent: BaseContent = content
-  }
-  object Specification {
     def apply(
-      name: String,
+      content: BaseContent,
       request: RequestDefinition,
       response: ResponseDefinition
-    ): Specification =
-      Specification(
-        content = BaseContent.simple(name),
-        request = request,
-        response = response
-      )
+    ): Specification = Instance(Core(content, request, response))
 
     trait Holder extends BaseContent.BareHolder {
       def specification: Specification

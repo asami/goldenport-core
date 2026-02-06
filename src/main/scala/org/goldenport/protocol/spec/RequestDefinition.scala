@@ -11,12 +11,19 @@ import org.goldenport.schema.{Multiplicity, ValueDomain, XString}
  *  version Feb. 16, 2020
  *  version Mar. 16, 2025
  *  version Dec. 25, 2025
- * @version Jan. 14, 2026
+ *  version Jan. 14, 2026
+ * @version Feb.  6, 2026
  * @author  ASAMI, Tomoharu
  */
 case class RequestDefinition(
   parameters: List[ParameterDefinition] = Nil
 ) {
+  def arguments: List[ParameterDefinition] =
+    parameters.filter(_.kind == ParameterDefinition.Kind.Argument)
+  def properties =
+    parameters.filter(_.kind == ParameterDefinition.Kind.Property)
+  def switches =
+    parameters.filter(_.kind == ParameterDefinition.Kind.Switch)
 }
 
 object RequestDefinition {

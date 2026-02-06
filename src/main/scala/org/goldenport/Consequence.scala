@@ -46,13 +46,13 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
- * @version Feb.  5, 2026
+ * @version Feb.  6, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
   def get: Option[T]
 
-  def take: T
+  def TAKE: T
 
   def RAISE: Nothing = this match {
     case Consequence.Failure(conclusion) =>
@@ -122,6 +122,10 @@ sealed trait Consequence[+T] extends Presentable {
 
   def getOrElse[U >: T](body: => U): U
 
+  def toOption: Option[T]
+
+  def collapseOption[U](using ev: T <:< Option[U]): Option[U] = toOption.flatten
+
   override def print: String = this match {
     case Consequence.Success(v) => Presentable.print(v)
     case Consequence.Failure(c) => c.print
@@ -144,7 +148,7 @@ object Consequence {
   ) extends Consequence[T] {
     def get: Option[T] = Some(result)
 
-    def take = result
+    def TAKE = result
 
     def transform[U](
       s: T => Consequence[U],
@@ -162,12 +166,14 @@ object Consequence {
     def foldIdntity[U >: T](c: Conclusion => U): U = result
 
     def getOrElse[U >: T](body: => U): U = result
+
+    def toOption = Some(result)
   }
 
   case class Failure[+T](conclusion: Conclusion) extends Consequence[T] {
     def get: Option[T] = None
 
-    def take = RAISEC
+    def TAKE = RAISEC
 
     def transform[U](
       s: T => Consequence[U],
@@ -188,6 +194,8 @@ object Consequence {
     def foldIdntity[U >: T](c: Conclusion => U): U = c(conclusion)
 
     def getOrElse[U >: T](body: => U): U = body
+
+    def toOption = None
   }
 
   implicit object ConsequenceMonad extends Monad[Consequence] {

@@ -45,13 +45,16 @@ import org.goldenport.text.Presentable
  *  version Sep.  6, 2024
  *  version Sep. 17, 2025
  *  version Dec. 29, 2025
- * @version Jan. 29, 2026
+ *  version Jan. 29, 2026
+ * @version Feb.  6, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
   def name: String
 
   def print = name
+
+  def print(p: Any): String = Presentable.print(p)
 }
 
 object DataType {

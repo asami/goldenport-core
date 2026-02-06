@@ -1,6 +1,7 @@
 package org.goldenport.bag
 
 import cats.effect.IO
+import scala.util.Using
 import org.goldenport.Consequence
 
 import java.io.InputStream
@@ -19,6 +20,19 @@ import java.nio.charset.StandardCharsets
  * A Bag does NOT own lifecycle responsibility.
  * Lifecycle semantics are encoded by BagBackend.
  */
+/**
+ * Bag is a container abstraction for binary data with explicit lifecycle
+ * and interpretation semantics.
+ *
+ * The normative specification for Bag, TextBag, BinaryBag, and BagBuilder
+ * semantics is defined in:
+ *
+ *   docs/spec/bag.md
+ *
+ * This Scaladoc intentionally contains only a brief summary.
+ * Detailed behavioral contracts, error models, and promotion rules
+ * are defined in the specification document.
+ */
 /*
  * @since   Jun.  8, 2014
  *  version Oct. 27, 2014
@@ -33,21 +47,9 @@ import java.nio.charset.StandardCharsets
  *  version Oct.  5, 2018
  *  version Apr. 21, 2019
  *  version Jul. 18, 2025
- * @version Dec. 25, 2025
+ *  version Dec. 25, 2025
+ * @version Feb.  6, 2026
  * @author  ASAMI, Tomoharu
- */
-/**
- * Bag is a container abstraction for binary data with explicit lifecycle
- * and interpretation semantics.
- *
- * The normative specification for Bag, TextBag, BinaryBag, and BagBuilder
- * semantics is defined in:
- *
- *   docs/spec/bag.md
- *
- * This Scaladoc intentionally contains only a brief summary.
- * Detailed behavioral contracts, error models, and promotion rules
- * are defined in the specification document.
  */
 sealed trait Bag {
   def backend: BagBackend
@@ -82,13 +84,30 @@ sealed trait Bag {
   def promoteToBinary(): BinaryBag = {
     BinaryBag.Instance(this)
   }
+
+  def asString(): Consequence[String] = this match {
+    case m: TextBag => m.toText
+    case m => TextBag(this).toText
+  }
+
+  def asStringUnsafe(): String = asString().TAKE
 }
 
 object Bag {
+  val empty: Bag = Instance(BagBackend.Empty())
+
   final case class Instance(
     backend: BagBackend,
     metadata: BagMetadata = BagMetadata()
   ) extends Bag
+
+  def create(in: InputStream): Consequence[Bag] = {
+    val builder = BagBuilder()
+    Using.resource(in) { s =>
+      builder.writeFrom(s)
+    }
+    builder.build()
+  }
 
   def fromBytes(bytes: Array[Byte]): Bag = {
     Instance(
@@ -97,16 +116,14 @@ object Bag {
     )
   }
 
-  def text(value: String, charset: Charset = StandardCharsets.UTF_8): TextBag = {
-    TextBag.Instance(
-      fromBytes(value.getBytes(charset)),
-      charset
-    )
-  }
+  def text(value: String, charset: Charset = StandardCharsets.UTF_8): TextBag =
+    TextBag.apply(value, charset)
 
   def binary(bytes: Array[Byte]): BinaryBag = {
     BinaryBag.Instance(fromBytes(bytes))
   }
+
+  def file(path: Path): Bag = Instance(BagBackend.File(path))
 }
 
 // =======================================================
@@ -130,15 +147,21 @@ trait TextBag extends Bag {
   override def backend: BagBackend = bag.backend
   override def metadata: BagMetadata = bag.metadata
 
-  def toText: String = {
-    val in = bag.openInputStream()
-    try {
-      val bytes = in.readAllBytes()
-      new String(bytes, charset)
-    } finally {
-      in.close()
+  def toText: Consequence[String] = Consequence {
+    backend match {
+      case BagBackend.Text(s) => s
+      case _ => 
+        val in = bag.openInputStream()
+        try {
+          val bytes = in.readAllBytes()
+          new String(bytes, charset)
+        } finally {
+          in.close()
+        }
     }
   }
+
+  def toTextUnsafe: String = toText.TAKE
 }
 
 object TextBag {
@@ -146,6 +169,14 @@ object TextBag {
     bag: Bag,
     charset: Charset
   ) extends TextBag
+
+  def apply(bag: Bag): TextBag = TextBag.Instance(bag, StandardCharsets.UTF_8)
+
+  def apply(value: String, charset: Charset = StandardCharsets.UTF_8): TextBag =
+    TextBag.Instance(
+      Bag.Instance(BagBackend.Text(value)),
+      charset
+    )
 }
 
 // =======================================================
@@ -186,6 +217,7 @@ object BinaryBag {
  * and deletion responsibility.
  */
 enum BagBackend {
+  case Empty()
 
   /**
    * JVM memory–backed data.
@@ -194,6 +226,8 @@ enum BagBackend {
    * Deletion responsibility: none
    */
   case InMemory(bytes: Array[Byte])
+
+  case Text(text: String)
 
   /**
    * OS-managed temporary file.
@@ -232,10 +266,18 @@ enum BagBackend {
   /**
    * Opens a fresh InputStream for this backend.
    */
-  def openInputStream(): InputStream = {
+  def openInputStream(): InputStream =
     this match {
+      case Empty() =>
+        new java.io.ByteArrayInputStream(Array.emptyByteArray)
+
       case InMemory(bytes) =>
         new java.io.ByteArrayInputStream(bytes)
+
+      case Text(s) =>
+        new java.io.ByteArrayInputStream(
+          s.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        )
 
       case TempFile(path) =>
         Files.newInputStream(path)
@@ -246,7 +288,8 @@ enum BagBackend {
       case Url(url) =>
         url.openStream()
     }
-  }
+
+  def openInputStreamC(): Consequence[InputStream] = Consequence(openInputStream())
 }
 
 // =======================================================
