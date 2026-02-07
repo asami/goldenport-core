@@ -13,6 +13,7 @@ import org.goldenport.observation.Descriptor
 import org.goldenport.observation.SourcePosition
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
+import org.goldenport.observation.calltree.CallTree
 
 /**
  * Unified Observation (Phase 2.9 Design-Fixed Model)
@@ -60,6 +61,7 @@ case class Observation(
   traceId: Option[TraceId] = None,
   spanId: Option[SpanId] = None,
   environment: Option[Environment] = None,
+  callTree: Option[CallTree] = None,
 
   // message: Option[String] = None, // I18nMessage
   // exception: Option[Throwable] = None,

@@ -20,7 +20,7 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Mar. 15, 2025
  *  version Dec. 30, 2025
  *  version Jan. 29, 2026
- * @version Feb.  6, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -241,18 +241,18 @@ object OperationDefinition {
   }
 
   // Typed ResolvedValue
-  protected sealed trait ResolvedValue {
+  sealed trait ResolvedValue {
     def domain: ValueDomain
   }
-  protected final case class ResolvedSingle(
+  final case class ResolvedSingle(
     value: Any,
     domain: ValueDomain
   ) extends ResolvedValue
-  protected final case class ResolvedMultiple(
+  final case class ResolvedMultiple(
     values: Vector[Any],
     domain: ValueDomain
   ) extends ResolvedValue
-  protected final case class ResolvedEmpty(
+  final case class ResolvedEmpty(
     domain: ValueDomain
   ) extends ResolvedValue
 

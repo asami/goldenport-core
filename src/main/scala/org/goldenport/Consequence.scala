@@ -54,6 +54,9 @@ sealed trait Consequence[+T] extends Presentable {
 
   def TAKE: T
 
+  @deprecated("Use TAKE instead.")
+  def take: T = TAKE
+
   def RAISE: Nothing = this match {
     case Consequence.Failure(conclusion) =>
       throw conclusion.getException.getOrElse(

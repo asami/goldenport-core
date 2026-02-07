@@ -7,6 +7,7 @@ import org.goldenport.observation.Cause
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
+import org.goldenport.protocol.spec.OperationDefinition.{ResolvedEmpty, ResolvedMultiple, ResolvedSingle}
 import org.goldenport.schema.{Multiplicity, ValueDomain, XDateTime, XLocalDateTime, XYearMonth}
 import org.goldenport.test.matchers.ConsequenceMatchers
 import org.scalatest.GivenWhenThen
@@ -16,7 +17,8 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 30, 2025
- * @version Jan. 28, 2026
+ *  version Jan. 28, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterTemporalSpec

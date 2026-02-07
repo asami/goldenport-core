@@ -6,6 +6,7 @@ import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
+import org.goldenport.protocol.spec.OperationDefinition.{ResolvedEmpty, ResolvedMultiple, ResolvedSingle}
 import org.goldenport.schema.{Constraint, DataType, Multiplicity, ValueDomain, XNonNegativeInteger, XPositiveInteger, XString}
 import org.goldenport.test.matchers.ConsequenceMatchers
 import org.scalacheck.Gen
@@ -16,7 +17,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 /*
  * @since   Dec. 29, 2025
- * @version Jan. 29, 2026
+ *  version Jan. 29, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec
