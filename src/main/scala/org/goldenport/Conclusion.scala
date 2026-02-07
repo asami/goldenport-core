@@ -6,10 +6,12 @@ import org.goldenport.record.Record
 import org.goldenport.error.{ErrorCode, ErrorStrategy}
 import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
 import org.goldenport.provisional.observation.{Observation, Taxonomy, Cause, Source, Channel, Substrate, Origin}
+import org.goldenport.provisional.observation.Occurrence
 import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
 import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.{Subject, Agent, Resource, Severity}
 import org.goldenport.observation.SourcePosition
+import org.goldenport.observation.Descriptor
 import org.goldenport.text.Presentable
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
@@ -20,7 +22,7 @@ import org.goldenport.http.HttpRequest
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  5, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -91,7 +93,28 @@ object Conclusion {
   )
   object Status {
     val badRequest = Status(WebCode.BadRequest)
+    val unauthorized = Status(WebCode.Unauthorized)
+    val forbidden = Status(WebCode.Forbidden)
+    val notFound = Status(WebCode.NotFound)
+    val conflict = Status(WebCode.Conflict)
     val internalServerError = Status(WebCode.InternalServerError)
+    val notImplemented = Status(WebCode.NotImplemented)
+    val serviceUnavailable = Status(WebCode.ServiceUnavailable)
+
+    // Hint
+    def from(taxonomy: Taxonomy): Status = taxonomy.category match {
+      case Taxonomy.Category.Argument => badRequest
+      case Taxonomy.Category.Property => badRequest
+      case Taxonomy.Category.Configuration => internalServerError
+      case Taxonomy.Category.Resource => internalServerError
+      case Taxonomy.Category.State => internalServerError
+      case Taxonomy.Category.Value => badRequest
+      case Taxonomy.Category.Record => badRequest
+      case Taxonomy.Category.Operation => badRequest
+      case Taxonomy.Category.System => internalServerError
+      case Taxonomy.Category.Network => serviceUnavailable
+      case Taxonomy.Category.OutOfControl => internalServerError
+    }
   }
 
   case class WebCode(code: Int)
@@ -198,6 +221,146 @@ object Conclusion {
   // private def makeCause(kind: Cause.Kind, message: Option[String]): Cause =
   //   Cause(kind, message.map(m => Cause.Detail(message = Some(m))))
 
+  def failure(pos: SourcePosition, o: Observation): Conclusion = {
+    val x = o.withSourcePosition(pos)
+    Status.from(o.taxonomy).webCode match {
+      case WebCode.BadRequest => badRequest(x)
+      case WebCode.Unauthorized => unauthorized(x)
+      case WebCode.Forbidden => forbidden(x)
+      case WebCode.NotFound => notFound(x)
+      case WebCode.Conflict => conflict(x)
+      case WebCode.InternalServerError => internalServerError(x)
+      case WebCode.NotImplemented => notImplemented(x)
+      case WebCode.ServiceUnavailable => serviceUnavailable(x)
+    }
+  }
+
+  def badRequest(o: Observation): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      o,
+      Interpretation.domainFailure,
+      Disposition.fix
+    )
+
+  def unauthorized(o: Observation): Conclusion =
+    Conclusion(
+      Status.unauthorized,
+      o,
+      Interpretation.domainFailure,
+      Disposition.fix
+    )
+
+  def forbidden(o: Observation): Conclusion =
+    Conclusion(
+      Status.forbidden,
+      o,
+      Interpretation.domainFailure,
+      Disposition.fix
+    )
+
+  def notFound(o: Observation): Conclusion =
+    Conclusion(
+      Status.notFound,
+      o,
+      Interpretation.domainFailure,
+      Disposition.fix
+    )
+
+  def conflict(o: Observation): Conclusion =
+    Conclusion(
+      Status.conflict,
+      o,
+      Interpretation.domainFailure,
+      Disposition.fix
+    )
+
+  def internalServerError(o: Observation): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      o,
+      Interpretation.systemFailure,
+      Disposition.fix
+    )
+
+  def notImplemented(o: Observation): Conclusion =
+    Conclusion(
+      Status.notImplemented,
+      o,
+      Interpretation.defect,
+      Disposition.defect
+    )
+
+  def serviceUnavailable(o: Observation): Conclusion =
+    Conclusion(
+      Status.serviceUnavailable,
+      o,
+      Interpretation.systemFailure,
+      Disposition.serviceUnavailable
+    )
+
+  def failure(pos: SourcePosition, taxonomy: Taxonomy, facets: Seq[Descriptor.Facet]): Conclusion =
+    failure(pos, taxonomy, Cause.create(facets))
+
+  def failure(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    Status.from(taxonomy).webCode match {
+      case WebCode.BadRequest => badRequest(pos, taxonomy, cause)
+      case WebCode.Unauthorized => unauthorized(pos, taxonomy, cause)
+      case WebCode.Forbidden => forbidden(pos, taxonomy, cause)
+      case WebCode.NotFound => notFound(pos, taxonomy, cause)
+      case WebCode.Conflict => conflict(pos, taxonomy, cause)
+      case WebCode.InternalServerError => internalServerError(pos, taxonomy, cause)
+      case WebCode.NotImplemented => notImplemented(pos, taxonomy, cause)
+      case WebCode.ServiceUnavailable => serviceUnavailable(pos, taxonomy, cause)
+    }
+
+  def badRequest(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    badRequest(_make_rejection_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def unauthorized(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    unauthorized(_make_rejection_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def forbidden(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    forbidden(_make_rejection_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def notFound(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    notFound(_make_rejection_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def conflict(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    conflict(_make_rejection_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def internalServerError(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    internalServerError(_make_failure_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def notImplemented(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    notImplemented(_make_failure_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def serviceUnavailable(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    serviceUnavailable(_make_failure_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  private def _make_rejection_observation(
+    taxonomy: Taxonomy,
+    cause: Cause
+  ): Observation = {
+    val occurrence = _make_occurence(taxonomy)
+    Observation.rejection(taxonomy, cause, occurrence)
+  }
+
+  private def _make_failure_observation(
+    taxonomy: Taxonomy,
+    cause: Cause
+  ): Observation = {
+    val occurrence = _make_occurence(taxonomy)
+    Observation.failure(taxonomy, cause, occurrence)
+  }
+
+  private def _make_occurence(taxonomy: Taxonomy): Option[Occurrence] = 
+    taxonomy.category match {
+      case Taxonomy.Category.Network => Some(Occurrence.network)
+      case _ => None
+    }
+
+  // fail
   def failArgumentMissing: Conclusion =
     Conclusion(
       Status.badRequest,
@@ -285,6 +448,14 @@ object Conclusion {
       Observation.recordNotFound(pos, key, rec),
       Interpretation.recordNotFound,
       Disposition.recordNotFound
+    )
+
+  def failOperationNotFound(pos: SourcePosition, name: String): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.operationNotFound(pos, name),
+      Interpretation.operationNotFound,
+      Disposition.operationNotFound
     )
 
   def failValueInvalid(value: Any, dt: DataType): Conclusion =

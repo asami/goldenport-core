@@ -13,7 +13,8 @@ import org.goldenport.protocol.handler.egress.Egress
  * @since   Dec. 24, 2025
  *  version Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan.  3, 2026
+ *  version Jan.  3, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolLogic(protocol: Protocol) {
@@ -74,11 +75,7 @@ class ProtocolLogic(protocol: Protocol) {
   ): Consequence[OperationDefinition] =
     service.operations.operations.find(_.name == req.operation) match {
       case Some(op) => Consequence.success(op)
-      case None =>
-        Consequence
-          .failArgumentValidationError
-          .withOperation(req.operation)
-          .build
+      case None => Consequence.failOperationNotFound(req.operation)
     }
 
   def makeRequest(args: Array[String]): Consequence[Request] = {

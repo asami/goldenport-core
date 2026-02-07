@@ -14,7 +14,7 @@ import org.goldenport.util.StringUtils
 /*
  * @since   Dec. 28, 2025
  *  version Jan. 31, 2026
- * @version Feb.  5, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -179,12 +179,26 @@ object Descriptor {
     ) extends Facet {
       def print: String = "not supported yet"
     }
+
+    case class HttpMethod(method: String) extends Facet {
+      def print: String = s"http_method:${method}"
+    }
+
+    case class HttpUrl(url: String) extends Facet {
+      def print: String = s"http_url:${url}"
+    }
+
+    case class HttpStatus(code: Int) extends Facet {
+      def print: String = s"http_status:${code}"
+    }
   }
 
   def apply(p: Facet): Descriptor = Descriptor(Vector(p))
 
   def apply(p: Facet, ps: Seq[Facet]): Descriptor =
     Descriptor((p +: ps).toVector)
+
+  def apply(ps: Seq[Facet]): Descriptor = Descriptor(ps.toVector)
 
   def from(e: Throwable): Descriptor = Descriptor(Facet.Exception(e))
 

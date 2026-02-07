@@ -3,14 +3,72 @@ package org.goldenport.consequence
 import scala.quoted.*
 import org.goldenport.Consequence
 import org.goldenport.Conclusion
+import org.goldenport.provisional.observation.Observation
+import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Descriptor
 import org.goldenport.record.Record
 
 /*
  * @since   Jan. 31, 2026
- * @version Feb.  5, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {
+  inline def fail(o: Observation): Consequence.Failure[Nothing] =
+    ${ _fail('o) }
+
+  private def _fail(o: Expr[Observation])(using Quotes): Expr[Consequence.Failure[Nothing]] =
+    '{
+       val pos = ${ SourcePositionMacro.capture }
+       Consequence.Failure(Conclusion.failure(pos, $o))
+     }
+
+  inline def fail(taxonomy: Taxonomy, cause: Cause): Consequence.Failure[Nothing] =
+    ${ _fail('taxonomy, 'cause) }
+
+  private def _fail(
+    taxonomy: Expr[Taxonomy],
+    cause: Expr[Cause]
+  )(using Quotes): Expr[Consequence.Failure[Nothing]] =
+    '{
+       val pos = ${ SourcePositionMacro.capture }
+       Consequence.Failure(Conclusion.failure(pos, $taxonomy, $cause))
+     }
+
+  inline def fail(
+    taxonomy: Taxonomy,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[Nothing] =
+    ${ _fail_facet('taxonomy, 'facets) }
+
+  private def _fail_facet(
+    taxonomy: Expr[Taxonomy],
+    facets: Expr[Seq[Descriptor.Facet]]
+  )(using Quotes): Expr[Consequence.Failure[Nothing]] =
+    '{
+       val pos = ${ SourcePositionMacro.capture }
+       Consequence.Failure(Conclusion.failure(pos, $taxonomy, $facets))
+     }
+
+  // inline def fail(
+  //   taxonomy: Taxonomy,
+  //   e: Throwable,
+  //   facets: Seq[Descriptor.Facet]
+  // ): Consequence.Failure[Nothing] =
+  //   ${ _fail('taxonomy, 'e, 'facets) }
+
+  // private def _fail(
+  //   taxonomy: Expr[Taxonomy],
+  //   e: Expr[Throwable],
+  //   facets: Expr[Seq[Descriptor.Facet]]
+  // )(using Quotes): Expr[Consequence.Failure[Nothing]] =
+  //   '{
+  //      val pos = ${ SourcePositionMacro.capture }
+  //      val exceptionFacet = Descriptor.Facet.Exception($e)
+  //      Consequence.Failure(Conclusion.failure(pos, $taxonomy, exceptionFacet +: $facets))
+  //    }
+
   inline def resourceInconsistency: Consequence.Failure[Nothing] =
     ${ _resource_inconsistency }
 
@@ -27,6 +85,15 @@ object Failures {
     '{
        val pos = ${ SourcePositionMacro.capture }
        Consequence.Failure(Conclusion.failRecordNotFound(pos, ${key}, ${rec}))
+     }
+
+  inline def operationNotFound(name: String): Consequence.Failure[Nothing] =
+    ${ operationNotFound('name) }
+
+  private def operationNotFound(name: Expr[String])(using Quotes): Expr[Consequence.Failure[Nothing]] =
+    '{
+       val pos = ${ SourcePositionMacro.capture }
+       Consequence.Failure(Conclusion.failOperationNotFound(pos, ${name}))
      }
 
   inline def unreachableReached: Consequence.Failure[Nothing] =
@@ -66,4 +133,13 @@ object Failures {
        val pos = ${ SourcePositionMacro.capture }
        Consequence.Failure(Conclusion.failNotImplemented(pos))
      }
+
+  // inline def notImplemented(msg: String): Consequence.Failure[Nothing] =
+  //   ${ _not_implemented('msg) }
+
+  // private def _not_implemented(msg: Expr[String])(using Quotes): Expr[Consequence.Failure[Nothing]] =
+  //   '{
+  //      val pos = ${ SourcePositionMacro.capture }
+  //      Consequence.Failure(Conclusion.notImplemented(pos, msg))
+  //    }
 }

@@ -6,7 +6,7 @@ import org.goldenport.provisional.observation.Cause
 /*
  * @since   Jan. 25, 2026
  *  version Jan. 31, 2026
- * @version Feb.  5, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -46,6 +46,7 @@ object Interpretation {
   def operationInvalid = domainFailure
   def resourceInconsistency = domainFailure
   def recordNotFound = domainFailure
+  def operationNotFound = domainFailure
   def valueInvalid = domainFailure
   def valueFormatError = domainFailure
   def unreachableReached = defect
@@ -82,8 +83,9 @@ object Disposition {
   }
 
   val none = Disposition(None, None)
-  val fix = Disposition(Some(UserAction.FixInput), None)
-  val defect = Disposition(Some(UserAction.Escalation), Some(Responsibility.Developer))
+  val fix = Disposition(UserAction.FixInput)
+  val serviceUnavailable = Disposition(UserAction.Escalation, Responsibility.SystemAdmin)
+  val defect = Disposition(UserAction.Escalation, Responsibility.Developer)
 
   def argumentMissing = fix
   def argumentRedundant = fix
@@ -92,6 +94,7 @@ object Disposition {
   def operationInvalid = fix
   def resourceInconsistency = fix
   def recordNotFound = fix
+  def operationNotFound = fix
   def valueInvalid = fix
   def valueFormatError = fix
   def unreachableReached = defect
@@ -102,6 +105,10 @@ object Disposition {
   def invariantViolation = defect
   def preconditionViolation = defect
   def postconditionViolation = defect
+
+  def apply(u: UserAction): Disposition = Disposition(Some(u), None)
+  def apply(u: UserAction, r: Responsibility): Disposition =
+    Disposition(Some(u), Some(r))
 
   def from(e: Throwable): Disposition = e match {
     case _ => none

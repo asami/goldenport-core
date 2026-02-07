@@ -40,7 +40,7 @@ import org.goldenport.schema.Constraint
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  5, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -92,6 +92,8 @@ case class Observation(
 
   def withSeverity(p: Option[Severity]): Observation = p.fold(this)(withSeverity)
   def withSeverity(p: Severity): Observation = copy(assessment = assessment.withSeverity(p))
+
+  def withSourcePosition(p: SourcePosition): Observation = copy(cause = cause.withSourcePosition(p))
 
   def toCategoryArgument = copy(taxonomy = taxonomy.toCategoryArgument)
 }
@@ -205,6 +207,11 @@ object Observation {
     Descriptor.Facet.Record(rec)
   )
 
+  def operationNotFound(pos: SourcePosition, name: String): Observation = failure(
+    Taxonomy.operationNotFound,
+    Descriptor.Facet.Operation(name)
+  )
+
   // State
   def stateConflict(state: String): Observation = failure(
     Taxonomy.stateConflict,
@@ -252,12 +259,23 @@ object Observation {
 
   def rejection(
     t: Taxonomy,
+    facets: Seq[Descriptor.Facet]
+  ): Observation =
+    rejection(t, Cause.create(facets))
+
+  def rejection(
+    t: Taxonomy,
     descriptor: Descriptor
   ): Observation =
     rejection(t, Cause(None, descriptor))
 
   def rejection(t: Taxonomy, c: Cause): Observation = Observation(
     Phenomenon.Rejection, t, c, Instant.now()
+  )
+
+  def rejection(t: Taxonomy, c: Cause, o: Option[Occurrence]): Observation = Observation(
+    Phenomenon.Rejection, t, c, Instant.now(),
+    occurrence = o
   )
 
   def rejection(t: Taxonomy): Observation = Observation(
@@ -281,21 +299,13 @@ object Observation {
     Assessment.failure
   )
 
-  // def create(t: Taxonomy, c: Cause, msg: String): Observation =
-  //   create(t, c, Descriptor.Facet.Message(msg))
-
-  // def create(t: Taxonomy, c: Cause, facet: Descriptor.Facet): Observation =
-  //   create(t, c.addFacet(facet))
-
-  // def create(t: Taxonomy, c: Cause): Observation = Observation(
-  //   Phenomenon.Failure, t, c, Instant.now()
-  // )
-
-  // def create(t: Taxonomy, msg: String): Observation =
-  //   create(t, Cause.message(msg))
-
-  // def create(t: Taxonomy, facet: Descriptor.Facet): Observation =
-  //   create(t, Cause(facet))
+  def failure(t: Taxonomy, c: Cause, o: Option[Occurrence]): Observation = Observation(
+    Phenomenon.Failure,
+    t,
+    c,
+    Instant.now(),
+    occurrence = o
+  )
 }
 
 /**
@@ -352,6 +362,8 @@ object Taxonomy {
       * This category is used as a last resort for fundamental or infrastructural failures.
       */
     case System extends Category("system", 6)
+
+    case Network extends Category("operation", 10)
 
     case OutOfControl extends Category("out-of-control", 8)
 
@@ -440,6 +452,11 @@ object Taxonomy {
     Symptom.Invalid
   )
 
+  val operationNotFound: Taxonomy = Taxonomy(
+    Category.Operation,
+    Symptom.NotFound
+  )
+
   // Resource
   val resourceNotFound: Taxonomy = Taxonomy(
     Category.Resource,
@@ -475,6 +492,12 @@ object Taxonomy {
   val valueFormatError: Taxonomy = Taxonomy(
     Category.Value,
     Symptom.FormatError
+  )
+
+  // Netowrk
+  val networkUnavailable: Taxonomy = Taxonomy(
+    Category.Network,
+    Symptom.Unavailable
   )
 
   // Out of Control
@@ -549,6 +572,8 @@ case class Cause(
   def withException(p: Option[Throwable]): Cause = p.fold(this)(withException)
 
   def withException(p: Throwable): Cause = addFacet(Descriptor.Facet.Exception(p))
+
+  def withSourcePosition(p: SourcePosition): Cause = addFacet(Descriptor.Facet.SrcPos(p))
 
   def getMessage: Option[String] = descriptor.getMessage
   def getEffectiveMessage: Option[String] = descriptor.getEffectiveMessage
@@ -661,6 +686,11 @@ object Cause {
   def create(p: Descriptor.Facet, ps: Seq[Descriptor.Facet]): Cause =
     Cause(Descriptor(p, ps))
 
+  def create(ps: Seq[Descriptor.Facet]): Cause = ps.toList match {
+    case Nil => Cause.empty
+    case x :: xs => Cause(Descriptor(x, xs))
+  }
+
   def message(msg: String): Cause =
     Cause(Descriptor.message(msg))
 
@@ -688,6 +718,13 @@ case class Occurrence(
   channel: Channel,
   substrate: Substrate
 )
+object Occurrence {
+  val network = Occurrence(
+    Source.externalSystem,
+    Channel.network,
+    Substrate.network
+  )
+}
 
 case class Involvement(
   subject: Subject,
@@ -776,6 +813,7 @@ object Source {
     ) extends Detail
   }
 
+  val externalSystem = Source(Kind.ExternalSystem)
   val inMemory = Source(Kind.InMemory)
 }
 
@@ -819,6 +857,7 @@ object Channel {
     ) extends Detail
   }
 
+  val network = Channel(Kind.Network)
   val command = Channel(Kind.Command)
 }
 
@@ -903,6 +942,7 @@ object Substrate {
   ) extends Detail
 
   val jvm = Substrate(Kind.Jvm)
+  val network = Substrate(Kind.Network)
 }
 
 /**

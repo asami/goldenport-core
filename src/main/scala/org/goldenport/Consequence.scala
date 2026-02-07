@@ -46,7 +46,7 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
- * @version Feb.  6, 2026
+ * @version Feb.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -486,7 +486,7 @@ object Consequence {
   //   ))
 //  def failArgumentMissing: FailureBuilder = ???
 //  def failArgumentRedundant: FailureBuilder = ???
-  def failArgumentValidationError: FailureBuilder = ???
+//  def failArgumentValidationError: FailureBuilder = ???
 
   final case class FailureBuilder(
     cause: Cause,
@@ -537,11 +537,20 @@ object Consequence {
     }
 
   // Fail
-  def fail[A](o: Observation): Consequence.Failure[A] = ???
+  inline def fail(o: Observation): Consequence.Failure[Nothing] =
+    Failures.fail(o)
 
-  def fail[A](taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]): Consequence[A] = {
-    ???
-  }
+  inline def fail(taxonomy: Taxonomy, message: String): Consequence.Failure[Nothing] =
+    fail(taxonomy, Cause.message(message))
+
+  inline def fail(taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]): Consequence.Failure[Nothing] =
+    Failures.fail(taxonomy, Descriptor.Facet.Message(message) +: facets)
+
+  inline def fail(taxonomy: Taxonomy, e: Throwable, facets: Seq[Descriptor.Facet] = Nil): Consequence.Failure[Nothing] =
+    Failures.fail(taxonomy, Descriptor.Facet.Exception(e) +: facets)
+
+  inline def fail(taxonomy: Taxonomy, cause: Cause): Consequence.Failure[Nothing] =
+    Failures.fail(taxonomy, cause)
 
   // def failArgumentEmpty[A]: Consequence.Failure[A] =
   //   Consequence.Failure(Conclusion.failArgumentEmpty)
@@ -584,6 +593,9 @@ object Consequence {
 
   def failArgumentMultipleValues[A](name: String): Consequence.Failure[A] = ???
 
+  inline def failOperationNotFound[A](name: String): Consequence[A] =
+    Failures.operationNotFound(name)
+
   def failOperationInvalid[A](name: String): Consequence[A] =
     Consequence.Failure(Conclusion.failOperationInvalid(name))
 
@@ -598,6 +610,9 @@ object Consequence {
 
   def failValueFormatError[A](value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failValueFormatError(value, dt))
+
+  inline def failNetworkUnavailable(e: Throwable, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
+    fail(Taxonomy.networkUnavailable, e, (facet +: facets))
 
   inline def failUnreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
@@ -631,6 +646,10 @@ object Consequence {
 
   def failPostconditionViolation[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failPostconditionViolation(msg))
+
+  //
+  inline def notImplemented(msg: String): Consequence.Failure[Nothing] =
+    fail(Taxonomy.notImplemented, Cause.message(msg))
 
   // RAISE
   object RAISE {
