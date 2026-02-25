@@ -22,7 +22,7 @@ import org.goldenport.http.HttpRequest
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  7, 2026
+ * @version Feb. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -107,11 +107,13 @@ object Conclusion {
       case Taxonomy.Category.Property => badRequest
       case Taxonomy.Category.Configuration => internalServerError
       case Taxonomy.Category.Resource => internalServerError
+      case Taxonomy.Category.Reference => serviceUnavailable
       case Taxonomy.Category.State => internalServerError
       case Taxonomy.Category.Value => badRequest
       case Taxonomy.Category.Record => badRequest
       case Taxonomy.Category.Operation => badRequest
       case Taxonomy.Category.System => internalServerError
+      case Taxonomy.Category.DataStore => internalServerError // Hint
       case Taxonomy.Category.Network => serviceUnavailable
       case Taxonomy.Category.OutOfControl => internalServerError
     }

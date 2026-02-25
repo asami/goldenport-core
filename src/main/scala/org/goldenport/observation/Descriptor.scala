@@ -5,6 +5,7 @@ import java.net.URI
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
 import org.goldenport.text.Presentable
+import org.goldenport.id.UniversalId
 import org.goldenport.util.StringUtils
 
 /**
@@ -14,7 +15,7 @@ import org.goldenport.util.StringUtils
 /*
  * @since   Dec. 28, 2025
  *  version Jan. 31, 2026
- * @version Feb.  7, 2026
+ * @version Feb. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -81,11 +82,20 @@ object Descriptor {
       kind: Resource.Kind,
       uri: URI
     ) extends Facet {
-      def print: String = s"resource:${Presentable.print(uri)}}"
+      def print: String = s"resource:${kind}:${Presentable.print(uri)}}"
     }
-
     object Resource {
       enum Kind { case File, Database }
+    }
+
+    case class Reference(
+      role: Reference.Role,
+      id: UniversalId
+    ) extends Facet {
+      def print = s"ref:${role}:${id.print}"
+    }
+    object Reference {
+      enum Role { case Participant, Target, Context }
     }
 
     case class Line(no: Int) extends Facet {
@@ -106,6 +116,9 @@ object Descriptor {
 
     case class Id(id: String) extends Facet {
       def print: String = s"id:${id}"
+    }
+    object Id {
+      def apply(id: UniversalId): Id = Id(id.print)
     }
 
     case class State(state: String) extends Facet {

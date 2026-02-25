@@ -1,72 +1,102 @@
 package org.goldenport.convert
 
+import org.goldenport.Consequence
+import org.goldenport.schema.*
+
 /*
  * @since   Oct. 17, 2025
- * @version Oct. 17, 2025
+ * @version Feb. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T]:
-  def read(value: Any): Option[T]
+  def read(value: Any): Option[T] = readC(value).toOption
+  def readC(value: Any): Consequence[T]
 
 object ValueReader {
+  // private def invalid[T](value: Any, expected: String): Consequence[T] =
+  //   Consequence.failure(s"Invalid $expected value: $value")
+
+  given ValueReader[Any] with
+    def readC(v: Any): Consequence[Any] = Consequence.success(v)
+
   given ValueReader[Boolean] with
-    def read(v: Any): Option[Boolean] = v match
-      case b: Boolean => Some(b)
-      case s: String => s.trim.toLowerCase match
-        case "true" | "t" | "yes" | "y" | "1" => Some(true)
-        case "false" | "f" | "no" | "n" | "0" => Some(false)
-        case _ => None
-      case n: Int => Some(n != 0)
-      case n: Long => Some(n != 0L)
-      case _ => None
+    def readC(v: Any): Consequence[Boolean] = v match
+      case b: Boolean => Consequence.success(b)
+      case s: String =>
+        s.trim.toLowerCase match
+          case "true" | "t" | "yes" | "y" | "1" => Consequence.success(true)
+          case "false" | "f" | "no" | "n" | "0" => Consequence.success(false)
+          case _ => Consequence.failValueInvalid(v, XBoolean)
+      case n: Int => Consequence.success(n != 0)
+      case n: Long => Consequence.success(n != 0L)
+      case _ => Consequence.failValueInvalid(v, XBoolean)
 
   given ValueReader[Int] with
-    def read(v: Any): Option[Int] = v match
-      case i: Int => Some(i)
-      case s: String => s.toIntOption
-      case l: Long if l.isValidInt => Some(l.toInt)
-      case _ => None
+    def readC(v: Any): Consequence[Int] = v match
+      case i: Int => Consequence.success(i)
+      case l: Long if l.isValidInt => Consequence.success(l.toInt)
+      case s: String =>
+        val trimmed = s.trim
+        trimmed.toIntOption match
+          case Some(value) => Consequence.success(value)
+          case None => Consequence.failValueInvalid(v, XInt)
+      case _ => Consequence.failValueInvalid(v, XInt)
 
   given ValueReader[Long] with
-    def read(v: Any): Option[Long] = v match
-      case l: Long => Some(l)
-      case i: Int => Some(i.toLong)
-      case s: String => s.toLongOption
-      case _ => None
+    def readC(v: Any): Consequence[Long] = v match
+      case l: Long => Consequence.success(l)
+      case i: Int => Consequence.success(i.toLong)
+      case s: String =>
+        val trimmed = s.trim
+        trimmed.toLongOption match
+          case Some(value) => Consequence.success(value)
+          case None => Consequence.failValueInvalid(v, XLong)
+      case _ => Consequence.failValueInvalid(v, XLong)
 
   given ValueReader[Double] with
-    def read(v: Any): Option[Double] = v match
-      case d: Double => Some(d)
-      case f: Float => Some(f.toDouble)
-      case i: Int => Some(i.toDouble)
-      case l: Long => Some(l.toDouble)
-      case s: String => s.toDoubleOption
-      case _ => None
+    def readC(v: Any): Consequence[Double] = v match
+      case d: Double => Consequence.success(d)
+      case f: Float => Consequence.success(f.toDouble)
+      case i: Int => Consequence.success(i.toDouble)
+      case l: Long => Consequence.success(l.toDouble)
+      case s: String =>
+        val trimmed = s.trim
+        trimmed.toDoubleOption match
+          case Some(value) => Consequence.success(value)
+          case None => Consequence.failValueInvalid(v, XDouble)
+      case _ => Consequence.failValueInvalid(v, XDouble)
 
   given ValueReader[BigInt] with
-    def read(v: Any): Option[BigInt] = v match
-      case bi: BigInt => Some(bi)
-      case i: Int => Some(BigInt(i))
-      case l: Long => Some(BigInt(l))
+    def readC(v: Any): Consequence[BigInt] = v match
+      case bi: BigInt => Consequence.success(bi)
+      case i: Int => Consequence.success(BigInt(i))
+      case l: Long => Consequence.success(BigInt(l))
       case s: String =>
-        try Some(BigInt(s.trim)) catch { case _: NumberFormatException => None }
-      case _ => None
+        try
+          Consequence.success(BigInt(s.trim))
+        catch
+          case _: NumberFormatException => Consequence.failValueInvalid(v, XInteger)
+      case _ => Consequence.failValueInvalid(v, XInteger)
 
   given ValueReader[BigDecimal] with
-    def read(v: Any): Option[BigDecimal] = v match
-      case bd: BigDecimal => Some(bd)
-      case bi: BigInt => Some(BigDecimal(bi))
-      case d: Double => Some(BigDecimal(d))
-      case f: Float => Some(BigDecimal.decimal(f))
-      case i: Int => Some(BigDecimal(i))
-      case l: Long => Some(BigDecimal(l))
+    def readC(v: Any): Consequence[BigDecimal] = v match
+      case bd: BigDecimal => Consequence.success(bd)
+      case bi: BigInt => Consequence.success(BigDecimal(bi))
+      case d: Double => Consequence.success(BigDecimal(d))
+      case f: Float => Consequence.success(BigDecimal.decimal(f))
+      case i: Int => Consequence.success(BigDecimal(i))
+      case l: Long => Consequence.success(BigDecimal(l))
       case s: String =>
-        try Some(BigDecimal(s.trim)) catch { case _: NumberFormatException => None }
-      case _ => None
+        try
+          Consequence.success(BigDecimal(s.trim))
+        catch
+          case _: NumberFormatException => Consequence.failValueInvalid(v, XDecimal)
+      case _ => Consequence.failValueInvalid(v, XDecimal)
 
   given ValueReader[String] with
-    def read(v: Any): Option[String] = v match
-      case s: String => Some(s)
-      case null => None
-      case other => Some(other.toString)
+    def readC(v: Any): Consequence[String] = v match
+      case null => Consequence.failValueInvalid(v, XString)
+      case s: String => Consequence.success(s)
+      case other => Consequence.success(other.toString)
+
 }

@@ -2,7 +2,8 @@ package org.goldenport.id
 
 import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
-import org.goldenport.text.Presentable
+// import org.goldenport.text.Presentable
+import org.goldenport.datatype.Identifier
 
 /**
  * UniversalId is an opaque, value-based operational identifier with a canonical string format.
@@ -37,7 +38,8 @@ import org.goldenport.text.Presentable
 /*
  * @since   Dec. 31, 2025
  *  version Jan.  1, 2026
- * @version Jan. 20, 2026
+ *  version Jan. 20, 2026
+ * @version Feb. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
@@ -45,33 +47,42 @@ abstract class UniversalId protected (
   minor: String,
   kind: String,
   subkind: Option[String]
-) extends Presentable {
+) extends Identifier {
   // Auxiliary constructor for backward compatibility
   protected def this(
     major: String,
     minor: String,
     kind: String
-  ) =
-    this(major, minor, kind, None)
+  ) = this(major, minor, kind, None)
+
+  protected def this(
+    major: String,
+    minor: String,
+    kind: String,
+    subkind: String
+  ) = this(major, minor, kind, Some(subkind))
+
   import UniversalId._
 
-  private def validateLabel(name: String, value: String): Unit = {
+  override protected def do_validation_in_init = false
+
+  private def _validate_label(name: String, value: String): Unit = {
     require(
       AllowedLabelPattern.matches(value),
       s"$name must match pattern [A-Za-z0-9_]+ but was: '$value'"
     )
   }
 
-  validateLabel("major", major)
-  validateLabel("minor", minor)
-  validateLabel("kind", kind)
-  subkind.foreach(validateLabel("subkind", _))
+  _validate_label("major", major)
+  _validate_label("minor", minor)
+  _validate_label("kind", kind)
+  subkind.foreach(_validate_label("subkind", _))
 
   private val _parts = UniversalId.Parts.create(major, minor, kind, subkind)
 
   def value: String = _parts.value
 
-  def print: String = value
+//  def print: String = value
 
   override def display: String = {
     val sk = subkind.map(sk => s"-$sk").getOrElse("")

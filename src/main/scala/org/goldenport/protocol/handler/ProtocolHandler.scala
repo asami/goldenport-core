@@ -6,7 +6,8 @@ import org.goldenport.protocol.handler.egress.*
 
 /*
  * @since   Dec. 28, 2025
- * @version Jan. 17, 2026
+ *  version Jan. 17, 2026
+ * @version Feb. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ProtocolHandler(
@@ -18,6 +19,8 @@ case class ProtocolHandler(
 object ProtocolHandler {
   val empty = ProtocolHandler()
   val default = ProtocolHandler(
-    IngressCollection(ArgsIngress(), RestIngress())
+    IngressCollection.default,
+    EgressCollection.default,
+    ProjectionCollection.default
   )
 }

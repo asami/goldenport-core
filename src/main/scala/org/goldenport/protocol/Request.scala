@@ -7,6 +7,7 @@ import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.text.Presentable
 import org.goldenport.http.HttpRequest
+import org.goldenport.record.Record
 
 /*
  * @since   Oct.  4, 2018
@@ -25,7 +26,7 @@ import org.goldenport.http.HttpRequest
  *  version Jun. 10, 2025
  *  version Dec. 24, 2025
  *  version Jan. 30, 2026
- * @version Feb.  1, 2026
+ * @version Feb. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -67,6 +68,11 @@ case class Request(
         case _ =>
           arg
       }
+  }
+
+  def toRecord: Record = {
+    val props = (arguments ++ switches ++ properties).map(x => x.name -> x.value)
+    Record.create(props)
   }
 }
 

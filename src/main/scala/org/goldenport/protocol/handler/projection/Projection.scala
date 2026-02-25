@@ -6,7 +6,8 @@ import org.goldenport.protocol.spec.ServiceDefinitionGroup
 /*
  * @since   Dec. 30, 2025
  *  version Dec. 30, 2025
- * @version Jan. 28, 2026
+project *  version Jan. 28, 2026
+project * @version Feb. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ProjectionKind[Out] {
@@ -50,6 +51,8 @@ object ProjectionCollection {
   /** Canonical empty instance */
   val empty: ProjectionCollection =
     new ProjectionCollection(Vector.empty)
+
+  val default: ProjectionCollection = empty
 
   /** Binary-compatible zero-arg constructor */
   def apply(): ProjectionCollection =

@@ -1,8 +1,11 @@
 package org.goldenport.datatype
 
+import cats.Eq
+
 /*
  * @since   Jul. 23, 2025
- * @version Jan. 20, 2026
+ *  version Jan. 20, 2026
+ * @version Feb. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class IntDataType() extends DataType() {
@@ -34,4 +37,5 @@ abstract class IntDataType() extends DataType() {
 }
 
 object IntDataType {
+  given eqIntDataType[A <: IntDataType]: Eq[A] = Eq.by(_.value)
 }

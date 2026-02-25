@@ -1,14 +1,19 @@
 package org.goldenport.datatype
 
+import cats.Eq
+
 /*
  * @since   Jul. 20, 2025
  *  version Jul. 23, 2025
  *  version Dec. 30, 2025
- * @version Jan. 20, 2026
+ *  version Jan. 20, 2026
+ * @version Feb. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class StringDataType() extends DataType() {
   import StringDataType._
+
+  protected def do_validation_in_init: Boolean = true
 
   def value: String
 
@@ -34,9 +39,9 @@ abstract class StringDataType() extends DataType() {
   protected final def is_valid_string(p: String): Boolean =
     is_valid(p) && is_Valid(p).getOrElse(true)
 
-  require (is_valid_min, s"Too short: ${value.length}")
-  require (is_valid_max, s"Too large: ${value.length}")
-  require (is_valid_string(value), s"Invalid value")
+  if (do_validation_in_init) {
+    do_validation()
+  }
 
   protected final def validate_printable(s: String) =
     isValidPrintable(s)
@@ -46,9 +51,17 @@ abstract class StringDataType() extends DataType() {
 
   protected final def validate_identifier(s: String) =
     isValidIdentifier(s)
+
+  protected def do_validation(): Unit = {
+    require (is_valid_min, s"Too short: ${value.length}")
+    require (is_valid_max, s"Too large: ${value.length}")
+    require (is_valid_string(value), s"Invalid value")
+  }
 }
 
 object StringDataType {
+  given eqStringDataType[A <: StringDataType]: Eq[A] = Eq.by(_.value)
+
   def isValidPrintable(s: String): Boolean =
     !s.exists(ch => ch <= '\u001F' || ch == '\u007F')
 

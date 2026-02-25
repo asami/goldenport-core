@@ -10,7 +10,7 @@ import org.goldenport.datatype.PathName
  *  version Nov.  7, 2025
  *  version Dec. 25, 2025
  *  version Jan. 10, 2026
- * @version Feb.  5, 2026
+ * @version Feb. 23, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -23,11 +23,19 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
       }
     }
 
+  def getAsC[T](key: String)(using reader: ValueReader[T]): Consequence[T] =
+    fields.find(_.key == key) match {
+      case None => Consequence.failRecordNotFound(key, this)
+      case Some(field) => field.value match {
+        case Field.Value.Single(v) => reader.readC(v)
+      }
+    }
+
   def as[T](key: String)(using reader: ValueReader[T]): T =
     asC(key).RAISE
 
   def asC[T](key: String)(using reader: ValueReader[T]): Consequence[T] =
-    Consequence.successOrRecordNotFound(getAs(key), key, this)
+    Consequence.successOrRecordNotFound(this, key)
 
   def keySet: Set[String] = asMap.keySet
 
@@ -37,6 +45,18 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     fields.map(x => x.key -> x.value.single.toString)
 
   def ++(rhs: Record): Record = copy(fields = fields ++ rhs.fields)
+
+  def update(p: (String, Any), ps: (String, Any)*): Record = update(Field.creates(p +: ps))
+
+  def update(rec: Record): Record = ???
+
+  def update(ps: Seq[Field]): Record = ???
+
+  def complement(p: (String, Any), ps: (String, Any)*): Record = complement(Field.creates(p +: ps))
+
+  def complement(rec: Record): Record = ???
+
+  def complement(ps: Seq[Field]): Record = ???
 
   /**
    * Returns a new Record containing only fields whose keys are in the given set.

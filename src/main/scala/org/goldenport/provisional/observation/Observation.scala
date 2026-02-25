@@ -41,7 +41,7 @@ import org.goldenport.observation.calltree.CallTree
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb.  7, 2026
+ * @version Feb. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -203,12 +203,20 @@ object Observation {
     Descriptor.Facet.SrcPos(pos)
   )
 
+  // Reference
+  def referenceNotFound(id: UniversalId): Observation = rejection(
+    Taxonomy.referenceNotFound,
+    Descriptor.Facet.Id(id)
+  )
+
+  // Record
   def recordNotFound(pos: SourcePosition, key: String, rec: Record): Observation = failure(
     Taxonomy.recordNotFound,
     Descriptor.Facet.Key(key),
     Descriptor.Facet.Record(rec)
   )
 
+  // Operation
   def operationNotFound(pos: SourcePosition, name: String): Observation = failure(
     Taxonomy.operationNotFound,
     Descriptor.Facet.Operation(name)
@@ -351,6 +359,8 @@ object Taxonomy {
       */
     case Resource extends Category("resource", 4)
 
+    case Reference extends Category("reference", 12)
+
     /** The problem is observed in the state of a system, component, or domain entity.
       * This category is used when the issue concerns invalid or prohibited states or state transitions.
       */
@@ -364,6 +374,8 @@ object Taxonomy {
       * This category is used as a last resort for fundamental or infrastructural failures.
       */
     case System extends Category("system", 6)
+
+    case DataStore extends Category("datastore", 11)
 
     case Network extends Category("operation", 10)
 
@@ -401,6 +413,7 @@ object Taxonomy {
     case Invalid extends Symptom("invalid", 12)
     /** The observed data or resource is damaged, inconsistent, or internally broken in a way that prevents correct use. */
     case Corrupted extends Symptom("corrupted", 13)
+    case Duplicate extends Symptom("duplicate", 22)
 
     // OutOfControl
     case UnreachableReached extends Symptom("unreachable-reached", 14)
@@ -496,10 +509,22 @@ object Taxonomy {
     Symptom.FormatError
   )
 
+  // DataStore
+  val dataStoreDuplicate: Taxonomy = Taxonomy(
+    Category.DataStore,
+    Symptom.Duplicate
+  )
+
   // Netowrk
   val networkUnavailable: Taxonomy = Taxonomy(
     Category.Network,
     Symptom.Unavailable
+  )
+
+  // Reference
+  val referenceNotFound: Taxonomy = Taxonomy(
+    Category.Reference,
+    Symptom.NotFound
   )
 
   // Out of Control

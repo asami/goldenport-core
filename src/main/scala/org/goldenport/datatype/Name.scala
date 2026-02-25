@@ -12,7 +12,8 @@ import org.goldenport.convert.ValueReader
  * @since   Jul. 20, 2025
  *  version Jul. 23, 2025
  *  version Sep. 17, 2025
- * @version Nov. 19, 2025
+ *  version Nov. 19, 2025
+ * @version Feb. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Name() extends StringDataType() {
@@ -40,7 +41,12 @@ object Name {
   }
 
   given ValueReader[Name] with
-      def read(v: Any): Option[Name] = ???
+    def readC(v: Any): Consequence[Name] = Option(v) match
+      case None => Consequence.failure("Invalid Name value: null")
+      case Some(value) => value match
+        case n: Name => Consequence.success(n)
+        case s: String => Consequence.success(Name(s))
+        case other => Consequence.success(Name(other.toString))
 
   def apply(s: String): Name = Instance(s)
 

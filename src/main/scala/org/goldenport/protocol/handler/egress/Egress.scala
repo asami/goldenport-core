@@ -13,7 +13,8 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 28, 2026
+ *  version Jan. 28, 2026
+ * @version Feb. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Egress[Out] {
@@ -69,8 +70,9 @@ final case class EgressCollection(
 object EgressCollection {
 
   /** Canonical empty instance */
-  val empty: EgressCollection =
-    new EgressCollection(Vector.empty)
+  val empty: EgressCollection = new EgressCollection(Vector.empty)
+
+  val default: EgressCollection = new EgressCollection(Vector(RestEgress()))
 
   /** Binary-compatible zero-arg constructor */
   def apply(): EgressCollection =

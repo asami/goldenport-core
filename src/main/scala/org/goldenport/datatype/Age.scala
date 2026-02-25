@@ -10,7 +10,8 @@ import org.goldenport.convert.ValueReader
 
 /*
  * @since   Sep. 17, 2025
- * @version Nov. 19, 2025
+ *  version Nov. 19, 2025
+ * @version Feb. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Age() extends NonNegativeInt() {
@@ -23,7 +24,17 @@ object Age {
   final val MAX_DEFAULT = 150
 
   given ValueReader[Age] with
-      def read(v: Any): Option[Age] = ???
+      def readC(v: Any): Consequence[Age] = v match
+        case a: Age => Consequence.success(a)
+        case i: Int => createC(i)
+        case l: Long if l.isValidInt => createC(l.toInt)
+        case s: String =>
+          try
+            createC(s.trim.toInt)
+          catch
+            case _: NumberFormatException =>
+              Consequence.failure(s"Invalid Age value: $s")
+        case _ => Consequence.failure(s"Invalid Age value: $v")
 
   // Age is serialized as an integer.
   // Decoder uses emap so validation errors can be returned later.

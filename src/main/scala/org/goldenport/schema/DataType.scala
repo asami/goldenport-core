@@ -46,7 +46,7 @@ import org.goldenport.text.Presentable
  *  version Sep. 17, 2025
  *  version Dec. 29, 2025
  *  version Jan. 29, 2026
- * @version Feb.  6, 2026
+ * @version Feb. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -58,7 +58,6 @@ sealed trait DataType extends Presentable {
 }
 
 object DataType {
-
   // /*
   //  * Declares that a field uses a value object datatype identified by name.
   //  *
@@ -69,57 +68,32 @@ object DataType {
   // final case class ValueObject(name: String) extends Datatype
 }
 
+trait CanonicalDataType[T] extends DataType {
+  def normalizer: CanonicalNormalizer[T]
+}
+
 case object XString extends DataType {
   def name = "string"
 }
 
-abstract class CanonicalNormalizer[T] {
-  def datatype: DataType
-  
-  def normalize(value: Any): Consequence[T]
-
-  def normalizeAll(values: Vector[Any]): Consequence[Vector[T]] =
-    Consequence.zipN(values.map(normalize)).map(_.toVector)
-
-  final protected def fail_value_invalid(value: Any) = Consequence.failValueInvalid(value, datatype)
-
-  final protected def fail_value_format_error(value: Any) = Consequence.failValueFormatError(value, datatype)
+case object XBoolean extends DataType {
+  def name = "boolean"
 }
 
-private object CanonicalFailure {
-  // def format[A](message: String): Consequence[A] = {
-  //   val base = Conclusion.simple(message)
-  //   val observation = base.observation.copy(
-  //     cause = Some(Cause.FormatError),
-  //     message = Some(I18nMessage(message))
-  //   )
-  //   Consequence.Failure(base.copy(observation = observation))
-  // }
-//  def format[A](message: String): Consequence[A] = Consequence.createFormatError(message)
+case object XInt extends DataType {
+  def name = "int"
 }
 
-case class BigIntNormalizer(datatype: DataType) extends CanonicalNormalizer[BigInt] {
-  def normalize(value: Any): Consequence[BigInt] =
-    value match {
-      case v: BigInt => Consequence.success(v)
-      case v: Int => Consequence.success(BigInt(v))
-      case v: Long => Consequence.success(BigInt(v))
-      case v: Short => Consequence.success(BigInt(v.toInt))
-      case v: String =>
-        Try(BigInt(v)) match {
-          case scala.util.Success(result) => Consequence.success(result)
-          case scala.util.Failure(_) =>
-            // CanonicalFailure.format("format error: integer value")
-            fail_value_format_error(value)
-        }
-      case _ =>
-        // CanonicalFailure.format("format error: integer value")
-        fail_value_invalid(value)
-    }
+case object XLong extends DataType {
+  def name = "long"
 }
 
-trait CanonicalDataType[T] extends DataType {
-  def normalizer: CanonicalNormalizer[T]
+case object XFloat extends DataType {
+  def name = "float"
+}
+
+case object XDouble extends DataType {
+  def name = "double"
 }
 
 abstract class IntegerDataType extends CanonicalDataType[BigInt] {
@@ -140,6 +114,10 @@ case object XNonNegativeInteger extends IntegerDataType {
 case object XPositiveInteger extends IntegerDataType {
   def name = "positiveInteger"
   def isValid(value: BigInt): Boolean = value > 0
+}
+
+case object XDecimal extends DataType {
+  def name = "decimal"
 }
 
 case class ZonedDateTimeNormalizer(datatype: DataType) extends CanonicalNormalizer[ZonedDateTime] {
@@ -207,4 +185,50 @@ case object XLocalDateTime extends CanonicalDataType[LocalDateTime] {
 case object XYearMonth extends CanonicalDataType[YearMonth] {
   def name = "yearMonth"
   def normalizer: CanonicalNormalizer[YearMonth] = YearMonthNormalizer(this)
+}
+
+
+abstract class CanonicalNormalizer[T] {
+  def datatype: DataType
+  
+  def normalize(value: Any): Consequence[T]
+
+  def normalizeAll(values: Vector[Any]): Consequence[Vector[T]] =
+    Consequence.zipN(values.map(normalize)).map(_.toVector)
+
+  final protected def fail_value_invalid(value: Any) = Consequence.failValueInvalid(value, datatype)
+
+  final protected def fail_value_format_error(value: Any) = Consequence.failValueFormatError(value, datatype)
+}
+
+private object CanonicalFailure {
+  // def format[A](message: String): Consequence[A] = {
+  //   val base = Conclusion.simple(message)
+  //   val observation = base.observation.copy(
+  //     cause = Some(Cause.FormatError),
+  //     message = Some(I18nMessage(message))
+  //   )
+  //   Consequence.Failure(base.copy(observation = observation))
+  // }
+//  def format[A](message: String): Consequence[A] = Consequence.createFormatError(message)
+}
+
+case class BigIntNormalizer(datatype: DataType) extends CanonicalNormalizer[BigInt] {
+  def normalize(value: Any): Consequence[BigInt] =
+    value match {
+      case v: BigInt => Consequence.success(v)
+      case v: Int => Consequence.success(BigInt(v))
+      case v: Long => Consequence.success(BigInt(v))
+      case v: Short => Consequence.success(BigInt(v.toInt))
+      case v: String =>
+        Try(BigInt(v)) match {
+          case scala.util.Success(result) => Consequence.success(result)
+          case scala.util.Failure(_) =>
+            // CanonicalFailure.format("format error: integer value")
+            fail_value_format_error(value)
+        }
+      case _ =>
+        // CanonicalFailure.format("format error: integer value")
+        fail_value_invalid(value)
+    }
 }

@@ -22,7 +22,8 @@ import org.goldenport.http.HttpRequest
  * @since   Dec. 28, 2025
  *  version Dec. 28, 2025
  *  version Jan.  2, 2026
- * @version Jan. 28, 2026
+ *  version Jan. 28, 2026
+ * @version Feb. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -77,6 +78,9 @@ object IngressCollection {
   /** Canonical empty instance */
   val empty: IngressCollection =
     new IngressCollection(Vector.empty)
+
+  val default: IngressCollection =
+    new IngressCollection(Vector(ArgsIngress(), RestIngress()))
 
   /** Binary-compatible zero-arg constructor */
   def apply(): IngressCollection =

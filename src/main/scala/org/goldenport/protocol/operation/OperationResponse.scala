@@ -10,7 +10,7 @@ import org.goldenport.http.HttpResponse
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
  *  version Jan. 21, 2026
- * @version Feb.  4, 2026
+ * @version Feb. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -22,6 +22,8 @@ abstract class OperationResponse extends Presentable {
 }
 
 object OperationResponse {
+  val void = Void()
+
   final case class Void() extends OperationResponse {
     def toResponse: Response = Response.Void()
     override def print: String = "Void"

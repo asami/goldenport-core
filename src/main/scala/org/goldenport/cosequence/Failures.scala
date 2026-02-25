@@ -11,7 +11,7 @@ import org.goldenport.record.Record
 
 /*
  * @since   Jan. 31, 2026
- * @version Feb.  7, 2026
+ * @version Feb. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {
@@ -50,6 +50,11 @@ object Failures {
        val pos = ${ SourcePositionMacro.capture }
        Consequence.Failure(Conclusion.failure(pos, $taxonomy, $facets))
      }
+
+  inline def fail(
+    taxonomy: Taxonomy
+  ): Consequence.Failure[Nothing] =
+    ${ _fail_facet('taxonomy, 'Nil) }
 
   // inline def fail(
   //   taxonomy: Taxonomy,

@@ -9,11 +9,13 @@ import org.goldenport.text.Presentable
 import org.goldenport.record.Record
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
+import org.goldenport.convert.ValueReader
 import org.goldenport.provisional.observation.Observation
 import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.provisional.observation.Cause
 import org.goldenport.observation.Descriptor
 import org.goldenport.http.HttpRequest
+import org.goldenport.id.UniversalId
 
 /*
  * @since   Feb. 21, 2021
@@ -46,7 +48,7 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
- * @version Feb.  7, 2026
+ * @version Feb. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -146,6 +148,9 @@ sealed trait Consequence[+T] extends Presentable {
 }
 
 object Consequence {
+  val unit: Consequence[Unit] = Consequence(())
+  def none[T]: Consequence[Option[T]] = Consequence(None)
+
   case class Success[+T](
     result: T
   ) extends Consequence[T] {
@@ -533,21 +538,37 @@ object Consequence {
 
   // Success or Fail
 
-  inline def successOrRecordNotFound[T](p: Option[T], key: String, rec: Record): Consequence[T] =
+  inline def successOrFail[T](p: Option[T])(observation: Observation): Consequence[T] =
     p match {
       case Some(s) => Consequence.success(s)
-      case None => failRecordNotFound(key, rec)
+      case None => fail(observation)
     }
+
+
+  inline def successOrFail[T](p: Option[T])(taxonomy: Taxonomy): Consequence[T] =
+    p match {
+      case Some(s) => Consequence.success(s)
+      case None => fail(taxonomy)
+    }
+
+  inline def successOrRecordNotFound[T](rec: Record, key: String)(using reader: ValueReader[T]): Consequence[T] =
+    rec.getAsC[T](key)
 
   // Fail
   inline def fail(o: Observation): Consequence.Failure[Nothing] =
     Failures.fail(o)
+
+  inline def fail(taxonomy: Taxonomy): Consequence.Failure[Nothing] =
+    fail(taxonomy)
 
   inline def fail(taxonomy: Taxonomy, message: String): Consequence.Failure[Nothing] =
     fail(taxonomy, Cause.message(message))
 
   inline def fail(taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, Descriptor.Facet.Message(message) +: facets)
+
+  inline def fail(taxonomy: Taxonomy, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
+    Failures.fail(taxonomy, facet +: facets)
 
   inline def fail(taxonomy: Taxonomy, e: Throwable, facets: Seq[Descriptor.Facet] = Nil): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, Descriptor.Facet.Exception(e) +: facets)
@@ -651,8 +672,23 @@ object Consequence {
     Consequence.Failure(Conclusion.failPostconditionViolation(msg))
 
   //
-  inline def notImplemented(msg: String): Consequence.Failure[Nothing] =
+  inline def NotImplemented: Consequence.Failure[Nothing] =
+    fail(Taxonomy.notImplemented)
+
+  inline def NotImplemented(msg: String): Consequence.Failure[Nothing] =
     fail(Taxonomy.notImplemented, Cause.message(msg))
+
+  inline def DataStoreNotFound(id: String): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy.dataStoreDuplicate,
+      Descriptor.Facet.Id(id)
+    )
+
+  inline def DataStoreDuplicate(id: String): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy.dataStoreDuplicate,
+      Descriptor.Facet.Id(id)
+    )
 
   // RAISE
   object RAISE {
