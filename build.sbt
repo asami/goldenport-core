@@ -5,7 +5,7 @@ lazy val root = project
   .settings(
     organization := "org.goldenport",
     name := "goldenport-core",
-    version := "0.2.5",
+    version := "0.2.6",
 
     scalaVersion := scala3Version,
 
@@ -14,6 +14,7 @@ lazy val root = project
     libraryDependencies += "org.typelevel" %% "cats-kernel-laws" % "2.7.0",
     libraryDependencies += "org.typelevel" %% "cats-free" % "2.7.0",
     libraryDependencies += "org.typelevel" %% "cats-effect" % "3.3.0",
+    libraryDependencies += "org.typelevel" %% "kittens" % "3.5.0",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.10",
     libraryDependencies += "org.typelevel" %% "cats-testkit" % "2.7.0" % "test",
     libraryDependencies += "org.typelevel" %% "discipline-core" % "1.3.0" % "test",
