@@ -7,11 +7,12 @@ import org.goldenport.provisional.observation.Observation
 import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.provisional.observation.Cause
 import org.goldenport.observation.Descriptor
+import org.goldenport.observation.SourcePosition
 import org.goldenport.record.Record
 
 /*
  * @since   Jan. 31, 2026
- * @version Feb. 21, 2026
+ * @version Feb. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {
@@ -73,6 +74,9 @@ object Failures {
   //      val exceptionFacet = Descriptor.Facet.Exception($e)
   //      Consequence.Failure(Conclusion.failure(pos, $taxonomy, exceptionFacet +: $facets))
   //    }
+
+  def fail(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(c.withSourcePosition(pos))
 
   inline def resourceInconsistency: Consequence.Failure[Nothing] =
     ${ _resource_inconsistency }

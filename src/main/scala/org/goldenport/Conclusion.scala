@@ -22,7 +22,7 @@ import org.goldenport.http.HttpRequest
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb. 25, 2026
+ * @version Feb. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -32,6 +32,9 @@ case class Conclusion(
   disposition: Disposition,
   previous: Option[Conclusion] = None
 ) extends Presentable {
+  def withSourcePosition(p: SourcePosition): Conclusion =
+    copy(observation = observation.withSourcePosition(p))
+
   /**
    * Returns all causal conclusions in order.
    * If this conclusion is not composite, returns a single-element list.

@@ -10,7 +10,7 @@ import org.goldenport.datatype.PathName
  *  version Nov.  7, 2025
  *  version Dec. 25, 2025
  *  version Jan. 10, 2026
- * @version Feb. 23, 2026
+ * @version Feb. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -23,11 +23,11 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
       }
     }
 
-  def getAsC[T](key: String)(using reader: ValueReader[T]): Consequence[T] =
+  def getAsC[T](key: String)(using reader: ValueReader[T]): Consequence[Option[T]] =
     fields.find(_.key == key) match {
-      case None => Consequence.failRecordNotFound(key, this)
+      case None => Consequence.none
       case Some(field) => field.value match {
-        case Field.Value.Single(v) => reader.readC(v)
+        case Field.Value.Single(v) => reader.readC(v).map(Some.apply)
       }
     }
 
@@ -35,7 +35,12 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     asC(key).RAISE
 
   def asC[T](key: String)(using reader: ValueReader[T]): Consequence[T] =
-    Consequence.successOrRecordNotFound(this, key)
+    fields.find(_.key == key) match {
+      case None => Consequence.failRecordNotFound(key, this)
+      case Some(field) => field.value match {
+        case Field.Value.Single(v) => reader.readC(v)
+      }
+    }
 
   def keySet: Set[String] = asMap.keySet
 

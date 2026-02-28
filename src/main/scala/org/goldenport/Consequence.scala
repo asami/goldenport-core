@@ -5,6 +5,7 @@ import cats.data.NonEmptyVector
 import scala.util.{Failure => TryFailure, Success => TrySuccess, Try}
 import scala.util.control.NonFatal
 import org.goldenport.consequence.Failures
+import org.goldenport.consequence.SourcePositionMacro
 import org.goldenport.text.Presentable
 import org.goldenport.record.Record
 import org.goldenport.schema.DataType
@@ -14,6 +15,7 @@ import org.goldenport.provisional.observation.Observation
 import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.provisional.observation.Cause
 import org.goldenport.observation.Descriptor
+import org.goldenport.observation.SourcePosition
 import org.goldenport.http.HttpRequest
 import org.goldenport.id.UniversalId
 
@@ -48,7 +50,7 @@ import org.goldenport.id.UniversalId
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
- * @version Feb. 25, 2026
+ * @version Feb. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -342,6 +344,13 @@ object Consequence {
   def takeOrMissingPropertyFault[T](key: String, v: Option[T]): Consequence[T] =
     ???
 
+  def takeOrMissingPropertyFault[T](
+    key: String,
+    v: Consequence[Option[T]],
+    fallback: Option[T]
+  ): Consequence[T] =
+    ???
+
   def zip3[A, B, C](
     ca: Consequence[A],
     cb: Consequence[B],
@@ -551,8 +560,16 @@ object Consequence {
       case None => fail(taxonomy)
     }
 
-  inline def successOrRecordNotFound[T](rec: Record, key: String)(using reader: ValueReader[T]): Consequence[T] =
-    rec.getAsC[T](key)
+  inline def successOrRecordNotFound[T](rec: Record, key: String)(using reader: ValueReader[T]): Consequence[T] = {
+    val pos = SourcePositionMacro.position()
+    rec.getAsC[T](key) match {
+      case Consequence.Success(s) => s match {
+        case Some(ss) => Consequence.success(ss)
+        case None => fail(Observation.recordNotFound(pos, key, rec))
+      }
+      case Consequence.Failure(c) => fail(c, pos)
+    }
+  }
 
   // Fail
   inline def fail(o: Observation): Consequence.Failure[Nothing] =
@@ -575,6 +592,9 @@ object Consequence {
 
   inline def fail(taxonomy: Taxonomy, cause: Cause): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, cause)
+
+  def fail(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
+    Failures.fail(c, pos)
 
   // def failArgumentEmpty[A]: Consequence.Failure[A] =
   //   Consequence.Failure(Conclusion.failArgumentEmpty)

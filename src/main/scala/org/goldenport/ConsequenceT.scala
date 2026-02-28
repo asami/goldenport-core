@@ -4,7 +4,8 @@ import cats.{Applicative, Functor, Monad}
 
 /*
  * @since   Jan. 10, 2026
- * @version Jan. 10, 2026
+ *  version Jan. 10, 2026
+ * @version Feb. 27, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class ConsequenceT[F[_], A](
@@ -52,6 +53,9 @@ object ConsequenceT {
         }
       ConsequenceT(resolved)
     }
+
+  //
+//  inline def NotImplemented: ConsequenceT[Consequence, Nothing] = ???
 }
 
 extension [F[_], A](self: ConsequenceT[F, A])

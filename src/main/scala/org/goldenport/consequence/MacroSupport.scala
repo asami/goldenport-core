@@ -5,10 +5,12 @@ import org.goldenport.observation.SourcePosition
 
 /*
  * @since   Jan. 31, 2026
- * @version Jan. 31, 2026
+ * @version Feb. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 object SourcePositionMacro {
+  inline def position(): SourcePosition = ${ capture }
+
   def capture(using Quotes): Expr[SourcePosition] = {
     import quotes.reflect.*
 

@@ -5,12 +5,14 @@ import org.goldenport.text.Presentable
 import org.goldenport.protocol.Response
 import org.goldenport.protocol.scalar.ScalarValue
 import org.goldenport.http.HttpResponse
+import org.goldenport.record.Record
+import org.goldenport.record.io.RecordEncoder
 
 /*
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
  *  version Jan. 21, 2026
- * @version Feb. 20, 2026
+ * @version Feb. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -68,6 +70,14 @@ object OperationResponse {
     override def show: String = Presentable.show(yaml)
   }
 
+  final case class RecordResponse(record: Record) extends OperationResponse {
+    private def _json = RecordEncoder().json(record).take
+    def toResponse: Response = Response.Json(_json) // Record
+    override def print: String = Presentable.print(_json)
+    override def display: String = Presentable.display(_json)
+    override def show: String = Presentable.show(_json)
+  }
+
   final case class Opaque(value: Any) extends OperationResponse {
     def toResponse: Response = Response.Opaque(value)
     override def print: String = Presentable.print(value)
@@ -75,11 +85,14 @@ object OperationResponse {
     override def show: String = Presentable.show(value)
   }
 
+  def apply(rec: Record): OperationResponse = RecordResponse(rec)
+
   def create(p: Any): OperationResponse = p match {
     case m: String => Scalar(m)
     case m: HttpResponse => Http(m)
     case m: Unit => Void()
     case m: Response => from(m)
+    case m: Record => RecordResponse(m)
     case m => Opaque(m)
   }
 
