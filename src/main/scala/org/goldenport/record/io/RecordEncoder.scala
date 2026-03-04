@@ -1,34 +1,46 @@
 package org.goldenport.record.io
 
 import scala.jdk.CollectionConverters._
+import java.util.LinkedHashMap
 
 import io.circe.Json
 
 import org.goldenport.Consequence
 import org.goldenport.record.Record
 import org.goldenport.record.Field
+import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
 
 /*
  * @since   Feb.  7, 2026
- * @version Feb.  7, 2026
+ *  version Feb.  7, 2026
+ * @version Mar.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordEncoder(
   config: RecordEncoder.Config = RecordEncoder.Config.default
 ) {
-  def json(in: Record): Consequence[String] =
+  def jsonC(in: Record): Consequence[String] =
     Consequence {
       _to_json(in).noSpaces
     }
 
-  def yaml(in: Record): Consequence[String] =
+  def json(in: Record): String = jsonC(in).foldIdntity(c => s"""{"error": "${c.print}"}""")
+
+  def yamlC(in: Record): Consequence[String] =
     Consequence {
       val json = _to_json(in)
       _yaml.dump(_to_java(json))
     }
 
-  private val _yaml = new Yaml()
+  def yaml(in: Record): String = yamlC(in).foldIdntity(c => s"error: ${c.print}")
+
+  private val _yaml = {
+    val options = new DumperOptions()
+    options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK)
+    options.setPrettyFlow(true)
+    new Yaml(options)
+  }
 
   // --- private helpers ---
 
@@ -57,18 +69,40 @@ class RecordEncoder(
     json.fold(
       jsonNull = null,
       jsonBoolean = identity,
-      jsonNumber = num => num.toBigDecimal.getOrElse(BigDecimal(num.toDouble)),
+      jsonNumber = num =>
+        num.toBigInt match {
+          case Some(bi) if bi.isValidInt => Int.box(bi.intValue)
+          case Some(bi) if bi.isValidLong => Long.box(bi.longValue)
+          case Some(bi) => bi.bigInteger
+          case None =>
+            num.toBigDecimal
+              .map(_.bigDecimal)
+              .getOrElse(java.math.BigDecimal.valueOf(num.toDouble))
+        },
       jsonString = identity,
       jsonArray = arr => arr.map(_to_java).asJava,
-      jsonObject = obj =>
-        obj.toMap.map { case (k, v) => k -> _to_java(v) }.asJava
+      jsonObject = obj => {
+        val m = new LinkedHashMap[String, Any]()
+        obj.toIterable.foreach { case (k, v) =>
+          m.put(k, _to_java(v))
+        }
+        m
+      }
     )
 }
 
 object RecordEncoder {
+  val encoder = RecordEncoder()
+
   case class Config()
 
   object Config {
     val default: Config = Config()
   }
+
+  def jsonC(p: Record): Consequence[String] = encoder.jsonC(p)
+  def json(p: Record): String = encoder.json(p)
+
+  def yamlC(p: Record): Consequence[String] = encoder.yamlC(p)
+  def yaml(p: Record): String = encoder.yaml(p)
 }

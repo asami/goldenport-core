@@ -22,7 +22,8 @@ import org.goldenport.http.HttpRequest
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb. 28, 2026
+ *  version Feb. 28, 2026
+ * @version Mar.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -83,6 +84,21 @@ case class Conclusion(
   def cause: Cause = observation.cause
 
   def toCategoryArgument = copy(observation = observation.toCategoryArgument)
+
+  def toRecord: Record = {
+    Record.data(
+      "status" -> status.toRecord,
+      "observation" -> observation.toRecord,
+      "interpretation" -> interpretation.toRecord,
+      "disposition" -> disposition.toRecord
+    ) ++ Record.dataOption(
+      "previous" -> previous.map(_.toRecord)
+    )
+  }
+
+  def toJsonString: String = toRecord.toJsonString
+
+  def toYamlString: String = toRecord.toYamlString
 }
 
 object Conclusion {
@@ -93,7 +109,11 @@ object Conclusion {
     webCode: WebCode,
     detailCodes: List[ErrorCode] = Nil,
     strategies: List[ErrorStrategy] = Nil
-  )
+  ) {
+    def toRecord: Record = Record.data(
+      "code" -> webCode.code
+    )
+  }
   object Status {
     val badRequest = Status(WebCode.BadRequest)
     val unauthorized = Status(WebCode.Unauthorized)

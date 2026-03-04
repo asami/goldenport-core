@@ -14,6 +14,7 @@ import org.goldenport.observation.SourcePosition
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
 import org.goldenport.observation.calltree.CallTree
+import org.goldenport.util.SmEnum
 
 /**
  * Unified Observation (Phase 2.9 Design-Fixed Model)
@@ -41,7 +42,8 @@ import org.goldenport.observation.calltree.CallTree
  *  version Jul. 20, 2025
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
- * @version Feb. 25, 2026
+ *  version Feb. 25, 2026
+ * @version Mar.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -98,6 +100,24 @@ case class Observation(
   def withSourcePosition(p: SourcePosition): Observation = copy(cause = cause.withSourcePosition(p))
 
   def toCategoryArgument = copy(taxonomy = taxonomy.toCategoryArgument)
+
+  def toRecord: Record = Record.data(
+    "phenomenon" -> phenomenon.name,
+    "taxonomy" -> taxonomy.toRecord,
+    "cause" -> cause.toRecord,
+    "timestamp" -> timestamp,
+    "assessment" -> assessment.toRecord,
+    "properties" -> Record.create(properties)
+  ) ++ Record.dataOption(
+    "occurrence" -> occurrence.map(_.toRecord),
+    "involvement" -> involvement.map(_.toRecord),
+    "origin" -> origin.map(_.toRecord),
+    "trace-id" -> traceId.map(_.print),
+    "span-id" -> spanId.map(_.print),
+    "environment" -> environment.map(_.toRecord),
+    "call-tree" -> callTree.map(_.toRecord),
+    "observation-id" -> observationId.map(_.print)
+  )
 }
 
 object Observation {
@@ -213,7 +233,7 @@ object Observation {
   def recordNotFound(pos: SourcePosition, key: String, rec: Record): Observation = failure(
     Taxonomy.recordNotFound,
     Descriptor.Facet.Key(key),
-    Descriptor.Facet.Record(rec)
+    Descriptor.Facet.RecordData(rec)
   )
 
   // Operation
@@ -335,6 +355,11 @@ case class Taxonomy(
   def print = s"$category.$symptom"
 
   def toCategoryArgument = copy(category = Taxonomy.Category.Argument)
+
+  def toRecord: Record = Record.data(
+    "category" -> category.name,
+    "symptom" -> symptom.name
+  )
 }
 object Taxonomy {
   enum Category(val name: String, val value: Int) {
@@ -382,6 +407,12 @@ object Taxonomy {
     case OutOfControl extends Category("out-of-control", 8)
 
     case Operation extends Category("operation", 9)
+
+    case Service extends Category("service", 13)
+
+    case Component extends Category("component", 14)
+
+    case SubSystem extends Category("subsytem", 15)
   }
 
   enum Symptom(val name: String, val value: Int) {
@@ -490,6 +521,20 @@ object Taxonomy {
   val recordNotFound: Taxonomy = Taxonomy(
     Category.Record,
     Symptom.NotFound
+  )
+
+  // Component / Repository class-loading
+  val componentUnavailable: Taxonomy = Taxonomy(
+    Category.Component,
+    Symptom.Unavailable
+  )
+  val componentInvalid: Taxonomy = Taxonomy(
+    Category.Component,
+    Symptom.Invalid
+  )
+  val componentCorrupted: Taxonomy = Taxonomy(
+    Category.Component,
+    Symptom.Corrupted
   )
 
   // State
@@ -607,6 +652,10 @@ case class Cause(
   def getException: Option[Throwable] = descriptor.getException
   def getDataType: Option[DataType] = descriptor.getDataType
   def getConstraints: Option[NonEmptyVector[Constraint]] = descriptor.getConstraints
+
+  def toRecord: Record = Record.dataOption(
+    "kind" -> kind.map(_.name)
+  ) ++ descriptor.toRecord
 }
 object Cause {
   val empty = Cause()
@@ -730,13 +779,18 @@ case class Assessment(
   nature: Option[Nature] = None
 ) {
   def withSeverity(p: Severity) = copy(severity = Some(p))
+
+  def toRecord: Record = Record.dataOption(
+    "severity" -> severity.map(_.value),
+    "nature" -> nature.map(_.value)
+  )
 }
 object Assessment {
   val empty = Assessment()
   val failure = Assessment(Some(Severity.Error), Some(Nature.Fault))
 }
 
-enum Nature {
+enum Nature extends SmEnum {
   case Fault, Defect, Anomaly
 }
 
@@ -744,7 +798,13 @@ case class Occurrence(
   source: Source,
   channel: Channel,
   substrate: Substrate
-)
+) {
+  def toRecord: Record = Record.data(
+    "source" -> source.toRecord,
+    "channel" -> channel.toRecord,
+    "substrate" -> substrate.toRecord
+  )
+}
 object Occurrence {
   val network = Occurrence(
     Source.externalSystem,
@@ -757,7 +817,13 @@ case class Involvement(
   subject: Subject,
   agent: Agent,
   `object`: Resource
-)
+) {
+  def toRecord: Record = Record.data(
+    "subject" -> subject.value,
+    "agent" -> agent.toRecord,
+    "object" -> `object`.toRecord
+  )
+}
 
 /**
  * Interaction represents a concrete form of interaction or access
@@ -766,7 +832,9 @@ case class Involvement(
  * This model is shared across multiple observation axes (Source, Channel),
  * where its semantic meaning is determined by the enclosing axis.
  */
-sealed abstract class Interaction
+sealed abstract class Interaction {
+  def toRecord: Record
+}
 
 object Interaction {
 
@@ -774,25 +842,49 @@ object Interaction {
   case class Http(
     method: Option[String],
     url: String
-  ) extends Interaction
+  ) extends Interaction {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("http"),
+      "method" -> method,
+      "url" -> Some(url)
+    )
+  }
 
   /** Database interaction (SQL or driver-based). */
   case class Database(
     operation: Option[String],
     target: Option[String]
-  ) extends Interaction
+  ) extends Interaction {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("database"),
+      "operation" -> operation,
+      "target" -> target
+    )
+  }
 
   /** Filesystem interaction. */
   case class FileSystem(
     operation: Option[String],
     path: String
-  ) extends Interaction
+  ) extends Interaction {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("file-system"),
+      "operation" -> operation,
+      "path" -> Some(path)
+    )
+  }
 
   /** Messaging or event-based interaction. */
   case class Messaging(
     system: String,
     operation: Option[String]
-  ) extends Interaction
+  ) extends Interaction {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("messaging"),
+      "system" -> Some(system),
+      "operation" -> operation
+    )
+  }
 
   /**
    * Opaque interaction for cases that do not fit predefined structures.
@@ -801,7 +893,13 @@ object Interaction {
   case class Opaque(
     description: String,
     properties: Map[String, String] = Map.empty
-  ) extends Interaction
+  ) extends Interaction {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("opaque"),
+      "description" -> Some(description),
+      "properties" -> Some(Record.create(properties))
+    )
+  }
 }
 
 /**
@@ -813,7 +911,12 @@ object Interaction {
 case class Source(
   kind: Source.Kind,
   detail: Option[Source.Detail] = None
-)
+) {
+  def toRecord: Record = Record.dataAuto(
+    "kind" -> kind.name,
+    "detail" -> detail.map(_.toRecord)
+  )
+}
 object Source {
   enum Kind(val name: String, val value: Int) {
 
@@ -827,7 +930,9 @@ object Source {
     case Unknown extends Kind("unknown", 8)
   }
 
-  sealed abstract class Detail
+  sealed abstract class Detail {
+    def toRecord: Record
+  }
   object Detail {
     /**
       * Detail indicating that this source involves a concrete interaction.
@@ -837,7 +942,11 @@ object Source {
       */
     case class InteractionDetail(
       interaction: Interaction
-    ) extends Detail
+    ) extends Detail {
+      def toRecord: Record = Record.data(
+        "interaction" -> interaction.toRecord
+      )
+    }
   }
 
   val externalSystem = Source(Kind.ExternalSystem)
@@ -853,7 +962,12 @@ object Source {
 case class Channel(
   kind: Channel.Kind,
   detail: Option[Channel.Detail] = None
-)
+) {
+  def toRecord: Record = Record.dataAuto(
+    "kind" -> kind.name,
+    "detail" -> detail.map(_.toRecord)
+  )
+}
 
 object Channel {
 
@@ -871,7 +985,9 @@ object Channel {
     case Unknown extends Kind("unknown", 6)
   }
 
-  sealed abstract class Detail
+  sealed abstract class Detail {
+    def toRecord: Record
+  }
   object Detail {
     /**
       * Detail indicating that this source involves a concrete interaction.
@@ -881,7 +997,11 @@ object Channel {
       */
     case class InteractionDetail(
       interaction: Interaction
-    ) extends Detail
+    ) extends Detail {
+      def toRecord: Record = Record.data(
+        "interaction" -> interaction.toRecord
+      )
+    }
   }
 
   val network = Channel(Kind.Network)
@@ -898,7 +1018,12 @@ object Channel {
 case class Substrate(
   kind: Substrate.Kind,
   detail: Option[Substrate.Detail] = None
-)
+) {
+  def toRecord: Record = Record.dataAuto(
+    "kind" -> kind.name,
+    "detail" -> detail.map(_.toRecord)
+  )
+}
 
 object Substrate {
 
@@ -924,40 +1049,73 @@ object Substrate {
    * Typical, well-known patterns are modeled explicitly;
    * all others are captured via Opaque.
    */
-  sealed abstract class Detail
+  sealed abstract class Detail {
+    def toRecord: Record
+  }
 
   // --- Typical, structured substrate details ---
 
   /** JVM runtime manifestation. */
   case class JvmRuntime(
     exceptionClass: Option[String] = None
-  ) extends Detail
+  ) extends Detail {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("jvm-runtime"),
+      "exception-class" -> exceptionClass
+    )
+  }
 
   /** OS-level manifestation (process or syscall related). */
   case class OsProcess(
     pid: Option[Int] = None,
     signal: Option[String] = None
-  ) extends Detail
+  ) extends Detail {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("os-process"),
+      "pid" -> pid,
+      "signal" -> signal
+    )
+  }
 
   /** Network stack manifestation. */
   case class NetworkStack(
     layer: Option[String] = None
-  ) extends Detail
+  ) extends Detail {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("network-stack"),
+      "layer" -> layer
+    )
+  }
 
   /** Storage-level manifestation. */
   case class StorageDevice(
     path: Option[String] = None
-  ) extends Detail
+  ) extends Detail {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("storage-device"),
+      "path" -> path
+    )
+  }
 
   /** Middleware-level manifestation (driver, runtime, library). */
   case class MiddlewareComponent(
     name: Option[String] = None
-  ) extends Detail
+  ) extends Detail {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("middleware-component"),
+      "name" -> name
+    )
+  }
 
   /** Container or orchestration-level manifestation. */
   case class ContainerRuntime(
     name: Option[String] = None
-  ) extends Detail
+  ) extends Detail {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("container-runtime"),
+      "name" -> name
+    )
+  }
 
   /**
    * Opaque substrate detail for cases that do not fit predefined structures.
@@ -966,7 +1124,13 @@ object Substrate {
   case class Opaque(
     description: String,
     properties: Map[String, String] = Map.empty
-  ) extends Detail
+  ) extends Detail {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("opaque"),
+      "description" -> Some(description),
+      "properties" -> Some(Record.create(properties))
+    )
+  }
 
   val jvm = Substrate(Kind.Jvm)
   val network = Substrate(Kind.Network)
@@ -979,7 +1143,9 @@ object Substrate {
  * refers to the point in code where the observation was made.
  * It MUST NOT encode responsibility, interpretation, or handling.
  */
-sealed abstract class Origin
+sealed abstract class Origin {
+  def toRecord: Record
+}
 
 object Origin {
 
@@ -994,7 +1160,15 @@ object Origin {
     methodName: String,
     fileName: Option[String] = None,
     lineNumber: Option[Int] = None
-  ) extends Origin
+  ) extends Origin {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("code-location"),
+      "class-name" -> Some(className),
+      "method-name" -> Some(methodName),
+      "file-name" -> fileName,
+      "line-number" -> lineNumber
+    )
+  }
 
   /**
    * Opaque origin for cases where structured code location
@@ -1002,12 +1176,21 @@ object Origin {
    */
   case class Opaque(
     description: String
-  ) extends Origin
+  ) extends Origin {
+    def toRecord: Record = Record.dataOption(
+      "kind" -> Some("opaque"),
+      "description" -> Some(description)
+    )
+  }
 
   /**
    * Origin is unknown or unavailable.
    */
-  case object Unknown extends Origin
+  case object Unknown extends Origin {
+    def toRecord: Record = Record.data(
+      "kind" -> "unknown"
+    )
+  }
 }
 
 /**
@@ -1022,7 +1205,14 @@ case class Environment(
   location: Option[Environment.Location] = None,
   platform: Option[Environment.Platform] = None,
   properties: Map[String, String] = Map.empty
-)
+) {
+  def toRecord: Record = Record.dataAuto(
+    "mode" -> mode.map(_.name),
+    "location" -> location.map(_.toRecord),
+    "platform" -> platform.map(_.toRecord),
+    "properties" -> Record.create(properties)
+  )
+}
 object Environment {
 
   /**
@@ -1058,7 +1248,15 @@ object Environment {
     ipAddress: Option[String] = None,
     hostName: Option[String] = None,
     port: Option[Int] = None
-  )
+  ) {
+    def toRecord: Record = Record.dataOption(
+      "uri" -> uri.map(_.toString),
+      "url" -> url,
+      "ip-address" -> ipAddress,
+      "host-name" -> hostName,
+      "port" -> port
+    )
+  }
 
   /**
    * Platform represents the execution stack on which
@@ -1075,7 +1273,16 @@ object Environment {
     middleware: Option[PlatformElement] = None,
     container: Option[PlatformElement] = None,
     properties: Map[String, String] = Map.empty
-  )
+  ) {
+    def toRecord: Record = Record.dataOption(
+      "os" -> os.map(_.toRecord),
+      "vm" -> vm.map(_.toRecord),
+      "runtime" -> runtime.map(_.toRecord),
+      "middleware" -> middleware.map(_.toRecord),
+      "container" -> container.map(_.toRecord),
+      "properties" -> Some(Record.create(properties))
+    )
+  }
 
   /**
    * PlatformElement represents a single layer in the execution stack.
@@ -1090,7 +1297,12 @@ object Environment {
   case class PlatformElement(
     name: String,
     version: Option[String] = None
-  )
+  ) {
+    def toRecord: Record = Record.dataOption(
+      "name" -> Some(name),
+      "version" -> version
+    )
+  }
 }
 
 case class ObservationId(major: String, minor: String) extends UniversalId(major, minor, "observation")

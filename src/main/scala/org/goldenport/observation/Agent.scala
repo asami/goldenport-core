@@ -1,17 +1,27 @@
 package org.goldenport.observation
 
-import org.goldenport.datatype
+import org.goldenport.record.Record
+import org.goldenport.datatype.Name
 
 /*
  * @since   Jul. 23, 2025
- * @version Jul. 23, 2025
+ * @version Mar.  4, 2026
  * @author  ASAMI, Tomoharu
  */
-enum Agent {
-  case System
-  case Component(name: Agent.Name)
+abstract class Agent {
+  def toRecord: Record
 }
 
 object Agent {
-  case class Name(value: String) extends datatype.Name
+  case object System extends Agent {
+    def toRecord: Record = Record.data(
+      "kind" -> "system"
+    )
+  }
+  case class Component(name: Name) extends Agent {
+    def toRecord: Record = Record.data(
+      "kind" -> "component",
+      "name" -> name.value
+    )
+  }
 }

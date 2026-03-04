@@ -1,16 +1,20 @@
 package org.goldenport.util
 
+import org.goldenport.text.Presentable
 import StringUtils.camelToSnake
 
 /*
  * @since   Jul. 19, 2025
- * @version Dec. 24, 2025
+ *  version Dec. 24, 2025
+ * @version Mar.  3, 2026
  * @author  ASAMI, Tomoharu
  */
-trait SmEnum { self: Product =>
-  val label: String = camelToSnake(self.productPrefix)
+trait SmEnum extends Product with Presentable {
+  def value: String = camelToSnake(productPrefix)
 
-  override def toString(): String = label
+  def print = value
+  override def display = s"Enum(${productPrefix})"
+  override def show = s"Enum(${productPrefix}):$value"
 }
 
 // trait SmEnumClass[E <: Enum[E] & Product]:
@@ -43,14 +47,24 @@ trait SmEnum { self: Product =>
 //   }
 // }
 
-trait SmEnumClass[E] {
+trait SmEnumClass[E <: Product] {
   protected def enum_Values: Array[E]
 
+  protected def normalize_value(s: String): String =
+    s.trim.toLowerCase
+
+  protected def keyOf(e: E): String =
+    e match
+      case m: SmEnum => normalize_value(m.value)
+      case _         => normalize_value(e.productPrefix)
+
   def from(str: String): Option[E] = {
-    enum_Values.find {
-      case m: SmEnum => m.label.equalsIgnoreCase(str)
-      case m: Product => m.productPrefix.equalsIgnoreCase(str)
-      case m => m.toString.equalsIgnoreCase(str)
-    }
+    val key = normalize_value(str)
+    enum_Values.find(e => keyOf(e) == key)
   }
+
+  def get(str: String): E =
+    from(str).getOrElse {
+      throw new IllegalArgumentException(s"Unknown enum value: $str")
+    }
 }

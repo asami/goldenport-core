@@ -1,5 +1,6 @@
 package org.goldenport.observation.calltree
 
+import org.goldenport.record.Record
 import org.goldenport.tree.Tree
 
 /*
@@ -9,12 +10,37 @@ import org.goldenport.tree.Tree
  * into the generic Tree model.
  *
  * @since   Feb.  7, 2026
- * @version Feb.  7, 2026
+ * @version Mar.  3, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CallTree(
   tree: Tree[CallTreeNode]
-)
+) {
+  def toRecord: Record = {
+    val projected = tree.map {
+      case CallTreeNode.Enter(label, attributes) =>
+        Record.data(
+          "kind" -> "enter",
+          "label" -> label,
+          "attributes" -> Record.create(attributes)
+        )
+      case CallTreeNode.Exit(label, attributes) =>
+        Record.data(
+          "kind" -> "exit",
+          "label" -> label,
+          "attributes" -> Record.create(attributes)
+        )
+      case CallTreeNode.Failure(label, message, attributes) =>
+        Record.data(
+          "kind" -> "failure",
+          "label" -> label,
+          "message" -> message,
+          "attributes" -> Record.create(attributes)
+        )
+    }
+    Tree.toRecord(projected)
+  }
+}
 
 sealed trait CallTreeNode {
   def label: String

@@ -1,12 +1,14 @@
 package org.goldenport.provisional.conclusion
 
+import org.goldenport.record.Record
 import org.goldenport.provisional.observation.Observation
 import org.goldenport.provisional.observation.Cause
 
 /*
  * @since   Jan. 25, 2026
  *  version Jan. 31, 2026
- * @version Feb.  7, 2026
+ *  version Feb.  7, 2026
+ * @version Mar.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -21,7 +23,12 @@ case class Conclusion(
 case class Interpretation(
   kind: Interpretation.Kind,
   responsibility: Option[Disposition.Responsibility] = None // TODO
-)
+) {
+  def toRecord: Record = Record.dataAuto(
+    "kind" -> kind.name,
+    "responsibility" -> responsibility.map(_.name)
+  )
+}
 object Interpretation {
   enum Kind(val name: String, val value: Int) {
     case Success extends Kind("success", 3)
@@ -66,7 +73,12 @@ object Interpretation {
 case class Disposition(
   userAction: Option[Disposition.UserAction],
   responsibility: Option[Disposition.Responsibility]
-)
+) {
+  def toRecord: Record = Record.dataOption(
+    "user-action" -> userAction.map(_.name),
+    "responsibility" -> responsibility.map(_.name)
+  )
+}
 object Disposition {
   enum UserAction(val name: String, val value: Int) {
     case FixInput extends UserAction("fix-input", 1)

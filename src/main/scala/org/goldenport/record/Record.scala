@@ -1,5 +1,6 @@
 package org.goldenport.record
 
+import cats.kernel.Monoid
 import org.goldenport.Consequence
 import org.goldenport.text.Presentable
 import org.goldenport.convert.ValueReader
@@ -10,10 +11,13 @@ import org.goldenport.datatype.PathName
  *  version Nov.  7, 2025
  *  version Dec. 25, 2025
  *  version Jan. 10, 2026
- * @version Feb. 28, 2026
+ *  version Feb. 28, 2026
+ * @version Mar.  3, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
+  def isEmpty: Boolean = fields.isEmpty
+
   def print: String = fields.map(_.print).mkString(",")
 
   def getAs[T](key: String)(using reader: ValueReader[T]): Option[T] =
@@ -107,13 +111,59 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
 
   private def _record_as[T](reader: ValueReader[T]): Option[T] =
     reader.read(asMap)
+
+  def toJsonStringC: Consequence[String] = io.RecordEncoder.jsonC(this)
+
+  def toJsonString: String = io.RecordEncoder.json(this)
+
+  def toYamlStringC: Consequence[String] = io.RecordEncoder.yamlC(this)
+
+  def toYamlString: String = io.RecordEncoder.yaml(this)
 }
 
 object Record {
   val empty: Record = Record()
 
-  def create(xs: Seq[(String, Any)]): Record =
+  given Monoid[Record] with
+    def empty: Record = Record.empty
+    def combine(x: Record, y: Record): Record = x ++ y
+
+  def create(xs: Seq[(String, Any)]): Record = {
+    val a = xs.flatMap {
+      case (k, v) => v match {
+        case m: Record if m.isEmpty => None
+        case _ => Some(Field(k, Field.Value.Single(v)))
+      }
+    }.toVector
+    Record(a.toVector)
+  }
+
+  def createFull(xs: Seq[(String, Any)]): Record =
     Record(xs.map { case (k, v) => Field(k, Field.Value.Single(v)) }.toVector)
 
+  def create(p: Map[String, Any]): Record = Record.create(p.toVector)
+
   def data(xs: (String, Any)*): Record = create(xs)
+
+  def dataOption(xs: (String, Option[Any])*): Record = {
+    val a = xs.flatMap {
+      case (k, Some(v)) => Some(k -> v)
+      case (k, None) => None
+    }
+    create(a)
+  }
+
+  def dataAuto(xs: (String, Any)*): Record = {
+    val a = xs.flatMap {
+      case (k, v) => v match {
+        case Some(s) => Some(k -> s)
+        case None => None
+        case m: Seq[_] if m.isEmpty => None
+        case m: Set[_] if xs.isEmpty => None
+        case m: Record if m.isEmpty => None
+        case m => Some(k -> m)
+      }
+    }
+    create(a)
+  }
 }

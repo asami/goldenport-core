@@ -4,10 +4,11 @@ import org.goldenport.util.{SmEnum, SmEnumClass}
 
 /*
  * @since   Jul. 23, 2025
- * @version Dec. 24, 2025
+ *  version Dec. 24, 2025
+ * @version Mar.  3, 2026
  * @author  ASAMI, Tomoharu
  */
-enum Subject extends Enum[Subject], SmEnum {
+enum Subject extends SmEnum {
   case User
   case System
   case Subsystem

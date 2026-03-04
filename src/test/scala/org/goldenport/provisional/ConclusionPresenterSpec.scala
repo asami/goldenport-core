@@ -18,7 +18,8 @@ import org.goldenport.provisional.cli.CliConclusionRenderer
 
 /*
  * @since   Jan. 25, 2026
- * @version Feb.  5, 2026
+ *  version Feb.  5, 2026
+ * @version Mar.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConclusionPresenterSpec extends AnyWordSpec with Matchers {
@@ -58,7 +59,7 @@ class ConclusionPresenterSpec extends AnyWordSpec with Matchers {
       code shouldBe 1
       val expectedSummaryKey = presented.summary.key
       message should include("Resource.NotFound")
-      message shouldBe s"[warn]Resource.NotFound-${expectedSummaryKey}"
+      message shouldBe s"[${presented.severity}]Resource.NotFound-${expectedSummaryKey}"
     }
   }
 }

@@ -1,20 +1,42 @@
 package org.goldenport.observation
 
-import org.goldenport.datatype
+import org.goldenport.text.Presentable
+import org.goldenport.datatype.Name
+import org.goldenport.record.Record
 
 /*
  * @since   Jul. 23, 2025
- * @version Jul. 23, 2025
+ * @version Mar.  4, 2026
  * @author  ASAMI, Tomoharu
  */
-enum Resource {
-  case Unknown
-  case File(file: java.io.File)
-  case Url(url: java.net.URL)
-  case Miscellaneous(name: Resource.Name, value: Resource.Value)
+abstract class Resource extends Presentable {
+  def toRecord: Record
 }
 
 object Resource {
-  case class Name(value: String) extends datatype.Name
-  case class Value(value: String) extends datatype.Text
+  case object Unknown extends Resource {
+    def toRecord: Record = Record.data("kind" -> "unkonwn")
+    def print = "unkonwn"
+  }
+  case class File(file: java.io.File) extends Resource {
+    def toRecord: Record = Record.data(
+      "kind" -> "file",
+      "file" -> Presentable.print(file)
+    )
+    def print = s"Resoruce[file](${Presentable.print(file)})"
+  }
+  case class Url(url: java.net.URL) extends Resource {
+    def toRecord: Record = Record.data(
+      "kind" -> "url",
+      "url" -> Presentable.print(url)
+    )
+    def print = s"Resource[url](${Presentable.print(url)})"
+  }
+  case class Miscellaneous(name: Name, value: String) extends Resource {
+    def toRecord: Record = Record.data(
+      "kind" -> "miscellaneous",
+      "url" -> value
+    )
+    def print = s"Miscellaneous[$name](${value})"
+  }
 }
