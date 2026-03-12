@@ -39,28 +39,38 @@ import org.goldenport.datatype.Identifier
  * @since   Dec. 31, 2025
  *  version Jan.  1, 2026
  *  version Jan. 20, 2026
- * @version Feb. 25, 2026
+ *  version Feb. 25, 2026
+ * @version Mar. 12, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
   major: String,
   minor: String,
   kind: String,
-  subkind: Option[String]
+  subkind: Option[String],
+  timestamp: Option[Instant]
 ) extends Identifier {
   // Auxiliary constructor for backward compatibility
   protected def this(
     major: String,
     minor: String,
     kind: String
-  ) = this(major, minor, kind, None)
+  ) = this(major, minor, kind, None, None)
 
   protected def this(
     major: String,
     minor: String,
     kind: String,
     subkind: String
-  ) = this(major, minor, kind, Some(subkind))
+  ) = this(major, minor, kind, Some(subkind), None)
+
+  protected def this(
+    major: String,
+    minor: String,
+    kind: String,
+    subkind: String,
+    timestamp: Instant
+  ) = this(major, minor, kind, Some(subkind), Some(timestamp))
 
   import UniversalId._
 
@@ -78,7 +88,7 @@ abstract class UniversalId protected (
   _validate_label("kind", kind)
   subkind.foreach(_validate_label("subkind", _))
 
-  private val _parts = UniversalId.Parts.create(major, minor, kind, subkind)
+  private val _parts = UniversalId.Parts.create(major, minor, kind, subkind, timestamp)
 
   def value: String = _parts.value
 
@@ -124,9 +134,32 @@ object UniversalId {
     private val _timestamp_formatter =
       DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSZZ")
         .withZone(ZoneOffset.UTC)
-    def create(major: String, minor: String, kind: String, subkind: Option[String]): Parts = {
-      val now = Instant.now()
-      val formattedTimestamp = _timestamp_formatter.format(now)
+
+    private def _timestamep_format_ymd(p: Option[Instant]): String = p match {
+      case Some(s) =>
+        if (s == Instant.EPOCH)
+          "0"
+        else
+          _timestamp_formatter.format(s)
+      case None => _timestamp_formatter.format(Instant.now())
+    }
+
+    private def _timestamp_formatter(p: Option[Instant]): String = p match {
+      case Some(s) => _timestamp_formatter(s)
+      case None => _timestamp_formatter(Instant.now())
+    }
+
+    private def _timestamp_formatter(p: Instant): String =
+      p.toEpochMilli.toString
+
+    def create(
+      major: String,
+      minor: String,
+      kind: String,
+      subkind: Option[String],
+      timestamp: Option[Instant]
+    ): Parts = {
+      val formattedTimestamp = _timestamp_formatter(timestamp)
       Parts(
         major,
         minor,

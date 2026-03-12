@@ -8,7 +8,7 @@ import org.goldenport.provisional.observation.Cause
  * @since   Jan. 25, 2026
  *  version Jan. 31, 2026
  *  version Feb.  7, 2026
- * @version Mar.  4, 2026
+ * @version Mar. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -22,7 +22,7 @@ case class Conclusion(
 
 case class Interpretation(
   kind: Interpretation.Kind,
-  responsibility: Option[Disposition.Responsibility] = None // TODO
+  responsibility: Option[Disposition.Responsibility] = None // TODO unused
 ) {
   def toRecord: Record = Record.dataAuto(
     "kind" -> kind.name,
@@ -37,6 +37,7 @@ object Interpretation {
     case NetworkFailure extends Kind("network-failure", 5)
     case ExternalServiceFailure extends Kind("external-service-failure", 6)
     case Defect extends Kind("defect", 2)
+    case ConfigurationFailure extends Kind("configuration-failure", 7)
   }
 
   val success = Interpretation(Kind.Success)
@@ -45,6 +46,7 @@ object Interpretation {
   val systemFailure = Interpretation(Kind.SystemFailure, Some(Disposition.Responsibility.SystemAdmin))
   val networkFailure = Interpretation(Kind.NetworkFailure, Some(Disposition.Responsibility.SystemAdmin))
   val externalServiceFailure = Interpretation(Kind.ExternalServiceFailure, Some(Disposition.Responsibility.SystemAdmin))
+  val configurationFailure = Interpretation(Kind.ConfigurationFailure)
 
   def argumentMissing = domainFailure
   def argumentRedundant = domainFailure
@@ -56,6 +58,7 @@ object Interpretation {
   def operationNotFound = domainFailure
   def valueInvalid = domainFailure
   def valueFormatError = domainFailure
+  def resourceNotFound = domainFailure
   def unreachableReached = defect
   def uninitializedState = defect
   def impossibleState = defect

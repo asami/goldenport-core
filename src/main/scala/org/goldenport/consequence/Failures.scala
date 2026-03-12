@@ -12,7 +12,8 @@ import org.goldenport.record.Record
 
 /*
  * @since   Jan. 31, 2026
- * @version Feb. 28, 2026
+ *  version Feb. 28, 2026
+ * @version Mar. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {
@@ -74,6 +75,11 @@ object Failures {
   //      val exceptionFacet = Descriptor.Facet.Exception($e)
   //      Consequence.Failure(Conclusion.failure(pos, $taxonomy, exceptionFacet +: $facets))
   //    }
+
+  inline def fail(c: Conclusion): Consequence.Failure[Nothing] = {
+    val pos = SourcePositionMacro.position()
+    fail(c, pos)
+  }
 
   def fail(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
     Consequence.Failure(c.withSourcePosition(pos))

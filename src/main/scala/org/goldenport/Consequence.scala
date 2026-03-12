@@ -50,7 +50,8 @@ import org.goldenport.id.UniversalId
  *  version Dec. 26, 2025
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
- * @version Feb. 28, 2026
+ *  version Feb. 28, 2026
+ * @version Mar. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -341,16 +342,6 @@ object Consequence {
 
   def toInt(p: String): Consequence[Int] = Consequence(p.toInt)
 
-  def takeOrMissingPropertyFault[T](key: String, v: Option[T]): Consequence[T] =
-    ???
-
-  def takeOrMissingPropertyFault[T](
-    key: String,
-    v: Consequence[Option[T]],
-    fallback: Option[T]
-  ): Consequence[T] =
-    ???
-
   def zip3[A, B, C](
     ca: Consequence[A],
     cb: Consequence[B],
@@ -560,7 +551,30 @@ object Consequence {
       case None => fail(taxonomy)
     }
 
-  inline def successOrRecordNotFound[T](rec: Record, key: String)(using reader: ValueReader[T]): Consequence[T] = {
+  inline def successOrPropertyNotFound[T](key: String, v: Option[T]): Consequence[T] = {
+    val pos = SourcePositionMacro.position()
+    v match {
+      case Some(s) => Consequence.success(s)
+      case None => fail(Observation.propertyNotFound(pos, key))
+    }
+  }
+
+  inline def successOrPropertyNotFound[T](
+    key: String,
+    v: Option[T],
+    fallback: Option[T]
+  ): Consequence[T] = {
+    val pos = SourcePositionMacro.position()
+    v match {
+      case Some(s) => Consequence.success(s)
+      case None => fallback match {
+        case Some(ss) => Consequence.success(ss)
+        case None => fail(Observation.propertyNotFound(pos, key))
+      }
+    }
+  }
+
+  inline def successOrRecordNotFound[T](key: String, rec: Record)(using reader: ValueReader[T]): Consequence[T] = {
     val pos = SourcePositionMacro.position()
     rec.getAsC[T](key) match {
       case Consequence.Success(s) => s match {
@@ -570,6 +584,44 @@ object Consequence {
       case Consequence.Failure(c) => fail(c, pos)
     }
   }
+
+  inline def successOrRecordNotFound[T](key: String, rec: Record, fallback: Option[T])(using reader: ValueReader[T]): Consequence[T] = {
+    val pos = SourcePositionMacro.position()
+    rec.getAsC[T](key) match {
+      case Consequence.Success(s) => s match {
+        case Some(ss) => Consequence.success(ss)
+        case None => fallback match {
+          case Some(sss) => Consequence.success(sss)
+          case None => fail(Observation.recordNotFound(pos, key, rec))
+        }
+      }
+      case Consequence.Failure(c) => fail(c, pos)
+    }
+  }
+
+  inline def successOrResourceNotFound[T](
+    rsc: Option[T]
+  )(resource: Descriptor.Facet.Resource, facets: Descriptor.Facet*): Consequence[T] =
+    rsc match {
+      case Some(s) => Consequence.success(s)
+      case None => fail(Conclusion.resourceNotFound(resource, facets))
+    }
+
+  inline def successOrServiceProviderNotFound[T](
+    serviceprovider: Option[T]
+  )(name: String, facets: Descriptor.Facet*): Consequence[T] =
+    serviceprovider match {
+      case Some(s) => Consequence.success(s)
+      case None => fail(Conclusion.serviceProviderNotFound(name, facets))
+    }
+
+  inline def successOrServiceProviderByKeyNotFound[T](
+    serviceprovider: Option[T]
+  )(name: String, key: String): Consequence[T] =
+    serviceprovider match {
+      case Some(s) => Consequence.success(s)
+      case None => fail(Conclusion.serviceProviderNotFound(name, Vector(Descriptor.Facet.Key(key))))
+    }
 
   // Fail
   inline def fail(o: Observation): Consequence.Failure[Nothing] =
@@ -593,12 +645,35 @@ object Consequence {
   inline def fail(taxonomy: Taxonomy, cause: Cause): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, cause)
 
+  inline def fail(c: Conclusion): Consequence.Failure[Nothing] =
+    Failures.fail(c)
+
   def fail(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
     Failures.fail(c, pos)
+
+  //
+  inline def notImplemented: Consequence.Failure[Nothing] =
+    Failures.notImplemented
+
+  inline def notImplemented(msg: String): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failNotImplemented(msg))
+
+  def notImplemented(pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failNotImplemented(pos))
+
+  def notImplemented(pos: SourcePosition, msg: String): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.notImplemented(pos, msg))
+
+  inline def unreachableReached: Consequence.Failure[Nothing] =
+    Failures.unreachableReached
+
+  inline def unreachableReached(msg: String): Consequence.Failure[Nothing] =
+    Failures.fail(Conclusion.unreachableReached(msg))
 
   // def failArgumentEmpty[A]: Consequence.Failure[A] =
   //   Consequence.Failure(Conclusion.failArgumentEmpty)
 
+  // obsolated. use argumentFormatError
   def failArgumentFormatError[A](name: String, value: Any, dt: DataType): Consequence.Failure[A] = ???
 
   def failArgumentFormatError[A](name: String, value: Any, msg: String): Consequence.Failure[A] = ???
@@ -691,7 +766,7 @@ object Consequence {
   def failPostconditionViolation[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failPostconditionViolation(msg))
 
-  //
+  // obsolated. Use notImplemented
   inline def NotImplemented: Consequence.Failure[Nothing] =
     fail(Taxonomy.notImplemented)
 

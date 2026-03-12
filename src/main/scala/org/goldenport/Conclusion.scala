@@ -23,7 +23,7 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
- * @version Mar.  2, 2026
+ * @version Mar. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -386,6 +386,36 @@ object Conclusion {
     }
 
   // fail
+  def notImplemented(pos: SourcePosition, msg: String): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.notImplemented(pos, msg),
+      Interpretation.notImplemented,
+      Disposition.notImplemented
+    )
+
+  def unreachableReached(msg: String): Conclusion = failUnreachableReached(msg)
+
+  def resourceNotFound(
+    resource: Descriptor.Facet.Resource,
+    facets: Seq[Descriptor.Facet]
+  ): Conclusion =
+    Conclusion(
+      Status.notFound,
+      Observation.resourceNotFound(resource, facets),
+      Interpretation.resourceNotFound,
+      Disposition.fix
+    )
+
+  def serviceProviderNotFound(name: String, facets: Seq[Descriptor.Facet]): Conclusion =
+    Conclusion(
+      Status.internalServerError,
+      Observation.serviceProviderNotFound(name, facets),
+      Interpretation.configurationFailure,
+      Disposition.serviceUnavailable
+    )
+
+  // fail : obsolated
   def failArgumentMissing: Conclusion =
     Conclusion(
       Status.badRequest,

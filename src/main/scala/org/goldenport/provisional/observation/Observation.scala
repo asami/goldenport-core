@@ -43,7 +43,7 @@ import org.goldenport.util.SmEnum
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
- * @version Mar.  4, 2026
+ * @version Mar. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -207,8 +207,22 @@ object Observation {
     Descriptor.Facet.DataType(datatype)
   )
 
+  // Property
+  def propertyNotFound(pos: SourcePosition, key: String): Observation = failure(
+    Taxonomy.propertyNotFound,
+    Descriptor.Facet.Key(key)
+  )
+
   // Resource
-  def resourceNotFound(id: String): Observation = rejection(
+  def resourceNotFound(
+    resource: Descriptor.Facet.Resource,
+    facets: Seq[Descriptor.Facet]
+  ): Observation = rejection(
+    Taxonomy.resourceNotFound,
+    resource +: facets
+  )
+
+  def resourceNotFound(id: String): Observation = rejection( // TODO id
     Taxonomy.resourceNotFound,
     Descriptor.Facet.Id(id)
   )
@@ -248,6 +262,17 @@ object Observation {
     Descriptor.Facet.State(state)
   )
 
+  // ServiceProvider
+  def serviceProviderNotFound(name: String): Observation = failure(
+    Taxonomy.serviceProviderNotFound,
+    Descriptor.Facet.Name(name)
+  )
+
+  def serviceProviderNotFound(name: String, facets: Seq[Descriptor.Facet]): Observation = failure(
+    Taxonomy.serviceProviderNotFound,
+    Descriptor.Facet.Name(name) +: facets
+  )
+
   // OutOfControl
   def unreachableReached(pos: SourcePosition): Observation = failure(
     Taxonomy.unreachableReached,
@@ -268,6 +293,12 @@ object Observation {
   def notImplemented(pos: SourcePosition): Observation = failure(
     Taxonomy.notImplemented,
     Descriptor.Facet.SrcPos(pos)
+  )
+
+  def notImplemented(pos: SourcePosition, msg: String): Observation = failure(
+    Taxonomy.notImplemented,
+    Descriptor.Facet.SrcPos(pos),
+    Descriptor.Facet.Message(msg)
   )
 
   def notImplemented(msg: String): Observation = failure(Taxonomy.notImplemented)
@@ -320,6 +351,12 @@ object Observation {
     facets: Descriptor.Facet*
   ): Observation =
     failure(t, Cause.create(facet, facets))
+
+  def failure(
+    t: Taxonomy,
+    facets: Seq[Descriptor.Facet]
+  ): Observation =
+    failure(t, Cause.create(facets))
 
   def failure(t: Taxonomy, c: Cause): Observation = Observation(
     Phenomenon.Failure,
@@ -413,6 +450,8 @@ object Taxonomy {
     case Component extends Category("component", 14)
 
     case SubSystem extends Category("subsytem", 15)
+
+    case ServiceProvider extends Category("service-provider", 16)
   }
 
   enum Symptom(val name: String, val value: Int) {
@@ -492,6 +531,12 @@ object Taxonomy {
     Symptom.FormatError
   )
 
+  // Property
+  val propertyNotFound: Taxonomy = Taxonomy(
+    Category.Property,
+    Symptom.NotFound
+  )
+
   // Operation
   val operationInvalid: Taxonomy = Taxonomy(
     Category.Operation,
@@ -541,6 +586,12 @@ object Taxonomy {
   val stateConflict: Taxonomy = Taxonomy(
     Category.State,
     Symptom.Conflict
+  )
+
+  // ServiceProvider
+  val serviceProviderNotFound: Taxonomy = Taxonomy(
+    Category.ServiceProvider,
+    Symptom.NotFound
   )
 
   // Value

@@ -20,7 +20,7 @@ import org.goldenport.util.StringUtils
  * @since   Dec. 28, 2025
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
- * @version Mar.  4, 2026
+ * @version Mar. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -158,6 +158,12 @@ object Descriptor {
     }
     object Id {
       def apply(id: UniversalId): Id = Id(id.print)
+    }
+
+    case class Name(name: String) extends Facet {
+      def print: String = s"name:${name}"
+
+      def toRecord: Record = Record.data("name" -> name)
     }
 
     case class State(state: String) extends Facet {
