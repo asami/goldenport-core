@@ -17,14 +17,15 @@ final case class ConfigurationSources(
 object ConfigurationSources {
   def standard(
     cwd: Path,
+    applicationname: String = ConfigurationSource.DefaultApplicationName,
     args: Map[String, String] = Map.empty,
     env: Map[String, String]  = sys.env
   ): ConfigurationSources = {
 
     val resources = ResourceConfigurationSource.fromClasspath()
-    val home      = ConfigurationSource.home()
-    val project   = ConfigurationSource.project(cwd)
-    val current   = ConfigurationSource.cwd(cwd)
+    val home      = ConfigurationSource.home(applicationname)
+    val project   = ConfigurationSource.project(cwd, applicationname)
+    val current   = ConfigurationSource.cwd(cwd, applicationname)
     val envSrc    = ConfigurationSource.env(env)
     val argSrc    = ConfigurationSource.args(args)
 

@@ -11,6 +11,7 @@ import org.goldenport.Consequence
 import org.goldenport.configuration.Configuration
 import org.goldenport.configuration.ConfigurationValue
 import org.goldenport.configuration.ConfigurationOrigin
+import org.goldenport.configuration.source.file.ConfigTextDecoder
 import org.goldenport.configuration.source.file.FileConfigLoader
 import org.goldenport.configuration.source.file.SimpleFileConfigLoader
 
@@ -35,49 +36,52 @@ sealed trait ConfigurationSource {
 }
 
 object ConfigurationSource {
+  val DefaultApplicationName = "simplemodeling"
+  private val ConfigFileExtensions = Seq("conf", "props", "properties", "json", "yaml")
 
-  def home(): Option[ConfigurationSource] = {
+  def home(applicationname: String = DefaultApplicationName): Seq[ConfigurationSource] = {
     val home = sys.props.get("user.home").map(p => Path.of(p))
-    home.map { base =>
-      val path = base.resolve(".sie").resolve("config.conf")
-      File(
-        origin = ConfigurationOrigin.Home,
-        path   = path,
-        rank   = Rank.Home,
-        loader = new SimpleFileConfigLoader
-      )
-    }
+    home.map(base => _config_files(base.resolve(_config_dir_name(applicationname)), ConfigurationOrigin.Home, Rank.Home))
+      .getOrElse(Nil)
   }
 
-  def project(cwd: Path): Option[ConfigurationSource] = {
-    val path = cwd.resolve(".sie").resolve("config.conf")
-    Some(
-      File(
-        origin = ConfigurationOrigin.Project,
-        path   = path,
-        rank   = Rank.Project,
-        loader = new SimpleFileConfigLoader
-      )
-    )
-  }
+  def project(
+    cwd: Path,
+    applicationname: String = DefaultApplicationName
+  ): Seq[ConfigurationSource] =
+    _config_files(cwd.resolve(_config_dir_name(applicationname)), ConfigurationOrigin.Project, Rank.Project)
 
-  def cwd(cwd: Path): Option[ConfigurationSource] = {
-    val path = cwd.resolve(".sie").resolve("config.conf")
-    Some(
-      File(
-        origin = ConfigurationOrigin.Cwd,
-        path   = path,
-        rank   = Rank.Cwd,
-        loader = new SimpleFileConfigLoader
-      )
-    )
-  }
+  def cwd(
+    cwd: Path,
+    applicationname: String = DefaultApplicationName
+  ): Seq[ConfigurationSource] =
+    _config_files(cwd.resolve(_config_dir_name(applicationname)), ConfigurationOrigin.Cwd, Rank.Cwd)
 
   def env(env: Map[String, String]): Option[ConfigurationSource] =
     Some(Env(env, Rank.Environment))
 
   def args(args: Map[String, String]): Option[ConfigurationSource] =
     Some(Args(args, Rank.Arguments))
+
+  private def _config_files(
+    base: Path,
+    origin: ConfigurationOrigin,
+    rank: Int
+  ): Seq[ConfigurationSource] =
+    ConfigFileExtensions.map { ext =>
+      File(
+        origin = origin,
+        path = base.resolve(s"config.$ext"),
+        rank = rank,
+        loader = new SimpleFileConfigLoader
+      )
+    }
+
+  private def _config_dir_name(applicationname: String): String = {
+    val a = applicationname.trim
+    val name = if (a.startsWith(".")) a.drop(1) else a
+    if (name.isEmpty) s".$DefaultApplicationName" else s".$name"
+  }
 
   object Rank {
     val Resource: Int    = 5
@@ -147,23 +151,11 @@ final case class ResourceConfigurationSource(
 
   override def load(): Consequence[Configuration] = {
     Using(scala.io.Source.fromInputStream(resourceUrl.openStream(), "UTF-8")) { source =>
-      val values =
-        source
-          .getLines()
-          .map(_.trim)
-          .filterNot(_.isEmpty)
-          .filterNot(_.startsWith("#"))
-          .flatMap { line =>
-            line.split("=", 2) match {
-              case Array(k, v) =>
-                Some(k.trim -> ConfigurationValue.StringValue(v.trim))
-              case _ =>
-                None
-            }
-          }
-          .toMap
-
-      Configuration(values)
+      val content = source.mkString
+      ConfigTextDecoder.decode(resourceName, content) match {
+        case Consequence.Success(cfg) => cfg
+        case Consequence.Failure(err) => throw new IllegalStateException(err.print)
+      }
     } match {
       case scala.util.Success(cfg) => Consequence.Success(cfg)
       case scala.util.Failure(exception) =>
@@ -173,7 +165,18 @@ final case class ResourceConfigurationSource(
 }
 
 object ResourceConfigurationSource {
-  private val DefaultResourceNames = Seq("configuration.conf", "application.conf")
+  private val DefaultResourceNames = Seq(
+    "configuration.conf",
+    "configuration.props",
+    "configuration.properties",
+    "configuration.json",
+    "configuration.yaml",
+    "application.conf",
+    "application.props",
+    "application.properties",
+    "application.json",
+    "application.yaml"
+  )
 
   def fromClasspath(
     names: Seq[String] = DefaultResourceNames,
