@@ -8,7 +8,7 @@ import org.goldenport.provisional.observation.Cause
  * @since   Jan. 25, 2026
  *  version Jan. 31, 2026
  *  version Feb.  7, 2026
- * @version Mar. 11, 2026
+ * @version Mar. 13, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -53,6 +53,7 @@ object Interpretation {
   def argumentDataType = domainFailure
   def argumentConstraint = domainFailure
   def operationInvalid = domainFailure
+  def notFound = domainFailure
   def resourceInconsistency = domainFailure
   def recordNotFound = domainFailure
   def operationNotFound = domainFailure

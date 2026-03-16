@@ -4,6 +4,7 @@ import cats.data.NonEmptyVector
 import java.time.Instant
 import org.goldenport.record.Record
 import org.goldenport.text.Presentable
+import org.goldenport.datatype.Identifier
 import org.goldenport.id.UniversalId
 import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.{TraceId, SpanId}
@@ -43,7 +44,7 @@ import org.goldenport.util.SmEnum
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
- * @version Mar. 11, 2026
+ * @version Mar. 13, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -273,6 +274,11 @@ object Observation {
     Descriptor.Facet.Name(name) +: facets
   )
 
+  def entityNotFound(id: Identifier): Observation = failure(
+    Taxonomy.entityNotFound,
+    Descriptor.Facet.Id(id)
+  )
+
   // OutOfControl
   def unreachableReached(pos: SourcePosition): Observation = failure(
     Taxonomy.unreachableReached,
@@ -429,6 +435,8 @@ object Taxonomy {
     case State extends Category("state", 5)
 
     case Value extends Category("value", 7)
+
+    case Entity extends Category("entity", 17)
 
     case Record extends Category("value", 8)
 
@@ -620,6 +628,12 @@ object Taxonomy {
   // Reference
   val referenceNotFound: Taxonomy = Taxonomy(
     Category.Reference,
+    Symptom.NotFound
+  )
+
+  // Entity
+  val entityNotFound: Taxonomy = Taxonomy(
+    Category.Entity,
     Symptom.NotFound
   )
 

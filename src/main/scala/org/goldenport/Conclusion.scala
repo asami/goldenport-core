@@ -2,6 +2,8 @@ package org.goldenport
 
 import cats.data.NonEmptyVector
 import java.time.Instant
+import org.goldenport.datatype.Identifier
+import org.goldenport.record.Record
 import org.goldenport.record.Record
 import org.goldenport.error.{ErrorCode, ErrorStrategy}
 import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
@@ -23,7 +25,7 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
- * @version Mar. 11, 2026
+ * @version Mar. 13, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -413,6 +415,14 @@ object Conclusion {
       Observation.serviceProviderNotFound(name, facets),
       Interpretation.configurationFailure,
       Disposition.serviceUnavailable
+    )
+
+  def entityNotFound(id: Identifier): Conclusion =
+    Conclusion(
+      Status.notFound,
+      Observation.entityNotFound(id),
+      Interpretation.notFound,
+      Disposition.fix
     )
 
   // fail : obsolated

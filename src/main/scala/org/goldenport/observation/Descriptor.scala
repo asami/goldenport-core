@@ -5,10 +5,11 @@ import cats.implicits._
 import cats.data.NonEmptyVector
 import java.net.URI
 import org.goldenport.text.Presentable
+import org.goldenport.datatype.Identifier
+import org.goldenport.id.UniversalId
 import org.goldenport.record.Record
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
-import org.goldenport.id.UniversalId
 import org.goldenport.util.SmEnum
 import org.goldenport.util.StringUtils
 
@@ -20,7 +21,7 @@ import org.goldenport.util.StringUtils
  * @since   Dec. 28, 2025
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
- * @version Mar. 11, 2026
+ * @version Mar. 13, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -158,6 +159,7 @@ object Descriptor {
     }
     object Id {
       def apply(id: UniversalId): Id = Id(id.print)
+      def apply(id: Identifier): Id = Id(id.print)
     }
 
     case class Name(name: String) extends Facet {

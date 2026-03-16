@@ -7,6 +7,7 @@ import scala.util.control.NonFatal
 import org.goldenport.consequence.Failures
 import org.goldenport.consequence.SourcePositionMacro
 import org.goldenport.text.Presentable
+import org.goldenport.datatype.Identifier
 import org.goldenport.record.Record
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
@@ -51,7 +52,7 @@ import org.goldenport.id.UniversalId
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
- * @version Mar. 11, 2026
+ * @version Mar. 13, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -621,6 +622,14 @@ object Consequence {
     serviceprovider match {
       case Some(s) => Consequence.success(s)
       case None => fail(Conclusion.serviceProviderNotFound(name, Vector(Descriptor.Facet.Key(key))))
+    }
+
+  inline def successOrEntityNotFound[T](
+    entity: Option[T]
+  )(id: Identifier): Consequence[T] =
+    entity match {
+      case Some(s) => Consequence.success(s)
+      case None => fail(Conclusion.entityNotFound(id))
     }
 
   // Fail

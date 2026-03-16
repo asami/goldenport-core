@@ -40,7 +40,7 @@ import org.goldenport.datatype.Identifier
  *  version Jan.  1, 2026
  *  version Jan. 20, 2026
  *  version Feb. 25, 2026
- * @version Mar. 12, 2026
+ * @version Mar. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
@@ -50,6 +50,8 @@ abstract class UniversalId protected (
   subkind: Option[String],
   timestamp: Option[Instant]
 ) extends Identifier {
+  import UniversalId._
+
   // Auxiliary constructor for backward compatibility
   protected def this(
     major: String,
@@ -72,8 +74,6 @@ abstract class UniversalId protected (
     timestamp: Instant
   ) = this(major, minor, kind, Some(subkind), Some(timestamp))
 
-  import UniversalId._
-
   override protected def do_validation_in_init = false
 
   private def _validate_label(name: String, value: String): Unit = {
@@ -92,6 +92,8 @@ abstract class UniversalId protected (
 
   def value: String = _parts.value
 
+  def parts: UniversalId.Parts = _parts
+
 //  def print: String = value
 
   override def display: String = {
@@ -99,7 +101,7 @@ abstract class UniversalId protected (
     s"$major-$minor-$kind$sk"
   }
 
-  override def show: String = s"${display}-${_parts.timestamp}"
+  override def show: String = s"${display}-${_parts.timestampLabel}"
 
   override def equals(obj: Any): Boolean =
     obj match {
@@ -118,39 +120,41 @@ object UniversalId {
     minor: String,
     kind: String,
     subkind: Option[String],
-    timestamp: String,
+    timestamp: Instant,
     entropy: String
   ) {
+    val timestampLabel = timestamp.toEpochMilli.toString
+
     val value =
       subkind match {
-        case Some(sk) => s"${major}-${minor}-${kind}-${sk}-${timestamp}-${entropy}"
-        case None     => s"${major}-${minor}-${kind}-${timestamp}-${entropy}"
+        case Some(sk) => s"${major}-${minor}-${kind}-${sk}-${timestampLabel}-${entropy}"
+        case None     => s"${major}-${minor}-${kind}-${timestampLabel}-${entropy}"
       }
   }
 
   object Parts {
-    // The timestamp format is digits-only. It is intended for identification/debugging, not time arithmetic.
-    // Timezone offset is encoded without sign.
-    private val _timestamp_formatter =
-      DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSZZ")
-        .withZone(ZoneOffset.UTC)
+    // // The timestamp format is digits-only. It is intended for identification/debugging, not time arithmetic.
+    // // Timezone offset is encoded without sign.
+    // private val _timestamp_formatter =
+    //   DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSZZ")
+    //     .withZone(ZoneOffset.UTC)
 
-    private def _timestamep_format_ymd(p: Option[Instant]): String = p match {
-      case Some(s) =>
-        if (s == Instant.EPOCH)
-          "0"
-        else
-          _timestamp_formatter.format(s)
-      case None => _timestamp_formatter.format(Instant.now())
-    }
+    // private def _timestamep_format_ymd(p: Option[Instant]): String = p match {
+    //   case Some(s) =>
+    //     if (s == Instant.EPOCH)
+    //       "0"
+    //     else
+    //       _timestamp_formatter.format(s)
+    //   case None => _timestamp_formatter.format(Instant.now())
+    // }
 
-    private def _timestamp_formatter(p: Option[Instant]): String = p match {
-      case Some(s) => _timestamp_formatter(s)
-      case None => _timestamp_formatter(Instant.now())
-    }
+    // private def _timestamp_formatter(p: Option[Instant]): String = p match {
+    //   case Some(s) => _timestamp_formatter(s)
+    //   case None => _timestamp_formatter(Instant.now())
+    // }
 
-    private def _timestamp_formatter(p: Instant): String =
-      p.toEpochMilli.toString
+    // private def _timestamp_formatter(p: Instant): String =
+    //   p.toEpochMilli.toString
 
     def create(
       major: String,
@@ -159,13 +163,12 @@ object UniversalId {
       subkind: Option[String],
       timestamp: Option[Instant]
     ): Parts = {
-      val formattedTimestamp = _timestamp_formatter(timestamp)
       Parts(
         major,
         minor,
         kind,
         subkind,
-        formattedTimestamp,
+        timestamp getOrElse Instant.now(),
         CompactUuid.generateString()
       )
     }

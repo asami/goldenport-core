@@ -14,6 +14,11 @@ import org.goldenport.Consequence
 import org.goldenport.configuration.Configuration
 import org.goldenport.configuration.ConfigurationValue
 
+/*
+ * @since   Mar. 13, 2026
+ * @version Mar. 13, 2026
+ * @author  ASAMI, Tomoharu
+ */
 trait FileConfigLoader {
   def load(
     path: Path
