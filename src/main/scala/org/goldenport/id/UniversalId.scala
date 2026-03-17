@@ -3,6 +3,7 @@ package org.goldenport.id
 import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
 // import org.goldenport.text.Presentable
+import org.goldenport.Consequence
 import org.goldenport.datatype.Identifier
 
 /**
@@ -40,7 +41,7 @@ import org.goldenport.datatype.Identifier
  *  version Jan.  1, 2026
  *  version Jan. 20, 2026
  *  version Feb. 25, 2026
- * @version Mar. 15, 2026
+ * @version Mar. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
@@ -115,6 +116,20 @@ abstract class UniversalId protected (
 object UniversalId {
   private val AllowedLabelPattern = "^[A-Za-z0-9_]+$".r
 
+  def parse[T](
+    value: String,
+    expectedkind: String
+  )(
+    build: Parts => T
+  ): Consequence[T] =
+    parse_parts(value, expectedkind).map(build)
+
+  def parseParts(
+    value: String,
+    expectedkind: String
+  ): Consequence[Parts] =
+    parse_parts(value, expectedkind)
+
   final case class Parts(
     major: String,
     minor: String,
@@ -173,4 +188,66 @@ object UniversalId {
       )
     }
   }
+
+  private def parse_parts(
+    value: String,
+    expectedkind: String
+  ): Consequence[Parts] = {
+    val tokens = value.split("-").toVector
+
+    tokens match {
+      case Vector(major, minor, kind, timestamplabel, entropy) =>
+        _build_parts(
+          major,
+          minor,
+          kind,
+          None,
+          timestamplabel,
+          entropy,
+          expectedkind
+        )
+      case Vector(major, minor, kind, subkind, timestamplabel, entropy) =>
+        _build_parts(
+          major,
+          minor,
+          kind,
+          Some(subkind),
+          timestamplabel,
+          entropy,
+          expectedkind
+        )
+      case _ =>
+        Consequence.failure(s"Invalid UniversalId format: '$value'")
+    }
+  }
+
+  private def _build_parts(
+    major: String,
+    minor: String,
+    kind: String,
+    subkind: Option[String],
+    timestamplabel: String,
+    entropy: String,
+    expectedkind: String
+  ): Consequence[Parts] = {
+    if (kind != expectedkind)
+      Consequence.failure(s"Invalid kind: expected '$expectedkind' but was '$kind'")
+    else if (!_valid_label(major))
+      Consequence.failure(s"Invalid label in major: '$major'")
+    else if (!_valid_label(minor))
+      Consequence.failure(s"Invalid label in minor: '$minor'")
+    else if (!_valid_label(kind))
+      Consequence.failure(s"Invalid label in kind: '$kind'")
+    else if (subkind.exists(x => !_valid_label(x)))
+      Consequence.failure(s"Invalid label in subkind: '${subkind.get}'")
+    else if (entropy.isEmpty)
+      Consequence.failure("Entropy must not be empty")
+    else
+      Consequence(timestamplabel.toLong)
+        .map(ts => Instant.ofEpochMilli(ts))
+        .map(ts => Parts(major, minor, kind, subkind, ts, entropy))
+  }
+
+  private def _valid_label(value: String): Boolean =
+    AllowedLabelPattern.matches(value)
 }
