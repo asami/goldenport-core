@@ -4,7 +4,7 @@ import org.goldenport.util.SmEnumClass
 
 /*
  * @since   Aug.  2, 2025
- * @version Mar. 1９, 2026
+ * @version Mar. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 enum Aliveness(

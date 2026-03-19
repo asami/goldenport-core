@@ -1,5 +1,10 @@
 package org.goldenport.model.statemachine
 
+/*
+ * @since   May. 20, 2025
+ * @version Mar. 20, 2026
+ * @author  ASAMI, Tomoharu
+ */
 sealed trait PlannerError {
   def message: String
 }

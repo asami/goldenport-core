@@ -7,6 +7,11 @@ package org.goldenport.model.statemachine
  * `PostStatus` and `Aliveness` remain adapter/view enums.
  * Canonical transition semantics are defined by this package.
  */
+/*
+ * @since   May. 20, 2025
+ * @version Mar. 20, 2026
+ * @author  ASAMI, Tomoharu
+ */
 sealed trait GuardExpr
 object GuardExpr {
   final case class Ref(name: String) extends GuardExpr
