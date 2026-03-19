@@ -5,7 +5,7 @@ lazy val root = project
   .settings(
     organization := "org.goldenport",
     name := "goldenport-core",
-    version := "0.2.6",
+    version := "0.2.7",
 
     scalaVersion := scala3Version,
 
@@ -23,6 +23,7 @@ lazy val root = project
     libraryDependencies += "io.circe" %% "circe-core" % "0.14.3",
     libraryDependencies += "io.circe" %% "circe-generic" % "0.14.3",
     libraryDependencies += "io.circe" %% "circe-parser" % "0.14.3",
+    libraryDependencies += "com.typesafe" % "config" % "1.4.3",
     libraryDependencies += "org.yaml" % "snakeyaml" % "2.1",
     publishMavenStyle := true,
 
