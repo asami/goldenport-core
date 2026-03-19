@@ -8,7 +8,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 22, 2025
- * @version Mar. 18, 2026
+ * @version Mar. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 class AlivenessSpec
@@ -67,6 +67,17 @@ class AlivenessSpec
 
       Then("no state is resolved")
       parsed shouldBe None
+    }
+
+    "follow canonical transition semantics" in {
+      Given("Alive state and suspend event")
+      val current = Aliveness.Alive
+
+      When("transition is selected via deterministic planner")
+      val next = Aliveness.transition(current, Aliveness.Event.Suspend)
+
+      Then("state moves to Suspended")
+      next shouldBe Right(Some(Aliveness.Suspended))
     }
   }
 }

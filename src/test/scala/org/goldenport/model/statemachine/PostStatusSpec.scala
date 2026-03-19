@@ -8,7 +8,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 22, 2025
- * @version Mar. 18, 2026
+ * @version Mar. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 class PostStatusSpec
@@ -67,6 +67,17 @@ class PostStatusSpec
 
       Then("no state is resolved")
       parsed shouldBe None
+    }
+
+    "follow canonical transition semantics" in {
+      Given("Draft state and publish event")
+      val current = PostStatus.Draft
+
+      When("transition is selected via deterministic planner")
+      val next = PostStatus.transition(current, PostStatus.Event.Publish)
+
+      Then("state moves to Published")
+      next shouldBe Right(Some(PostStatus.Published))
     }
   }
 }
