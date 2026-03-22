@@ -1,6 +1,5 @@
 package org.goldenport.model
 
-import org.goldenport.datatype.ObjectId
 import org.goldenport.model.value.NameAttributes
 import org.goldenport.model.value.DescriptiveAttributes
 import org.goldenport.model.value.LifecycleAttributes
@@ -13,7 +12,8 @@ import org.goldenport.model.value.ContextualAttributes
 
 /*
  * @since   Aug.  1, 2025
- * @version Aug.  4, 2025
+ *  version Aug.  4, 2025
+ * @version Mar. 23, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class SimpleObject extends NameAttributes.Holder
