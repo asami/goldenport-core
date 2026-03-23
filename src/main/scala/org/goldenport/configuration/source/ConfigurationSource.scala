@@ -24,7 +24,8 @@ import org.goldenport.configuration.source.file.SimpleFileConfigLoader
  */
 /*
  * @since   Dec. 18, 2025
- * @version Jan. 16, 2026
+ *  version Jan. 16, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConfigurationSource {
@@ -57,8 +58,11 @@ object ConfigurationSource {
   ): Seq[ConfigurationSource] =
     _config_files(cwd.resolve(_config_dir_name(applicationname)), ConfigurationOrigin.Cwd, Rank.Cwd)
 
-  def env(env: Map[String, String]): Option[ConfigurationSource] =
-    Some(Env(env, Rank.Environment))
+  def env(
+    env: Map[String, String],
+    applicationname: String = DefaultApplicationName
+  ): Option[ConfigurationSource] =
+    Some(Env(_normalize_env(env, applicationname), Rank.Environment))
 
   def args(args: Map[String, String]): Option[ConfigurationSource] =
     Some(Args(args, Rank.Arguments))
@@ -82,6 +86,27 @@ object ConfigurationSource {
     val name = if (a.startsWith(".")) a.drop(1) else a
     if (name.isEmpty) s".$DefaultApplicationName" else s".$name"
   }
+
+  private def _normalize_env(
+    env: Map[String, String],
+    applicationname: String
+  ): Map[String, String] = {
+    val app = _application_name(applicationname)
+    val prefix = s"${app.toUpperCase}_"
+    env.collect {
+      case (k, v) if k.startsWith(prefix) && k.length > prefix.length =>
+        _to_canonical_key(k) -> v
+    }
+  }
+
+  private def _application_name(applicationname: String): String = {
+    val a = applicationname.trim
+    val name = if (a.startsWith(".")) a.drop(1) else a
+    if (name.isEmpty) DefaultApplicationName else name
+  }
+
+  private def _to_canonical_key(envkey: String): String =
+    envkey.toLowerCase.replace('_', '.')
 
   object Rank {
     val Resource: Int    = 5

@@ -2,6 +2,9 @@ package org.goldenport.configuration
 
 import java.nio.file.{Files, Path}
 
+import org.goldenport.configuration.source.ConfigurationSource
+import org.goldenport.configuration.source.file.SimpleFileConfigLoader
+import org.goldenport.Consequence
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -10,7 +13,7 @@ import org.goldenport.configuration.source.ProjectRootFinder
 
 /*
  * @since   Mar. 21, 2026
- * @version Mar. 21, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConfigurationSourcesSpec
@@ -109,6 +112,61 @@ class ConfigurationSourcesSpec
         ConfigurationOrigin.Cwd,
         ConfigurationOrigin.Environment,
         ConfigurationOrigin.Arguments
+      )
+    }
+
+    "keep precedence file < env < args for same canonical key" in {
+      Given("same canonical key in file, env and args sources")
+      val dir = Files.createTempDirectory("sm-precedence-")
+      val file = dir.resolve("config.json")
+      Files.writeString(file, "{\"cncf.datastore.sqlite.path\":\"/tmp/file.db\"}")
+
+      val fileSource = ConfigurationSource.File(
+        origin = ConfigurationOrigin.Cwd,
+        path = file,
+        rank = ConfigurationSource.Rank.Cwd,
+        loader = new SimpleFileConfigLoader
+      )
+      val envSource = ConfigurationSource.env(
+        Map("CNCF_DATASTORE_SQLITE_PATH" -> "/tmp/env.db"),
+        "cncf"
+      ).get
+      val argsSource = ConfigurationSource.args(
+        Map("cncf.datastore.sqlite.path" -> "/tmp/args.db")
+      ).get
+
+      val resolver = ConfigurationResolver.default
+
+      When("resolving sources")
+      val resolved = resolver.resolve(Seq(fileSource, envSource, argsSource))
+
+      Then("args value overrides env and file")
+      resolved.fold(
+        err => fail(s"unexpected failure: ${err.print}"),
+        rc => rc.get[String]("cncf.datastore.sqlite.path") shouldBe Consequence.success(Some("/tmp/args.db"))
+      )
+    }
+
+    "resolve env value as plain string via get[String]" in {
+      Given("cncf env value in APP_SECTION_KEY format")
+      val cwd = Files.createTempDirectory("sm-env-plain-")
+      val resolver = ConfigurationResolver.default
+
+      val sources =
+        ConfigurationSources.standard(
+          cwd = cwd,
+          applicationname = "cncf",
+          args = Map.empty,
+          env = Map("CNCF_DATASTORE_SQLITE_PATH" -> "/tmp/cncf_env_test.db")
+        )
+
+      When("resolving and reading string value")
+      val resolved = resolver.resolve(sources)
+
+      Then("raw string is returned without StringValue(...) wrapper")
+      resolved.fold(
+        err => fail(s"unexpected failure: ${err.print}"),
+        rc => rc.get[String]("cncf.datastore.sqlite.path") shouldBe Consequence.success(Some("/tmp/cncf_env_test.db"))
       )
     }
   }

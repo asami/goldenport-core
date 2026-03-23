@@ -8,7 +8,7 @@ import java.nio.file.Path
 /*
  * @since   Dec. 18, 2025
  *  version Jan. 16, 2026
- * @version Mar. 21, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class ConfigurationSources(
@@ -30,7 +30,7 @@ object ConfigurationSources {
         .toSeq
         .flatMap(root => ConfigurationSource.project(root, applicationname))
     val current   = ConfigurationSource.cwd(cwd, applicationname)
-    val envSrc    = ConfigurationSource.env(env)
+    val envSrc    = ConfigurationSource.env(env, applicationname)
     val argSrc    = ConfigurationSource.args(args)
 
     ConfigurationSources(
