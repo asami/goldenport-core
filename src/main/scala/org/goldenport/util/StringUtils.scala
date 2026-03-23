@@ -30,6 +30,9 @@ object StringUtils {
       if (base.contains("?")) s"${base}&${query}" else s"${base}?${query}"
     }
 
+  def toKebabCase(value: String): String =
+    _tokenize_for_kebab(value).mkString("-")
+
   /*
    * Class Name
    */
@@ -86,5 +89,57 @@ object StringUtils {
 
       def result: String = to_string(z :+ x.mkString)
     }
+  }
+
+  private def _tokenize_for_kebab(value: String): Vector[String] = {
+    val normalizedSeparators = value.trim.replaceAll("[\\s_./\\\\]+", "-")
+    val result = Vector.newBuilder[String]
+    val current = new StringBuilder
+
+    def flush(): Unit =
+      if (current.nonEmpty) {
+        result += current.toString
+        current.clear()
+      }
+
+    def isBoundary(c: Char, prev: Option[Char], next: Option[Char]): Boolean =
+      if (current.isEmpty || !c.isUpper) {
+        false
+      } else {
+        val prevIsLowerOrDigit = prev.exists(ch => ch.isLower || ch.isDigit)
+        val prevIsUpper = prev.exists(_.isUpper)
+        val nextIsLower = next.exists(_.isLower)
+        prevIsLowerOrDigit || (prevIsUpper && nextIsLower && current.length > 1)
+      }
+
+    var index = 0
+    var prevAlphaNum: Option[Char] = None
+    while (index < normalizedSeparators.length) {
+      val c = normalizedSeparators.charAt(index)
+      if (c.isLetterOrDigit) {
+        val next = _next_alnum(normalizedSeparators, index + 1)
+        if (isBoundary(c, prevAlphaNum, next)) {
+          flush()
+        }
+        current.append(c.toLower)
+        prevAlphaNum = Some(c)
+      } else {
+        flush()
+        prevAlphaNum = None
+      }
+      index += 1
+    }
+    flush()
+    result.result().filter(_.nonEmpty)
+  }
+
+  private def _next_alnum(value: String, from: Int): Option[Char] = {
+    var index = from
+    while (index < value.length) {
+      val c = value.charAt(index)
+      if (c.isLetterOrDigit) return Some(c)
+      index += 1
+    }
+    None
   }
 }

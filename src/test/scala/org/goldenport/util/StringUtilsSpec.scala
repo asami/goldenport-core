@@ -12,13 +12,20 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 class StringUtilsSpec extends AnyWordSpec
   with ScalaCheckDrivenPropertyChecks
   with Matchers {
+  "StringUtils" should {
+    "convert canonical names to kebab-case" in {
+      StringUtils.toKebabCase("UserAccount") shouldBe "user-account"
+      StringUtils.toKebabCase("AdminUser") shouldBe "admin-user"
+      StringUtils.toKebabCase("APIService") shouldBe "api-service"
+      StringUtils.toKebabCase("OAuthToken") shouldBe "oauth-token"
+      StringUtils.toKebabCase("disableUser") shouldBe "disable-user"
+      StringUtils.toKebabCase("resetPassword") shouldBe "reset-password"
+    }
 
-  "StringUtils" should {  "satisfy basic properties" in {
-    pending
-  }
-
-  "preserve invariants" in {
-    pending
-  }
+    "keep normalized values unchanged" in {
+      StringUtils.toKebabCase("user-account") shouldBe "user-account"
+      StringUtils.toKebabCase("user_account") shouldBe "user-account"
+      StringUtils.toKebabCase(" user/account ") shouldBe "user-account"
+    }
   }
 }
