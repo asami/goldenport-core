@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 
 import org.goldenport.protocol.{Argument, Property, Switch}
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ParameterDefinition, RequestDefinition, ResponseDefinition, ServiceDefinition, ServiceDefinitionGroup}
-import org.goldenport.model.value.BaseContent
+import org.simplemodeling.model.value.BaseContent
 import cats.data.NonEmptyVector
 
 /*
@@ -51,7 +51,8 @@ import cats.data.NonEmptyVector
  */
 /*
  * @since   Jan.  1, 2026
- * @version Jan.  2, 2026
+ *  version Jan.  2, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 class ArgsIngressSpec

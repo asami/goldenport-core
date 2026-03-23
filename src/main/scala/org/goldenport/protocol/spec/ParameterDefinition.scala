@@ -1,6 +1,6 @@
 package org.goldenport.protocol.spec
 
-import org.goldenport.model.value.{BaseContent, DescriptiveAttributes}
+import org.simplemodeling.model.value.{BaseContent, DescriptiveAttributes}
 import org.goldenport.schema.*
 import org.goldenport.schema.ValueDomain
 import org.goldenport.util.{SmEnum, SmEnumClass}
@@ -14,7 +14,8 @@ import org.goldenport.util.{SmEnum, SmEnumClass}
  *  version Apr.  2, 2025
  *  version Jun.  5, 2025
  *  version Dec. 30, 2025
- * @version Feb.  6, 2026
+ *  version Feb.  6, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ParameterDefinition(

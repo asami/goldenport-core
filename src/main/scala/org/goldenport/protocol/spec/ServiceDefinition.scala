@@ -1,7 +1,7 @@
 package org.goldenport.protocol.spec
 
 import cats.data.NonEmptyVector
-import org.goldenport.model.value.BaseContent
+import org.simplemodeling.model.value.BaseContent
 import org.goldenport.protocol.service.Service
 import org.goldenport.protocol.spec.*
 import org.goldenport.protocol.spec.OperationDefinition.Builder.OperationFactory
@@ -14,7 +14,8 @@ import org.goldenport.protocol.spec.OperationDefinition.Builder.OperationFactory
  *  version Nov. 25, 2023
  *  version Feb.  2, 2025
  *  version Dec. 30, 2025
- * @version Jan. 21, 2026
+ *  version Jan. 21, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class ServiceDefinition

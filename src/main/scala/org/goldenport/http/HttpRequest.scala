@@ -15,7 +15,8 @@ import org.goldenport.bag.Bag
  *  version Nov.  7, 2018
  *  version Mar. 20, 2021
  *  version Dec. 25, 2025
- * @version Jan. 17, 2026
+ *  version Jan. 17, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 case class HttpRequest(
@@ -69,7 +70,7 @@ object HttpContext {
 
 object HttpRequest {
   import org.goldenport.Consequence
-  import org.goldenport.model.value.BaseContent
+  import org.simplemodeling.model.value.BaseContent
   import org.goldenport.protocol.operation.OperationRequest
   import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
   import org.goldenport.protocol.{Argument, Property, Request}

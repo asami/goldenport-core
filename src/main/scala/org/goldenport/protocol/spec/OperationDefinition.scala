@@ -4,7 +4,7 @@ import cats.data.NonEmptyVector
 import java.time.ZonedDateTime
 import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.I18nMessage
-import org.goldenport.model.value.BaseContent
+import org.simplemodeling.model.value.BaseContent
 import org.goldenport.http.HttpRequest
 import org.goldenport.provisional.observation.Cause
 import org.goldenport.protocol.Request
@@ -20,7 +20,8 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Mar. 15, 2025
  *  version Dec. 30, 2025
  *  version Jan. 29, 2026
- * @version Feb.  7, 2026
+ *  version Feb.  7, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition

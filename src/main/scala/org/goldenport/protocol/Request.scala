@@ -2,7 +2,7 @@ package org.goldenport.protocol
 
 import org.goldenport.Consequence
 import org.goldenport.text.Presentable
-import org.goldenport.model.value.BaseContent
+import org.simplemodeling.model.value.BaseContent
 import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.text.Presentable
@@ -26,7 +26,8 @@ import org.goldenport.record.Record
  *  version Jun. 10, 2025
  *  version Dec. 24, 2025
  *  version Jan. 30, 2026
- * @version Feb. 19, 2026
+ *  version Feb. 19, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(

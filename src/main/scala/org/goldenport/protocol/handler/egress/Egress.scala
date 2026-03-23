@@ -6,7 +6,7 @@ import org.goldenport.Consequence
 import org.goldenport.bag.Bag
 import org.goldenport.datatype.{ContentType, MimeType}
 import org.goldenport.http.{HttpResponse, HttpStatus}
-import org.goldenport.model.value.BaseContent
+import org.simplemodeling.model.value.BaseContent
 import org.goldenport.protocol.{Response, TextResponse, BinaryResponse}
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
 
@@ -14,7 +14,8 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
  *  version Jan. 28, 2026
- * @version Feb. 15, 2026
+ *  version Feb. 15, 2026
+ * @version Mar. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Egress[Out] {
