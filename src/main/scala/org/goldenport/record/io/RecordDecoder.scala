@@ -289,7 +289,7 @@ class RecordDecoder(
       val m = value.asInstanceOf[java.util.Map[String, AnyRef]]
       Json.fromJsonObject(
         io.circe.JsonObject.fromIterable(
-          m.asScala.iterator.map { case (k, v) => k -> _to_json(v) }
+          m.asScala.map { case (k, v) => k -> _to_json(v) }
         )
       )
     } else if (value.isInstanceOf[java.util.Collection[?]]) {
@@ -418,7 +418,7 @@ class RecordDecoder(
     Option(node.getLocalName).getOrElse(node.getNodeName)
 
   private def _xml_node_list_to_vector(nodes: org.w3c.dom.NodeList): Vector[org.w3c.dom.Node] =
-    (0 until nodes.getLength).toVector.map(nodes.item)
+    (0 until nodes.getLength).toVector.map(i => nodes.item(i))
 
   private def _split_non_empty_lines(text: String): Vector[String] =
     text.linesIterator.map(_.trim).filter(_.nonEmpty).toVector
