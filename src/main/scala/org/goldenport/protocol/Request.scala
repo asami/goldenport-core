@@ -27,7 +27,7 @@ import org.goldenport.record.Record
  *  version Dec. 24, 2025
  *  version Jan. 30, 2026
  *  version Feb. 19, 2026
- * @version Mar. 24, 2026
+ * @version Mar. 27, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -72,9 +72,19 @@ case class Request(
   }
 
   def toRecord: Record = {
-    val props = (arguments ++ switches ++ properties).map(x => x.name -> x.value)
+    val props = (arguments ++ switches ++ _domain_properties).map(x => x.name -> x.value)
     Record.create(props)
   }
+
+  def domainProperties: List[Property] = _domain_properties
+  def queryProperties: List[Property] = properties.filter(p => _is_prefixed(p.name, "query."))
+  def frameworkProperties: List[Property] = properties.filter(p => _is_prefixed(p.name, "cncf."))
+
+  private def _domain_properties: List[Property] =
+    properties.filterNot(p => _is_prefixed(p.name, "cncf.") || _is_prefixed(p.name, "query."))
+
+  private def _is_prefixed(name: String, prefix: String): Boolean =
+    name != null && name.toLowerCase.startsWith(prefix)
 }
 
 object Request {
