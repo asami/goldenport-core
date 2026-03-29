@@ -56,6 +56,13 @@ object Response {
     override def show: String = value
   }
 
+  final case class Xml(value: String) extends TextResponse {
+    def mimeType = MimeType.APPLICATION_XML
+    def print = value
+    override def display: String = value
+    override def show: String = value
+  }
+
   /**
    * Scalar response value.
    *
