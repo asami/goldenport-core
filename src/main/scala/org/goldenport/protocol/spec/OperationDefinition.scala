@@ -4,7 +4,7 @@ import cats.data.NonEmptyVector
 import java.time.ZonedDateTime
 import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.I18nMessage
-import org.simplemodeling.model.value.BaseContent
+import org.goldenport.value.BaseContent
 import org.goldenport.http.HttpRequest
 import org.goldenport.provisional.observation.Cause
 import org.goldenport.protocol.Request

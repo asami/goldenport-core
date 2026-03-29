@@ -188,11 +188,7 @@ class RecordDecoder(
   private def _decode_yaml(text: String): Consequence[Record] =
     Consequence {
       val yamlValue: AnyRef = _yaml_parser.load(text)
-      val jsonString = _to_json(yamlValue).noSpaces
-      parse(jsonString) match {
-        case Right(json) => _to_record(json)
-        case Left(e)     => throw e
-      }
+      _yaml_value_to_record(yamlValue)
     }
 
   private def _decode_yaml_records(text: String): Consequence[Vector[Record]] =
@@ -242,13 +238,28 @@ class RecordDecoder(
     }
 
   private def _yaml_record_from_list_item(value: Any): Record =
+    _yaml_value_to_record(value)
+
+  private def _yaml_value_to_record(value: Any): Record =
     if (value.isInstanceOf[java.util.Map[?, ?]]) {
       val m = value.asInstanceOf[java.util.Map[String, AnyRef]]
       Record.create(
-        m.asScala.toVector.map { case (k, v) => k -> v }
+        m.asScala.toVector.map { case (k, v) => k -> _yaml_value_to_value(v) }
       )
     } else {
-      throw new IllegalArgumentException("YAML list items must be mappings")
+      throw new IllegalArgumentException("YAML values must be mappings")
+    }
+
+  private def _yaml_value_to_value(value: Any): Any =
+    value match {
+      case null => null
+      case m: java.util.Map[?, ?] =>
+        m.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toVector.map { case (k, v) => k -> _yaml_value_to_value(v) }.toMap
+      case c: java.util.Collection[?] =>
+        c.asScala.toVector.map(_yaml_value_to_value)
+      case xs: Array[?] =>
+        xs.toVector.map(_yaml_value_to_value)
+      case v => v
     }
 
   private def _decode_csv_records(text: String): Consequence[Vector[Record]] =
@@ -369,8 +380,11 @@ class RecordDecoder(
         Record.empty
       }
     } else {
-      val grouped = childElements.groupBy(_xml_local_name)
-      grouped.foreach { case (name, elems) =>
+      val namesInOrder = childElements.map(_xml_local_name).foldLeft(Vector.empty[String]) { (acc, name) =>
+        if (acc.contains(name)) acc else acc :+ name
+      }
+      namesInOrder.foreach { name =>
+        val elems = childElements.filter(e => _xml_local_name(e) == name)
         val value =
           if (elems.size == 1) _xml_element_value(elems.head)
           else elems.toVector.map(_xml_element_value)

@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 
 import org.goldenport.protocol.{Argument, Property, Switch}
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ParameterDefinition, RequestDefinition, ResponseDefinition, ServiceDefinition, ServiceDefinitionGroup}
-import org.simplemodeling.model.value.BaseContent
+import org.goldenport.value.BaseContent
 import cats.data.NonEmptyVector
 
 /*

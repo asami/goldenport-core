@@ -1,7 +1,7 @@
 package org.goldenport.protocol.spec
 
 import cats.data.NonEmptyVector
-import org.simplemodeling.model.value.BaseContent
+import org.goldenport.value.BaseContent
 import org.goldenport.protocol.service.Service
 import org.goldenport.protocol.spec.*
 import org.goldenport.protocol.spec.OperationDefinition.Builder.OperationFactory

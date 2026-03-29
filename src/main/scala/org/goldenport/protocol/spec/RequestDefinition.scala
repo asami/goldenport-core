@@ -2,7 +2,7 @@ package org.goldenport.protocol.spec
 
 import cats.data.NonEmptyVector
 import org.goldenport.datatype.{I18nLabel, Name}
-import org.simplemodeling.model.value.{BaseContent, DescriptiveAttributes, NameAttributes}
+import org.goldenport.value.{BaseContent, DescriptiveAttributes, NameAttributes}
 import org.goldenport.schema.{Multiplicity, ValueDomain, XString}
 
 /*

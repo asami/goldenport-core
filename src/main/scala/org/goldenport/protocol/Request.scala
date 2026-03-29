@@ -2,7 +2,7 @@ package org.goldenport.protocol
 
 import org.goldenport.Consequence
 import org.goldenport.text.Presentable
-import org.simplemodeling.model.value.BaseContent
+import org.goldenport.value.BaseContent
 import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.text.Presentable

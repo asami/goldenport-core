@@ -1,6 +1,6 @@
 package org.goldenport.protocol.spec
 
-import org.simplemodeling.model.value.{BaseContent, DescriptiveAttributes}
+import org.goldenport.value.{BaseContent, DescriptiveAttributes}
 import org.goldenport.schema.*
 import org.goldenport.schema.ValueDomain
 import org.goldenport.util.{SmEnum, SmEnumClass}

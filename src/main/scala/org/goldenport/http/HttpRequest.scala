@@ -70,7 +70,7 @@ object HttpContext {
 
 object HttpRequest {
   import org.goldenport.Consequence
-  import org.simplemodeling.model.value.BaseContent
+  import org.goldenport.value.BaseContent
   import org.goldenport.protocol.operation.OperationRequest
   import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
   import org.goldenport.protocol.{Argument, Property, Request}

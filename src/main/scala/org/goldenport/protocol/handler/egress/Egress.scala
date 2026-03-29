@@ -6,7 +6,7 @@ import org.goldenport.Consequence
 import org.goldenport.bag.Bag
 import org.goldenport.datatype.{ContentType, MimeType}
 import org.goldenport.http.{HttpResponse, HttpStatus}
-import org.simplemodeling.model.value.BaseContent
+import org.goldenport.value.BaseContent
 import org.goldenport.protocol.{Response, TextResponse, BinaryResponse}
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
 

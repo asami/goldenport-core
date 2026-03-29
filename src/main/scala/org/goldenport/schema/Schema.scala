@@ -2,7 +2,7 @@ package org.goldenport.schema
 
 import cats.data.NonEmptyList
 import cats.data.NonEmptyVector
-import org.simplemodeling.model.value.BaseContent
+import org.goldenport.value.BaseContent
 
 /*
  * @since   Nov. 23, 2012
