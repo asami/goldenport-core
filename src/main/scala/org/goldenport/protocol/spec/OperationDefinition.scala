@@ -21,7 +21,7 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Dec. 30, 2025
  *  version Jan. 29, 2026
  *  version Feb.  7, 2026
- * @version Mar. 24, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition

@@ -27,7 +27,7 @@ import org.goldenport.record.Record
  *  version Dec. 24, 2025
  *  version Jan. 30, 2026
  *  version Feb. 19, 2026
- * @version Mar. 28, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(

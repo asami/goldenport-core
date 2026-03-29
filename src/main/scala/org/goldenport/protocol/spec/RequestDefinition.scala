@@ -13,7 +13,7 @@ import org.goldenport.schema.{Multiplicity, ValueDomain, XString}
  *  version Dec. 25, 2025
  *  version Jan. 14, 2026
  *  version Feb.  6, 2026
- * @version Mar. 24, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class RequestDefinition(

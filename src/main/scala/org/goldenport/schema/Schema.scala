@@ -45,8 +45,7 @@ import org.goldenport.value.BaseContent
  *  version Mar. 17, 2021
  *  version Oct. 31, 2021 restart
  *  version Dec. 24, 2025 Scala3
- *  version Dec. 24, 2025 Scala3
- * @version Mar. 24, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Schema(

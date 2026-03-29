@@ -15,7 +15,7 @@ import org.goldenport.util.{SmEnum, SmEnumClass}
  *  version Jun.  5, 2025
  *  version Dec. 30, 2025
  *  version Feb.  6, 2026
- * @version Mar. 24, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ParameterDefinition(

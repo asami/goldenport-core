@@ -21,7 +21,7 @@ import org.yaml.snakeyaml.Yaml
 
 /*
  * @since   Feb.  7, 2026
- * @version Mar. 27, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordDecoder(

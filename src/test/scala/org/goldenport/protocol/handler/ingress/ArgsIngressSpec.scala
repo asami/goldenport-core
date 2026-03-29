@@ -16,6 +16,7 @@ import cats.data.NonEmptyVector
  * - Fix the canonical behavior of ArgsIngress
  * - args:Array[String] -> Request
  * - Service/operation identification is syntactic and uses ServiceDefinitionGroup
+ * @version Mar. 29, 2026
  */
 /*
  * Canonical Parsing Contract (Normative)

@@ -15,7 +15,7 @@ import org.goldenport.protocol.spec.OperationDefinition.Builder.OperationFactory
  *  version Feb.  2, 2025
  *  version Dec. 30, 2025
  *  version Jan. 21, 2026
- * @version Mar. 24, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class ServiceDefinition

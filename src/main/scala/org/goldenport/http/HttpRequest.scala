@@ -16,7 +16,7 @@ import org.goldenport.bag.Bag
  *  version Mar. 20, 2021
  *  version Dec. 25, 2025
  *  version Jan. 17, 2026
- * @version Mar. 24, 2026
+ * @version Mar. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class HttpRequest(
