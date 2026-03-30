@@ -6,6 +6,14 @@ import java.time.format.DateTimeFormatter
 import org.goldenport.Consequence
 import org.goldenport.datatype.Identifier
 
+/*
+ * @since   Dec. 31, 2025
+ *  version Jan.  1, 2026
+ *  version Jan. 20, 2026
+ *  version Feb. 25, 2026
+ * @version Mar. 31, 2026
+ * @author  ASAMI, Tomoharu
+ */
 /**
  * UniversalId is an opaque, value-based operational identifier with a canonical string format.
  *

@@ -2,6 +2,12 @@ package org.goldenport.protocol
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
+
+/*
+ * @since   Mar. 31, 2026
+ * @version Mar. 31, 2026
+ * @author  ASAMI, Tomoharu
+ */
 class RequestRecordSpec extends AnyWordSpec with Matchers {
   "Request.toRecord" should {
     "nest dotted argument and property names into nested records" in {
