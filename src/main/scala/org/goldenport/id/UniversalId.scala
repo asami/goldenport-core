@@ -28,6 +28,12 @@ import org.goldenport.datatype.Identifier
  * Equality and hashCode:
  *   Based solely on the full string value representation.
  *
+ * Canonical key usage:
+ *   Use `value` when a UniversalId is used as a string key for persistence, lookup,
+ *   query parameters, map keys, joins, or other machine-level identity handling.
+ *   `print` is for presentation, and `show` / `toString` are debugger-oriented summaries.
+ *   Do not use `show` / `toString` as canonical identifier values.
+ *
  * Extension:
  *   Upper layers may subclass UniversalId to fix the 'kind' component (e.g., JobId, TaskId),
  *   but must not alter the canonical string format.
@@ -41,7 +47,7 @@ import org.goldenport.datatype.Identifier
  *  version Jan.  1, 2026
  *  version Jan. 20, 2026
  *  version Feb. 25, 2026
- * @version Mar. 17, 2026
+ * @version Mar. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
@@ -49,7 +55,8 @@ abstract class UniversalId protected (
   minor: String,
   kind: String,
   subkind: Option[String],
-  timestamp: Option[Instant]
+  timestamp: Option[Instant],
+  entropy: Option[String]
 ) extends Identifier {
   import UniversalId._
 
@@ -58,14 +65,14 @@ abstract class UniversalId protected (
     major: String,
     minor: String,
     kind: String
-  ) = this(major, minor, kind, None, None)
+  ) = this(major, minor, kind, None, None, None)
 
   protected def this(
     major: String,
     minor: String,
     kind: String,
     subkind: String
-  ) = this(major, minor, kind, Some(subkind), None)
+  ) = this(major, minor, kind, Some(subkind), None, None)
 
   protected def this(
     major: String,
@@ -73,7 +80,24 @@ abstract class UniversalId protected (
     kind: String,
     subkind: String,
     timestamp: Instant
-  ) = this(major, minor, kind, Some(subkind), Some(timestamp))
+  ) = this(major, minor, kind, Some(subkind), Some(timestamp), None)
+
+  protected def this(
+    major: String,
+    minor: String,
+    kind: String,
+    subkind: String,
+    timestamp: Option[Instant],
+    entropy: Option[String]
+  ) = this(major, minor, kind, Some(subkind), timestamp, entropy)
+
+  protected def this(
+    major: String,
+    minor: String,
+    kind: String,
+    timestamp: Option[Instant],
+    entropy: Option[String]
+  ) = this(major, minor, kind, None, timestamp, entropy)
 
   override protected def do_validation_in_init = false
 
@@ -89,7 +113,7 @@ abstract class UniversalId protected (
   _validate_label("kind", kind)
   subkind.foreach(_validate_label("subkind", _))
 
-  private val _parts = UniversalId.Parts.create(major, minor, kind, subkind, timestamp)
+  private val _parts = UniversalId.Parts.create(major, minor, kind, subkind, timestamp, entropy)
 
   def value: String = _parts.value
 
@@ -102,6 +126,10 @@ abstract class UniversalId protected (
     s"$major-$minor-$kind$sk"
   }
 
+  // Keep show as a debugger-oriented summary instead of the canonical value.
+  // Presentable.toString delegates to show, so IDE/debugger inspection will surface
+  // kind/subkind plus timestamp-oriented operational hints without requiring callers
+  // to explicitly call value/print.
   override def show: String = s"${display}-${_parts.timestampLabel}"
 
   override def equals(obj: Any): Boolean =
@@ -176,7 +204,8 @@ object UniversalId {
       minor: String,
       kind: String,
       subkind: Option[String],
-      timestamp: Option[Instant]
+      timestamp: Option[Instant],
+      entropy: Option[String]
     ): Parts = {
       Parts(
         major,
@@ -184,7 +213,7 @@ object UniversalId {
         kind,
         subkind,
         timestamp getOrElse Instant.now(),
-        CompactUuid.generateString()
+        entropy getOrElse CompactUuid.generateString()
       )
     }
   }
