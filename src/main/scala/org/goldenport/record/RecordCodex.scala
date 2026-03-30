@@ -4,7 +4,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Feb. 22, 2026
- * @version Feb. 22, 2026
+ * @version Mar. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 trait RecordEncoder[E]:
@@ -12,6 +12,9 @@ trait RecordEncoder[E]:
 
 trait RecordDecoder[E]:
   def fromRecord(r: Record): Consequence[E]
+
+trait Recordable:
+  def toRecord(): Record
 
 trait RecordCodex[E]
   extends RecordEncoder[E]
