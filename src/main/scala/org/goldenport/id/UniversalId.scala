@@ -28,6 +28,13 @@ import org.goldenport.datatype.Identifier
  * Equality and hashCode:
  *   Based solely on the full string value representation.
  *
+ * Stable identifier usage:
+ *   Some identifiers are not operationally generated ids but stable semantic keys
+ *   (for example collection ids). In those cases use the stable-id construction path
+ *   so the canonical value is deterministic. The default stable parts are:
+ *   - timestamp = Instant.EPOCH
+ *   - entropy = "stable"
+ *
  * Canonical key usage:
  *   Use `value` when a UniversalId is used as a string key for persistence, lookup,
  *   query parameters, map keys, joins, or other machine-level identity handling.
@@ -47,7 +54,8 @@ import org.goldenport.datatype.Identifier
  *  version Jan.  1, 2026
  *  version Jan. 20, 2026
  *  version Feb. 25, 2026
- * @version Mar. 30, 2026
+ *  version Mar. 30, 2026
+ * @version Mar. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class UniversalId protected (
@@ -143,6 +151,8 @@ abstract class UniversalId protected (
 
 object UniversalId {
   private val AllowedLabelPattern = "^[A-Za-z0-9_]+$".r
+  val StableTimestamp: Instant = Instant.EPOCH
+  val StableEntropy: String = "stable"
 
   def parse[T](
     value: String,
@@ -216,6 +226,21 @@ object UniversalId {
         entropy getOrElse CompactUuid.generateString()
       )
     }
+
+    def stable(
+      major: String,
+      minor: String,
+      kind: String,
+      subkind: Option[String]
+    ): Parts =
+      Parts(
+        major,
+        minor,
+        kind,
+        subkind,
+        StableTimestamp,
+        StableEntropy
+      )
   }
 
   private def parse_parts(

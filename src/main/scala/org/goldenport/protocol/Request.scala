@@ -27,7 +27,8 @@ import org.goldenport.record.Record
  *  version Dec. 24, 2025
  *  version Jan. 30, 2026
  *  version Feb. 19, 2026
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Mar. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -73,11 +74,49 @@ case class Request(
 
   def toRecord(excludeProperty: String => Boolean = _ => false): Record = {
     val props = (arguments ++ switches ++ properties.filterNot(p => excludeProperty(p.name))).map(x => x.name -> x.value)
-    Record.create(props)
+    _record_from_pairs(props)
   }
 
   def toRecord: Record =
     toRecord(_ => false)
+
+  private def _record_from_pairs(
+    pairs: Seq[(String, Any)]
+  ): Record = {
+    def merge(lhs: Map[String, Any], rhs: Map[String, Any]): Map[String, Any] =
+      rhs.foldLeft(lhs) { case (z, (key, value)) =>
+        (z.get(key), value) match {
+          case (Some(lm: Map[?, ?]), rm: Map[?, ?]) =>
+            z.updated(
+              key,
+              merge(
+                lm.asInstanceOf[Map[String, Any]],
+                rm.asInstanceOf[Map[String, Any]]
+              )
+            )
+          case _ =>
+            z.updated(key, value)
+        }
+      }
+
+    def nest(path: String, value: Any): Map[String, Any] =
+      path.split("\\.").toList.filter(_.nonEmpty) match {
+        case Nil => Map.empty
+        case head :: Nil => Map(head -> value)
+        case head :: tail => Map(head -> nest(tail.mkString("."), value))
+      }
+
+    def to_record_value(value: Any): Any = value match {
+      case m: Map[?, ?] =>
+        Record.create(m.iterator.map { case (k, v) => k.toString -> to_record_value(v) }.toSeq)
+      case other => other
+    }
+
+    val tree = pairs.foldLeft(Map.empty[String, Any]) { case (z, (key, value)) =>
+      merge(z, nest(key, value))
+    }
+    Record.create(tree.iterator.map { case (k, v) => k -> to_record_value(v) }.toSeq)
+  }
 
 }
 
