@@ -6,6 +6,7 @@ import org.goldenport.protocol.Response
 import org.goldenport.protocol.scalar.ScalarValue
 import org.goldenport.http.HttpResponse
 import org.goldenport.record.Record
+import org.goldenport.record.Recordable
 import org.goldenport.record.io.RecordEncoder
 
 /*
@@ -13,7 +14,7 @@ import org.goldenport.record.io.RecordEncoder
  *  version Jan.  2, 2026
  *  version Jan. 21, 2026
  *  version Feb. 26, 2026
- * @version Mar.  2, 2026
+ * @version Mar. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -94,6 +95,10 @@ object OperationResponse {
     case m: Unit => Void()
     case m: Response => from(m)
     case m: Record => RecordResponse(m)
+    case m: Recordable => RecordResponse(m.toRecord())
+    case Some(m: Record) => RecordResponse(m)
+    case Some(m) => create(m)
+    case None => Void()
     case m => Opaque(m)
   }
 

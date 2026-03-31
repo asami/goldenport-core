@@ -5,6 +5,8 @@ import org.goldenport.protocol.scalar.ScalarValue
 import org.goldenport.text.Presentable
 import org.goldenport.datatype.{MimeType, ContentType}
 import org.goldenport.bag.{Bag, TextBag, BinaryBag}
+import org.goldenport.record.Recordable
+import org.goldenport.record.io.RecordEncoder
 
 /**
  * Response represents protocol-level output semantics.
@@ -13,7 +15,8 @@ import org.goldenport.bag.{Bag, TextBag, BinaryBag}
 /*
  * @since   Jan.  1, 2026
  *  version Jan.  3, 2026
- * @version Jan. 21, 2026
+ *  version Jan. 21, 2026
+ * @version Mar. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Response extends Presentable {
@@ -85,9 +88,14 @@ object Response {
   }
 
   final case class Opaque(value: Any) extends TextResponse {
-    def mimeType = MimeType.APPLICATION_OCTET_STREAM
-    def print = Presentable.print(value)
-    override def display: String = Presentable.display(value)
-    override def show: String = Presentable.show(value)
+    private def _json = value match {
+      case m: Recordable => Some(RecordEncoder().json(m.toRecord()))
+      case _ => None
+    }
+
+    def mimeType = if (_json.isDefined) MimeType.APPLICATION_JSON else MimeType.APPLICATION_OCTET_STREAM
+    def print = _json.getOrElse(Presentable.print(value))
+    override def display: String = _json.getOrElse(Presentable.display(value))
+    override def show: String = _json.getOrElse(Presentable.show(value))
   }
 }

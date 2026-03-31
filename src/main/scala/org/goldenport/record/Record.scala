@@ -12,7 +12,7 @@ import org.goldenport.datatype.PathName
  *  version Dec. 25, 2025
  *  version Jan. 10, 2026
  *  version Feb. 28, 2026
- * @version Mar.  3, 2026
+ * @version Mar. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -45,6 +45,14 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
         case Field.Value.Single(v) => reader.readC(v)
       }
     }
+
+  def getAny(key: String): Option[Any] =
+    fields.find(_.key == key).map {
+      case field => field.value.single
+    }
+
+  def getFirst(keys: Seq[String]): Option[Any] =
+    keys.iterator.map(getAny).collectFirst { case Some(value) => value }
 
   def keySet: Set[String] = asMap.keySet
 
@@ -79,7 +87,25 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
    * Intended for safe sorting / display purposes.
    */
   def getString(key: String): Option[String] =
-    asMap.get(key).map(_to_string)
+    getAny(key).map(_to_string)
+
+  def getInt(key: String): Option[Int] =
+    getAs[Int](key)
+
+  def getBoolean(key: String): Option[Boolean] =
+    getAs[Boolean](key)
+
+  def getRecord(key: String): Option[Record] =
+    getAny(key).collect {
+      case r: Record => r
+    }
+
+  def getVector(key: String): Option[Vector[Any]] =
+    getAny(key).collect {
+      case xs: Vector[?] => xs.asInstanceOf[Vector[Any]]
+      case xs: Seq[?] => xs.toVector.asInstanceOf[Vector[Any]]
+      case xs: Array[?] => xs.toVector.asInstanceOf[Vector[Any]]
+    }
 
   def getString(path: PathName): Option[String] =
     _value_for_segments(path.segments).map(_to_string)
