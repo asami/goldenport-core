@@ -46,7 +46,8 @@ import org.goldenport.text.Presentable
  *  version Sep. 17, 2025
  *  version Dec. 29, 2025
  *  version Jan. 29, 2026
- * @version Feb. 19, 2026
+ *  version Feb. 19, 2026
+ * @version Apr.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -58,14 +59,7 @@ sealed trait DataType extends Presentable {
 }
 
 object DataType {
-  // /*
-  //  * Declares that a field uses a value object datatype identified by name.
-  //  *
-  //  * Example:
-  //  *   ValueObject("StringValue")
-  //  *   ValueObject("Locale")
-  //  */
-  // final case class ValueObject(name: String) extends Datatype
+  final case class Named(name: String) extends DataType
 }
 
 trait CanonicalDataType[T] extends DataType {
