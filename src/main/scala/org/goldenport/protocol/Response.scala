@@ -5,7 +5,7 @@ import org.goldenport.protocol.scalar.ScalarValue
 import org.goldenport.text.Presentable
 import org.goldenport.datatype.{MimeType, ContentType}
 import org.goldenport.bag.{Bag, TextBag, BinaryBag}
-import org.goldenport.record.Recordable
+import org.goldenport.record.RecordPresentable
 import org.goldenport.record.io.RecordEncoder
 
 /**
@@ -89,7 +89,7 @@ object Response {
 
   final case class Opaque(value: Any) extends TextResponse {
     private def _json = value match {
-      case m: Recordable => Some(RecordEncoder().json(m.toRecord()))
+      case m: RecordPresentable => Some(RecordEncoder().json(m.toRecord()))
       case _ => None
     }
 

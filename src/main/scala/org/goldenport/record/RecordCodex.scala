@@ -13,7 +13,7 @@ trait RecordEncoder[E]:
 trait RecordDecoder[E]:
   def fromRecord(r: Record): Consequence[E]
 
-trait Recordable:
+trait RecordPresentable:
   def toRecord(): Record
 
 trait RecordCodex[E]

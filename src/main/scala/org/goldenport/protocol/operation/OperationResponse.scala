@@ -6,7 +6,7 @@ import org.goldenport.protocol.Response
 import org.goldenport.protocol.scalar.ScalarValue
 import org.goldenport.http.HttpResponse
 import org.goldenport.record.Record
-import org.goldenport.record.Recordable
+import org.goldenport.record.RecordPresentable
 import org.goldenport.record.io.RecordEncoder
 
 /*
@@ -95,7 +95,7 @@ object OperationResponse {
     case m: Unit => Void()
     case m: Response => from(m)
     case m: Record => RecordResponse(m)
-    case m: Recordable => RecordResponse(m.toRecord())
+    case m: RecordPresentable => RecordResponse(m.toRecord())
     case Some(m: Record) => RecordResponse(m)
     case Some(m) => create(m)
     case None => Void()
