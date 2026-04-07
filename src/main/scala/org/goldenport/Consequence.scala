@@ -52,7 +52,8 @@ import org.goldenport.id.UniversalId
  *  version Jan.  3, 2026
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
- * @version Mar. 13, 2026
+ *  version Mar. 13, 2026
+ * @version Apr.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -114,6 +115,8 @@ sealed trait Consequence[+T] extends Presentable {
         e.asInstanceOf[Consequence[U]]
     }
 
+  def leftMap(f: Conclusion => Conclusion): Consequence[T]
+
   def transform[U](
     s: T => Consequence[U],
     c: Conclusion => Consequence[U]
@@ -167,6 +170,8 @@ object Consequence {
       c: Conclusion => Consequence[U]
     ): Consequence[U] = s(result)
 
+    def leftMap(f: Conclusion => Conclusion): Consequence[T] = this
+
     def recoverWith[U >: T](f: Conclusion => Consequence[U]): Consequence[U] = this
 
     def recover[U >: T](f: Conclusion => U): Consequence[U] = this
@@ -191,6 +196,9 @@ object Consequence {
       s: T => Consequence[U],
       c: Conclusion => Consequence[U]
     ): Consequence[U] = Consequence.run(c(conclusion))
+
+    def leftMap(f: Conclusion => Conclusion): Consequence[T] =
+      Consequence.Failure(f(conclusion))
 
     def recoverWith[U >: T](f: Conclusion => Consequence[U]): Consequence[U] =
       Consequence.run(f(conclusion))

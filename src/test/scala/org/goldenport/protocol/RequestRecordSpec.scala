@@ -27,8 +27,8 @@ class RequestRecordSpec extends AnyWordSpec with Matchers {
       )
 
       val record = req.toRecord
-      val address = record.asMap("address").asInstanceOf[org.goldenport.record.Record]
-      val country = address.asMap("country").asInstanceOf[org.goldenport.record.Record]
+      val address = record.getRecord("address").get
+      val country = address.getRecord("country").get
 
       record.getString("name") shouldBe Some("alice")
       address.getString("street") shouldBe Some("1-2-3 Marunouchi")

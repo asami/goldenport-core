@@ -5,7 +5,8 @@ import org.goldenport.schema.*
 
 /*
  * @since   Oct. 17, 2025
- * @version Feb. 19, 2026
+ *  version Feb. 19, 2026
+ * @version Apr.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T]:
@@ -31,6 +32,32 @@ object ValueReader {
       case n: Long => Consequence.success(n != 0L)
       case _ => Consequence.failValueInvalid(v, XBoolean)
 
+  given ValueReader[Byte] with
+    def readC(v: Any): Consequence[Byte] = v match
+      case b: Byte => Consequence.success(b)
+      case s: Short if s >= Byte.MinValue && s <= Byte.MaxValue => Consequence.success(s.toByte)
+      case i: Int if i >= Byte.MinValue && i <= Byte.MaxValue => Consequence.success(i.toByte)
+      case l: Long if l >= Byte.MinValue && l <= Byte.MaxValue => Consequence.success(l.toByte)
+      case s: String =>
+        val trimmed = s.trim
+        trimmed.toByteOption match
+          case Some(value) => Consequence.success(value)
+          case None => Consequence.failValueInvalid(v, XInt)
+      case _ => Consequence.failValueInvalid(v, XInt)
+
+  given ValueReader[Short] with
+    def readC(v: Any): Consequence[Short] = v match
+      case s: Short => Consequence.success(s)
+      case b: Byte => Consequence.success(b.toShort)
+      case i: Int if i >= Short.MinValue && i <= Short.MaxValue => Consequence.success(i.toShort)
+      case l: Long if l >= Short.MinValue && l <= Short.MaxValue => Consequence.success(l.toShort)
+      case s: String =>
+        val trimmed = s.trim
+        trimmed.toShortOption match
+          case Some(value) => Consequence.success(value)
+          case None => Consequence.failValueInvalid(v, XInt)
+      case _ => Consequence.failValueInvalid(v, XInt)
+
   given ValueReader[Int] with
     def readC(v: Any): Consequence[Int] = v match
       case i: Int => Consequence.success(i)
@@ -52,6 +79,20 @@ object ValueReader {
           case Some(value) => Consequence.success(value)
           case None => Consequence.failValueInvalid(v, XLong)
       case _ => Consequence.failValueInvalid(v, XLong)
+
+  given ValueReader[Float] with
+    def readC(v: Any): Consequence[Float] = v match
+      case f: Float => Consequence.success(f)
+      case d: Double if !d.isInfinity && !d.isNaN && d >= -Float.MaxValue && d <= Float.MaxValue =>
+        Consequence.success(d.toFloat)
+      case i: Int => Consequence.success(i.toFloat)
+      case l: Long => Consequence.success(l.toFloat)
+      case s: String =>
+        val trimmed = s.trim
+        trimmed.toFloatOption match
+          case Some(value) => Consequence.success(value)
+          case None => Consequence.failValueInvalid(v, XDouble)
+      case _ => Consequence.failValueInvalid(v, XDouble)
 
   given ValueReader[Double] with
     def readC(v: Any): Consequence[Double] = v match
