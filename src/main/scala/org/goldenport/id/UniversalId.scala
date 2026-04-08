@@ -11,7 +11,8 @@ import org.goldenport.datatype.Identifier
  *  version Jan.  1, 2026
  *  version Jan. 20, 2026
  *  version Feb. 25, 2026
- * @version Mar. 31, 2026
+ *  version Mar. 31, 2026
+ * @version Apr.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -21,9 +22,9 @@ import org.goldenport.datatype.Identifier
  *   <major>-<minor>-<kind>-<timestamp>-<entropy>
  *
  * Components:
- *   - major: ASCII alphanumeric plus underscore label identifying the major category
- *   - minor: ASCII alphanumeric plus underscore label identifying the minor category
- *   - kind: ASCII alphanumeric plus underscore label identifying the kind of identifier
+ *   - major: ASCII letter-led alphanumeric plus underscore label identifying the major category
+ *   - minor: ASCII letter-led alphanumeric plus underscore label identifying the minor category
+ *   - kind: ASCII letter-led alphanumeric plus underscore label identifying the kind of identifier
  *   - timestamp: digits-only timestamp in UTC timezone with format yyyyMMddHHmmssSSZZ, used for identification/debugging only
  *   - entropy: a string providing randomness/uniqueness to avoid collisions
  *
@@ -54,7 +55,9 @@ import org.goldenport.datatype.Identifier
  *   but must not alter the canonical string format.
  *
  * Character constraints:
- *   major, minor, and kind must match the pattern [A-Za-z0-9_]+, i.e., ASCII alphanumeric plus underscore.
+ *   major, minor, kind, and subkind must match the pattern [A-Za-z][A-Za-z0-9_]*.
+ *   The goal is HTTP transport safety and ordinary URL embedding without extra escaping.
+ *   '-' is reserved as the structural delimiter of UniversalId, so label parsing never recovers by guessing boundaries.
  *   Characters such as '-', '.', spaces, or non-ASCII characters are disallowed.
  */
 /*
@@ -120,7 +123,7 @@ abstract class UniversalId protected (
   private def _validate_label(name: String, value: String): Unit = {
     require(
       AllowedLabelPattern.matches(value),
-      s"$name must match pattern [A-Za-z0-9_]+ but was: '$value'"
+      s"$name must match pattern [A-Za-z][A-Za-z0-9_]* but was: '$value'"
     )
   }
 
@@ -158,7 +161,7 @@ abstract class UniversalId protected (
 }
 
 object UniversalId {
-  private val AllowedLabelPattern = "^[A-Za-z0-9_]+$".r
+  private val AllowedLabelPattern = "^[A-Za-z][A-Za-z0-9_]*$".r
   val StableTimestamp: Instant = Instant.EPOCH
   val StableEntropy: String = "stable"
 
@@ -255,31 +258,35 @@ object UniversalId {
     value: String,
     expectedkind: String
   ): Consequence[Parts] = {
-    val tokens = value.split("-").toVector
+    if (!_valid_label(expectedkind))
+      Consequence.failure(s"Invalid expected kind label: '$expectedkind'")
+    else {
+      val tokens = value.split("-").toVector
 
-    tokens match {
-      case Vector(major, minor, kind, timestamplabel, entropy) =>
-        _build_parts(
-          major,
-          minor,
-          kind,
-          None,
-          timestamplabel,
-          entropy,
-          expectedkind
-        )
-      case Vector(major, minor, kind, subkind, timestamplabel, entropy) =>
-        _build_parts(
-          major,
-          minor,
-          kind,
-          Some(subkind),
-          timestamplabel,
-          entropy,
-          expectedkind
-        )
-      case _ =>
-        Consequence.failure(s"Invalid UniversalId format: '$value'")
+      tokens match {
+        case Vector(major, minor, kind, timestamplabel, entropy) =>
+          _build_parts(
+            major,
+            minor,
+            kind,
+            None,
+            timestamplabel,
+            entropy,
+            expectedkind
+          )
+        case Vector(major, minor, kind, subkind, timestamplabel, entropy) =>
+          _build_parts(
+            major,
+            minor,
+            kind,
+            Some(subkind),
+            timestamplabel,
+            entropy,
+            expectedkind
+          )
+        case _ =>
+          Consequence.failure(s"Invalid UniversalId format: '$value'")
+      }
     }
   }
 
