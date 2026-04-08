@@ -1,6 +1,5 @@
 package org.goldenport.consequence
 
-import scala.quoted.*
 import org.goldenport.Consequence
 import org.goldenport.Conclusion
 import org.goldenport.provisional.observation.Observation
@@ -13,148 +12,94 @@ import org.goldenport.record.Record
 /*
  * @since   Jan. 31, 2026
  *  version Feb. 28, 2026
- * @version Mar. 10, 2026
+ *  version Mar. 10, 2026
+ * @version Apr.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {
   inline def fail(o: Observation): Consequence.Failure[Nothing] =
-    ${ _fail('o) }
+    fail(o, SourcePositionMacro.position())
 
-  private def _fail(o: Expr[Observation])(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failure(pos, $o))
-     }
+  def fail(o: Observation, pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failure(pos, o))
 
   inline def fail(taxonomy: Taxonomy, cause: Cause): Consequence.Failure[Nothing] =
-    ${ _fail('taxonomy, 'cause) }
+    fail(taxonomy, cause, SourcePositionMacro.position())
 
-  private def _fail(
-    taxonomy: Expr[Taxonomy],
-    cause: Expr[Cause]
-  )(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failure(pos, $taxonomy, $cause))
-     }
+  def fail(
+    taxonomy: Taxonomy,
+    cause: Cause,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failure(pos, taxonomy, cause))
 
   inline def fail(
     taxonomy: Taxonomy,
     facets: Seq[Descriptor.Facet]
   ): Consequence.Failure[Nothing] =
-    ${ _fail_facet('taxonomy, 'facets) }
+    fail(taxonomy, facets, SourcePositionMacro.position())
 
-  private def _fail_facet(
-    taxonomy: Expr[Taxonomy],
-    facets: Expr[Seq[Descriptor.Facet]]
-  )(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failure(pos, $taxonomy, $facets))
-     }
+  def fail(
+    taxonomy: Taxonomy,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failure(pos, taxonomy, facets))
 
   inline def fail(
     taxonomy: Taxonomy
   ): Consequence.Failure[Nothing] =
-    ${ _fail_facet('taxonomy, 'Nil) }
+    fail(taxonomy, Nil, SourcePositionMacro.position())
 
-  // inline def fail(
-  //   taxonomy: Taxonomy,
-  //   e: Throwable,
-  //   facets: Seq[Descriptor.Facet]
-  // ): Consequence.Failure[Nothing] =
-  //   ${ _fail('taxonomy, 'e, 'facets) }
-
-  // private def _fail(
-  //   taxonomy: Expr[Taxonomy],
-  //   e: Expr[Throwable],
-  //   facets: Expr[Seq[Descriptor.Facet]]
-  // )(using Quotes): Expr[Consequence.Failure[Nothing]] =
-  //   '{
-  //      val pos = ${ SourcePositionMacro.capture }
-  //      val exceptionFacet = Descriptor.Facet.Exception($e)
-  //      Consequence.Failure(Conclusion.failure(pos, $taxonomy, exceptionFacet +: $facets))
-  //    }
-
-  inline def fail(c: Conclusion): Consequence.Failure[Nothing] = {
-    val pos = SourcePositionMacro.position()
-    fail(c, pos)
-  }
+  inline def fail(c: Conclusion): Consequence.Failure[Nothing] =
+    fail(c, SourcePositionMacro.position())
 
   def fail(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
     Consequence.Failure(c.withSourcePosition(pos))
 
   inline def resourceInconsistency: Consequence.Failure[Nothing] =
-    ${ _resource_inconsistency }
+    resourceInconsistency(SourcePositionMacro.position())
 
-  private def _resource_inconsistency(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failResourceInconsistency(pos))
-     }
+  def resourceInconsistency(pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failResourceInconsistency(pos))
 
   inline def recordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
-    ${ recordNotFound('key, 'rec) }
+    recordNotFound(key, rec, SourcePositionMacro.position())
 
-  private def recordNotFound(key: Expr[String], rec: Expr[Record])(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failRecordNotFound(pos, ${key}, ${rec}))
-     }
+  def recordNotFound(
+    key: String,
+    rec: Record,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failRecordNotFound(pos, key, rec))
 
   inline def operationNotFound(name: String): Consequence.Failure[Nothing] =
-    ${ operationNotFound('name) }
+    operationNotFound(name, SourcePositionMacro.position())
 
-  private def operationNotFound(name: Expr[String])(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failOperationNotFound(pos, ${name}))
-     }
+  def operationNotFound(name: String, pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failOperationNotFound(pos, name))
 
   inline def unreachableReached: Consequence.Failure[Nothing] =
-    ${ _unreachable_reached }
+    unreachableReached(SourcePositionMacro.position())
 
-  private def _unreachable_reached(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failUnreachableReached(pos))
-     }
+  def unreachableReached(pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failUnreachableReached(pos))
 
   inline def uninitializedState: Consequence.Failure[Nothing] =
-    ${ _uninitialized_state }
+    uninitializedState(SourcePositionMacro.position())
 
-  private def _uninitialized_state(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failUninitializedState(pos))
-     }
+  def uninitializedState(pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failUninitializedState(pos))
 
   inline def uninitializedState(c: Conclusion): Consequence.Failure[Nothing] =
-    ${ _uninitialized_state('c) }
+    uninitializedState(c, SourcePositionMacro.position())
 
-  private def _uninitialized_state(c: Expr[Conclusion])(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(
-         Conclusion.failUninitializedState(pos) ++ ${c}
-       )
-     }
+  def uninitializedState(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failUninitializedState(pos) ++ c)
 
   inline def notImplemented: Consequence.Failure[Nothing] =
-    ${ _not_implemented }
+    notImplemented(SourcePositionMacro.position())
 
-  private def _not_implemented(using Quotes): Expr[Consequence.Failure[Nothing]] =
-    '{
-       val pos = ${ SourcePositionMacro.capture }
-       Consequence.Failure(Conclusion.failNotImplemented(pos))
-     }
-
-  // inline def notImplemented(msg: String): Consequence.Failure[Nothing] =
-  //   ${ _not_implemented('msg) }
-
-  // private def _not_implemented(msg: Expr[String])(using Quotes): Expr[Consequence.Failure[Nothing]] =
-  //   '{
-  //      val pos = ${ SourcePositionMacro.capture }
-  //      Consequence.Failure(Conclusion.notImplemented(pos, msg))
-  //    }
+  def notImplemented(pos: SourcePosition): Consequence.Failure[Nothing] =
+    Consequence.Failure(Conclusion.failNotImplemented(pos))
 }

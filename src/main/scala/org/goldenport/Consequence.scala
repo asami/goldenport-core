@@ -547,66 +547,79 @@ object Consequence {
 
   // Success or Fail
 
-  inline def successOrFail[T](p: Option[T])(observation: Observation): Consequence[T] =
+  def successOrFail[T](p: Option[T])(observation: Observation): Consequence[T] =
     p match {
       case Some(s) => Consequence.success(s)
       case None => fail(observation)
     }
 
-
-  inline def successOrFail[T](p: Option[T])(taxonomy: Taxonomy): Consequence[T] =
+  def successOrFail[T](p: Option[T])(taxonomy: Taxonomy): Consequence[T] =
     p match {
       case Some(s) => Consequence.success(s)
       case None => fail(taxonomy)
     }
 
-  inline def successOrPropertyNotFound[T](key: String, v: Option[T]): Consequence[T] = {
-    val pos = SourcePositionMacro.position()
+  inline def successOrPropertyNotFound[T](key: String, v: Option[T]): Consequence[T] =
+    successOrPropertyNotFound(key, v, SourcePositionMacro.position())
+
+  def successOrPropertyNotFound[T](key: String, v: Option[T], pos: SourcePosition): Consequence[T] =
     v match {
       case Some(s) => Consequence.success(s)
-      case None => fail(Observation.propertyNotFound(pos, key))
+      case None => fail(Observation.propertyNotFound(pos, key), pos)
     }
-  }
 
   inline def successOrPropertyNotFound[T](
     key: String,
     v: Option[T],
     fallback: Option[T]
-  ): Consequence[T] = {
-    val pos = SourcePositionMacro.position()
+  ): Consequence[T] =
+    successOrPropertyNotFound(key, v, fallback, SourcePositionMacro.position())
+
+  def successOrPropertyNotFound[T](
+    key: String,
+    v: Option[T],
+    fallback: Option[T],
+    pos: SourcePosition
+  ): Consequence[T] =
     v match {
       case Some(s) => Consequence.success(s)
       case None => fallback match {
         case Some(ss) => Consequence.success(ss)
-        case None => fail(Observation.propertyNotFound(pos, key))
+        case None => fail(Observation.propertyNotFound(pos, key), pos)
       }
     }
-  }
 
-  inline def successOrRecordNotFound[T](key: String, rec: Record)(using reader: ValueReader[T]): Consequence[T] = {
-    val pos = SourcePositionMacro.position()
+  inline def successOrRecordNotFound[T](key: String, rec: Record)(using reader: ValueReader[T]): Consequence[T] =
+    successOrRecordNotFound(key, rec, SourcePositionMacro.position())
+
+  def successOrRecordNotFound[T](key: String, rec: Record, pos: SourcePosition)(using reader: ValueReader[T]): Consequence[T] =
     rec.getAsC[T](key) match {
       case Consequence.Success(s) => s match {
         case Some(ss) => Consequence.success(ss)
-        case None => fail(Observation.recordNotFound(pos, key, rec))
+        case None => fail(Observation.recordNotFound(pos, key, rec), pos)
       }
       case Consequence.Failure(c) => fail(c, pos)
     }
-  }
 
-  inline def successOrRecordNotFound[T](key: String, rec: Record, fallback: Option[T])(using reader: ValueReader[T]): Consequence[T] = {
-    val pos = SourcePositionMacro.position()
+  inline def successOrRecordNotFound[T](key: String, rec: Record, fallback: Option[T])(using reader: ValueReader[T]): Consequence[T] =
+    successOrRecordNotFound(key, rec, fallback, SourcePositionMacro.position())
+
+  def successOrRecordNotFound[T](
+    key: String,
+    rec: Record,
+    fallback: Option[T],
+    pos: SourcePosition
+  )(using reader: ValueReader[T]): Consequence[T] =
     rec.getAsC[T](key) match {
       case Consequence.Success(s) => s match {
         case Some(ss) => Consequence.success(ss)
         case None => fallback match {
           case Some(sss) => Consequence.success(sss)
-          case None => fail(Observation.recordNotFound(pos, key, rec))
+          case None => fail(Observation.recordNotFound(pos, key, rec), pos)
         }
       }
       case Consequence.Failure(c) => fail(c, pos)
     }
-  }
 
   inline def successOrResourceNotFound[T](
     rsc: Option[T]
@@ -644,22 +657,25 @@ object Consequence {
   inline def fail(o: Observation): Consequence.Failure[Nothing] =
     Failures.fail(o)
 
-  inline def fail(taxonomy: Taxonomy): Consequence.Failure[Nothing] =
-    fail(taxonomy)
+  def fail(o: Observation, pos: SourcePosition): Consequence.Failure[Nothing] =
+    Failures.fail(o, pos)
 
-  inline def fail(taxonomy: Taxonomy, message: String): Consequence.Failure[Nothing] =
+  inline def fail(taxonomy: Taxonomy): Consequence.Failure[Nothing] =
+    Failures.fail(taxonomy)
+
+  def fail(taxonomy: Taxonomy, message: String): Consequence.Failure[Nothing] =
     fail(taxonomy, Cause.message(message))
 
-  inline def fail(taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]): Consequence.Failure[Nothing] =
+  def fail(taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, Descriptor.Facet.Message(message) +: facets)
 
-  inline def fail(taxonomy: Taxonomy, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
+  def fail(taxonomy: Taxonomy, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, facet +: facets)
 
-  inline def fail(taxonomy: Taxonomy, e: Throwable, facets: Seq[Descriptor.Facet] = Nil): Consequence.Failure[Nothing] =
+  def fail(taxonomy: Taxonomy, e: Throwable, facets: Seq[Descriptor.Facet] = Nil): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, Descriptor.Facet.Exception(e) +: facets)
 
-  inline def fail(taxonomy: Taxonomy, cause: Cause): Consequence.Failure[Nothing] =
+  def fail(taxonomy: Taxonomy, cause: Cause): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, cause)
 
   inline def fail(c: Conclusion): Consequence.Failure[Nothing] =
@@ -669,10 +685,10 @@ object Consequence {
     Failures.fail(c, pos)
 
   //
-  inline def notImplemented: Consequence.Failure[Nothing] =
+  def notImplemented: Consequence.Failure[Nothing] =
     Failures.notImplemented
 
-  inline def notImplemented(msg: String): Consequence.Failure[Nothing] =
+  def notImplemented(msg: String): Consequence.Failure[Nothing] =
     Consequence.Failure(Conclusion.failNotImplemented(msg))
 
   def notImplemented(pos: SourcePosition): Consequence.Failure[Nothing] =
@@ -681,10 +697,10 @@ object Consequence {
   def notImplemented(pos: SourcePosition, msg: String): Consequence.Failure[Nothing] =
     Consequence.Failure(Conclusion.notImplemented(pos, msg))
 
-  inline def unreachableReached: Consequence.Failure[Nothing] =
+  def unreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
 
-  inline def unreachableReached(msg: String): Consequence.Failure[Nothing] =
+  def unreachableReached(msg: String): Consequence.Failure[Nothing] =
     Failures.fail(Conclusion.unreachableReached(msg))
 
   // def failArgumentEmpty[A]: Consequence.Failure[A] =
@@ -735,7 +751,7 @@ object Consequence {
   def failOperationInvalid[A](name: String): Consequence[A] =
     Consequence.Failure(Conclusion.failOperationInvalid(name))
 
-  inline def failResourceInconsistency: Consequence.Failure[Nothing] =
+  def failResourceInconsistency: Consequence.Failure[Nothing] =
     Failures.resourceInconsistency
 
   inline def failRecordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
@@ -747,19 +763,19 @@ object Consequence {
   def failValueFormatError[A](value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failValueFormatError(value, dt))
 
-  inline def failNetworkUnavailable(e: Throwable, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
+  def failNetworkUnavailable(e: Throwable, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
     fail(Taxonomy.networkUnavailable, e, (facet +: facets))
 
-  inline def failUnreachableReached: Consequence.Failure[Nothing] =
+  def failUnreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
 
   def failUnreachableReached[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failUnreachableReached(msg))
 
-  inline def failUninitializedState[A]: Consequence.Failure[A] =
+  def failUninitializedState[A]: Consequence.Failure[A] =
     Failures.uninitializedState
 
-  inline def failUninitializedState[A](conclusion: Conclusion): Consequence.Failure[A] =
+  def failUninitializedState[A](conclusion: Conclusion): Consequence.Failure[A] =
     Failures.uninitializedState(conclusion)
 
   def failImpossibleState[A](msg: String): Consequence.Failure[A] =
@@ -768,7 +784,7 @@ object Consequence {
   def failUnsupported[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failUnsupported(msg))
 
-  inline def failNotImplemented: Consequence.Failure[Nothing] =
+  def failNotImplemented: Consequence.Failure[Nothing] =
     Failures.notImplemented
 
   def failNotImplemented[A](msg: String): Consequence.Failure[A] =
@@ -784,19 +800,19 @@ object Consequence {
     Consequence.Failure(Conclusion.failPostconditionViolation(msg))
 
   // obsolated. Use notImplemented
-  inline def NotImplemented: Consequence.Failure[Nothing] =
+  def NotImplemented: Consequence.Failure[Nothing] =
     fail(Taxonomy.notImplemented)
 
-  inline def NotImplemented(msg: String): Consequence.Failure[Nothing] =
+  def NotImplemented(msg: String): Consequence.Failure[Nothing] =
     fail(Taxonomy.notImplemented, Cause.message(msg))
 
-  inline def DataStoreNotFound(id: String): Consequence.Failure[Nothing] =
+  def DataStoreNotFound(id: String): Consequence.Failure[Nothing] =
     fail(
       Taxonomy.dataStoreDuplicate,
       Descriptor.Facet.Id(id)
     )
 
-  inline def DataStoreDuplicate(id: String): Consequence.Failure[Nothing] =
+  def DataStoreDuplicate(id: String): Consequence.Failure[Nothing] =
     fail(
       Taxonomy.dataStoreDuplicate,
       Descriptor.Facet.Id(id)

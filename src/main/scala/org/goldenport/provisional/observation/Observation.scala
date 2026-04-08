@@ -247,6 +247,7 @@ object Observation {
   // Record
   def recordNotFound(pos: SourcePosition, key: String, rec: Record): Observation = failure(
     Taxonomy.recordNotFound,
+    Descriptor.Facet.SrcPos(pos),
     Descriptor.Facet.Key(key),
     Descriptor.Facet.RecordData(rec)
   )
