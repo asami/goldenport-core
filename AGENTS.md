@@ -6,6 +6,11 @@
 - Scala + functional programming minimizes example-based unit tests.
 - Agents must follow the order: rules -> spec -> design -> code.
 
+Shared AI operational directives are mounted under `ai/directive/`.
+Repository-local AI bridge guidance lives under `docs/ai/`.
+Agents must use the shared directives through that mounted path and follow
+repository-local bridge instructions where present.
+
 
 ## How to Read This Repository (for Agents)
 
@@ -15,8 +20,10 @@
 4. `docs/rules/` (documentation rules and policies; see document-boundary.md first)
 5. `docs/spec/` (static specifications)
 6. `docs/design/` (design intent and boundaries; start with `docs/design/protocol-core.md`)
-7. `src/main/scala/` (implementation)
-8. `src/test/scala/` (Executable Specifications)
+7. `docs/ai/` (agent/AI operational notes; never overrides rules/spec/design)
+8. `ai/directive/` (shared AI operational directives mounted as submodule; use via repository-local bridge guidance)
+9. `src/main/scala/` (implementation)
+10. `src/test/scala/` (Executable Specifications)
 
 ## Canonical Design Documents
 
@@ -85,6 +92,11 @@ Executable Specifications are organized by package.
 - trial and error history
 - not normative
 
+
+## AI Working Agreements
+
+Canonical reference:
+- docs/ai/shared-directive-bridge.md
 
 ## Do / Don't for Agents
 
