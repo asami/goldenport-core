@@ -21,7 +21,8 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Dec. 30, 2025
  *  version Jan. 29, 2026
  *  version Feb.  7, 2026
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Apr. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -299,19 +300,25 @@ object OperationDefinition {
       name: String,
       request: RequestDefinition,
       response: ResponseDefinition
-    ): Specification = Instance(
+    ): Specification = {
+      require(response.isSpecified, s"operation output contract is required: ${name}")
+      Instance(
       Core(
         content = BaseContent.simple(name),
         request = request,
         response = response
       )
     )
+    }
 
     def apply(
       content: BaseContent,
       request: RequestDefinition,
       response: ResponseDefinition
-    ): Specification = Instance(Core(content, request, response))
+    ): Specification = {
+      require(response.isSpecified, "operation output contract is required")
+      Instance(Core(content, request, response))
+    }
 
     trait Holder extends BaseContent.BareHolder {
       def specification: Specification
@@ -324,7 +331,7 @@ object OperationDefinition {
     case class Builder(
       content: BaseContent.Builder = BaseContent.Builder(),
       request: RequestDefinition = RequestDefinition(),
-      response: ResponseDefinition = ResponseDefinition()
+      response: ResponseDefinition = ResponseDefinition.void
     ) {
       def build(): Specification = Specification(
         content.build(),

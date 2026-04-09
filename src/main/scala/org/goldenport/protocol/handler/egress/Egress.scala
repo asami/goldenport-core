@@ -15,7 +15,8 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
  *  version Jan.  2, 2026
  *  version Jan. 28, 2026
  *  version Feb. 15, 2026
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Apr. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Egress[Out] {
@@ -140,6 +141,6 @@ final case class RestEgress() extends Egress[HttpResponse] {
     OperationDefinition(
       BaseContent.simple("egress"),
       RequestDefinition.empty,
-      ResponseDefinition()
+      ResponseDefinition.void
     )
 }

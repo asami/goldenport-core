@@ -5,7 +5,6 @@ import org.goldenport.text.Presentable
 import org.goldenport.value.BaseContent
 import org.goldenport.protocol.handler.ingress.ArgsIngress
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
-import org.goldenport.text.Presentable
 import org.goldenport.http.HttpRequest
 import org.goldenport.record.Record
 
@@ -27,7 +26,8 @@ import org.goldenport.record.Record
  *  version Dec. 24, 2025
  *  version Jan. 30, 2026
  *  version Feb. 19, 2026
- * @version Mar. 31, 2026
+ *  version Mar. 31, 2026
+ * @version Apr. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -196,7 +196,7 @@ object Request {
     val op = OperationDefinition(
       content = BaseContent.simple("ingress"),
       request = reqdef,
-      response = ResponseDefinition()
+      response = ResponseDefinition.void
     )
     val ingress = ArgsIngress()
     ingress.encode(op, args)

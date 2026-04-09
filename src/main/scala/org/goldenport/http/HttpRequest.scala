@@ -16,7 +16,8 @@ import org.goldenport.bag.Bag
  *  version Mar. 20, 2021
  *  version Dec. 25, 2025
  *  version Jan. 17, 2026
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Apr. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 case class HttpRequest(
@@ -236,7 +237,7 @@ object HttpRequest {
     OperationDefinition(
       content = BaseContent.simple("curl"),
       request = RequestDefinition.curlLike,
-      response = ResponseDefinition()
+      response = ResponseDefinition.void
     )
 
   private def _is_absolute_url(p: String): Boolean =
