@@ -53,7 +53,7 @@ import org.goldenport.id.UniversalId
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
  *  version Mar. 13, 2026
- * @version Apr.  8, 2026
+ * @version Apr.  9, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -134,6 +134,8 @@ sealed trait Consequence[+T] extends Presentable {
 
   def getOrElse[U >: T](body: => U): U
 
+  def orElse[U >: T](body: => Consequence[U]): Consequence[U]
+
   def toOption: Option[T]
 
   def collapseOption[U](using ev: T <:< Option[U]): Option[U] = toOption.flatten
@@ -184,6 +186,8 @@ object Consequence {
 
     def getOrElse[U >: T](body: => U): U = result
 
+    def orElse[U >: T](body: => Consequence[U]): Consequence[U] = this
+
     def toOption = Some(result)
   }
 
@@ -214,6 +218,8 @@ object Consequence {
     def foldIdntity[U >: T](c: Conclusion => U): U = c(conclusion)
 
     def getOrElse[U >: T](body: => U): U = body
+
+    def orElse[U >: T](body: => Consequence[U]): Consequence[U] = body
 
     def toOption = None
   }
