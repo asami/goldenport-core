@@ -1,12 +1,19 @@
 package org.goldenport.convert
 
+import java.net.{URI, URL}
+import java.time.LocalTime
+import java.util.{Locale, TimeZone}
+
 import org.goldenport.Consequence
+import org.goldenport.bag.{Bag, BinaryBag, TextBag}
+import org.goldenport.datatype.Urn
 import org.goldenport.schema.*
 
 /*
  * @since   Oct. 17, 2025
  *  version Feb. 19, 2026
- * @version Apr.  8, 2026
+ *  version Apr.  8, 2026
+ * @version Apr.  9, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T]:
@@ -133,6 +140,78 @@ object ValueReader {
         catch
           case _: NumberFormatException => Consequence.failValueInvalid(v, XDecimal)
       case _ => Consequence.failValueInvalid(v, XDecimal)
+
+  given ValueReader[URL] with
+    def readC(v: Any): Consequence[URL] = v match
+      case url: URL => Consequence.success(url)
+      case uri: URI => Consequence.success(uri.toURL)
+      case s: String =>
+        try Consequence.success(new URL(s.trim))
+        catch case _: Throwable => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[URI] with
+    def readC(v: Any): Consequence[URI] = v match
+      case uri: URI => Consequence.success(uri)
+      case url: URL => Consequence.success(url.toURI)
+      case s: String =>
+        try Consequence.success(URI.create(s.trim))
+        catch case _: Throwable => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[Urn] with
+    def readC(v: Any): Consequence[Urn] = v match
+      case urn: Urn => Consequence.success(urn)
+      case uri: URI => Urn.parse(uri.toString)
+      case s: String => Urn.parse(s)
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[LocalTime] with
+    def readC(v: Any): Consequence[LocalTime] = v match
+      case t: LocalTime => Consequence.success(t)
+      case s: String =>
+        try Consequence.success(LocalTime.parse(s.trim))
+        catch case _: Throwable => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[Locale] with
+    def readC(v: Any): Consequence[Locale] = v match
+      case locale: Locale => Consequence.success(locale)
+      case s: String => Consequence.success(Locale.forLanguageTag(s.trim))
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[TimeZone] with
+    def readC(v: Any): Consequence[TimeZone] = v match
+      case tz: TimeZone => Consequence.success(tz)
+      case s: String =>
+        val id = s.trim
+        val tz = TimeZone.getTimeZone(id)
+        if id.nonEmpty && (tz.getID == id || id.equalsIgnoreCase("GMT") || id.startsWith("GMT")) then
+          Consequence.success(tz)
+        else
+          Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[Bag] with
+    def readC(v: Any): Consequence[Bag] = v match
+      case bag: Bag => Consequence.success(bag)
+      case bytes: Array[Byte] => Consequence.success(Bag.fromBytes(bytes))
+      case s: String => Consequence.success(Bag.text(s))
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[BinaryBag] with
+    def readC(v: Any): Consequence[BinaryBag] = v match
+      case bag: BinaryBag => Consequence.success(bag)
+      case bag: Bag => Consequence.success(bag.promoteToBinary())
+      case bytes: Array[Byte] => Consequence.success(Bag.binary(bytes))
+      case _ => Consequence.failValueInvalid(v, XString)
+
+  given ValueReader[TextBag] with
+    def readC(v: Any): Consequence[TextBag] = v match
+      case bag: TextBag => Consequence.success(bag)
+      case bag: Bag => Consequence.success(TextBag(bag))
+      case s: String => Consequence.success(Bag.text(s))
+      case _ => Consequence.failValueInvalid(v, XString)
 
   given ValueReader[String] with
     def readC(v: Any): Consequence[String] = v match
