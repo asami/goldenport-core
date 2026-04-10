@@ -10,7 +10,8 @@ import org.goldenport.tree.Tree
  * into the generic Tree model.
  *
  * @since   Feb.  7, 2026
- * @version Mar.  3, 2026
+ *  version Mar.  3, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CallTree(
@@ -27,6 +28,12 @@ final case class CallTree(
       case CallTreeNode.Exit(label, attributes) =>
         Record.data(
           "kind" -> "exit",
+          "label" -> label,
+          "attributes" -> Record.create(attributes)
+        )
+      case CallTreeNode.Active(label, attributes) =>
+        Record.data(
+          "kind" -> "active",
           "label" -> label,
           "attributes" -> Record.create(attributes)
         )
@@ -53,6 +60,11 @@ object CallTreeNode {
   ) extends CallTreeNode
 
   final case class Exit(
+    label: String,
+    attributes: Map[String, String] = Map.empty
+  ) extends CallTreeNode
+
+  final case class Active(
     label: String,
     attributes: Map[String, String] = Map.empty
   ) extends CallTreeNode
