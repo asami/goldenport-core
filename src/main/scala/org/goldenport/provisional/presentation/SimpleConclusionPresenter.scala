@@ -7,15 +7,20 @@ import org.goldenport.provisional.conclusion.Interpretation.Kind
 
 /*
  * @since   Jan. 25, 2026
- * @version Jan. 29, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class SimpleConclusionPresenter extends ConclusionPresenter {
   protected def build(conclusion: Conclusion, ctx: PresentationContext): ConclusionPresentation = {
     val severity =
       conclusion.interpretation.kind match {
+        case Kind.Success => Severity.Info
         case Kind.DomainFailure => Severity.Warn
-        case Kind.Defect        => Severity.Error
+        case Kind.SystemFailure => Severity.Error
+        case Kind.NetworkFailure => Severity.Error
+        case Kind.ExternalServiceFailure => Severity.Error
+        case Kind.Defect => Severity.Error
+        case Kind.ConfigurationFailure => Severity.Error
       }
     val title = MessageRef(conclusion.observation.taxonomy.print)
     val summaryKey = conclusion.observation.cause.show

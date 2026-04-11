@@ -18,7 +18,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 /*
  * @since   Dec. 29, 2025
  *  version Jan. 29, 2026
- * @version Feb.  7, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec
@@ -70,7 +70,7 @@ class OperationDefinitionResolveParameterSpec
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "value",
+              content = org.goldenport.value.BaseContent.simple("value"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(
                 datatype = datatype,
@@ -80,7 +80,7 @@ class OperationDefinitionResolveParameterSpec
             )
           )
         ),
-        response = ResponseDefinition(result = Nil)
+        response = ResponseDefinition.void
       )
 
     override def createOperationRequest(
@@ -112,7 +112,7 @@ class OperationDefinitionResolveParameterSpec
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "value",
+              content = org.goldenport.value.BaseContent.simple("value"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(
                 datatype = datatype,
@@ -122,7 +122,7 @@ class OperationDefinitionResolveParameterSpec
             )
           )
         ),
-        response = ResponseDefinition(result = Nil)
+        response = ResponseDefinition.void
       )
 
     override def createOperationRequest(
@@ -330,11 +330,11 @@ class OperationDefinitionResolveParameterSpec
     "enforce validation in default OperationDefinition.Instance" in {
       Given("a default OperationDefinition with a notEmpty constraint")
       val op = OperationDefinition(
-        name = "string-operation",
+        content = org.goldenport.value.BaseContent.simple("string-operation"),
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "value",
+              content = org.goldenport.value.BaseContent.simple("value"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(
                 datatype = XString,
@@ -344,7 +344,7 @@ class OperationDefinitionResolveParameterSpec
             )
           )
         ),
-        response = ResponseDefinition(result = Nil)
+        response = ResponseDefinition.void
       )
 
       When("resolving a violating value through the default instance")

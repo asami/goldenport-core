@@ -12,7 +12,7 @@ import cats.data.NonEmptyVector
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class CliHelpProjectionSpec
@@ -25,26 +25,26 @@ class CliHelpProjectionSpec
     "render service and operation help from definitions" in {
       Given("a service with one operation and parameters")
       val operation = OperationDefinition(
-        name = "query",
+        content = org.goldenport.value.BaseContent.simple("query"),
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "query",
+              content = org.goldenport.value.BaseContent.simple("query"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.One)
             ),
             ParameterDefinition(
-              name = "limit",
+              content = org.goldenport.value.BaseContent.simple("limit"),
               kind = ParameterDefinition.Kind.Property,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.ZeroOne)
             ),
             ParameterDefinition(
-              name = "verbose",
+              content = org.goldenport.value.BaseContent.simple("verbose"),
               kind = ParameterDefinition.Kind.Switch
             )
           )
         ),
-        response = ResponseDefinition(Nil)
+        response = ResponseDefinition.void
       )
       val service = ServiceDefinition(
         name = "search",

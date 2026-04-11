@@ -22,7 +22,7 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Jan. 29, 2026
  *  version Feb.  7, 2026
  *  version Mar. 29, 2026
- * @version Apr. 10, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -389,7 +389,7 @@ object OperationDefinition {
           name: String,
           req: RequestDefinition,
           res: ResponseDefinition
-        ): OperationDefinition = OperationDefinition(name, req, res)
+        ): OperationDefinition = OperationDefinition(BaseContent.simple(name), req, res)
       }
     }
   }

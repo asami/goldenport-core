@@ -4,7 +4,7 @@ import org.goldenport.schema.Constraint
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 object ConstraintRegistry {
@@ -68,16 +68,13 @@ object ConstraintRegistry {
 
   def compile(
     exprs: Vector[PredicateExpr]
-  ): Either[CompileError, Vector[Constraint]] = {
-    val results = Vector.newBuilder[Constraint]
-    exprs.foreach { expr =>
-      compile(expr) match {
-        case Left(err) => return Left(err)
-        case Right(cs) => results ++= cs
-      }
+  ): Either[CompileError, Vector[Constraint]] =
+    exprs.foldLeft[Either[CompileError, Vector[Constraint]]](Right(Vector.empty)) {
+      case (acc, expr) =>
+        acc.flatMap { results =>
+          compile(expr).map(results ++ _)
+        }
     }
-    Right(results.result())
-  }
 
   def compile(
     expr: PredicateExpr

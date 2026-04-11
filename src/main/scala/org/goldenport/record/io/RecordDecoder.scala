@@ -21,7 +21,7 @@ import org.yaml.snakeyaml.Yaml
 
 /*
  * @since   Feb.  7, 2026
- * @version Mar. 29, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordDecoder(
@@ -413,8 +413,8 @@ class RecordDecoder(
 
   private def _xml_text_content(element: org.w3c.dom.Element): String = {
     val text = _xml_node_list_to_vector(element.getChildNodes).collect {
-      case t: org.w3c.dom.Text => t.getWholeText
       case c: org.w3c.dom.CDATASection => c.getData
+      case t: org.w3c.dom.Text => t.getWholeText
     }.mkString.trim
     text
   }

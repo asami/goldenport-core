@@ -5,7 +5,7 @@ import org.goldenport.protocol.*
 
 /*
  * @since   Dec. 22, 2025
- * @version Dec. 24, 2025
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 // case class Service(name: String, operations: Seq[Operation])
@@ -26,3 +26,4 @@ import org.goldenport.protocol.*
 // }
 
 // case class ServiceRegistry(services: Seq[Service], defaultService: Option[String])
+object CliModel

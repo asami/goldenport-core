@@ -1,7 +1,9 @@
 package org.goldenport.http
 
 import java.net.URL
+import java.net.URI
 import java.net.URLDecoder
+import scala.annotation.nowarn
 import org.goldenport.record.Record
 import org.goldenport.util.StringUtils
 import org.goldenport.util.Strings
@@ -17,7 +19,7 @@ import org.goldenport.bag.Bag
  *  version Dec. 25, 2025
  *  version Jan. 17, 2026
  *  version Mar. 29, 2026
- * @version Apr. 10, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class HttpRequest(
@@ -35,6 +37,7 @@ case class HttpRequest(
 
   def isGet = method == GET
   def isMutation = !isGet
+  @nowarn("msg=value url in class HttpRequest is deprecated")
   def urlStringWithQuery: String = {
     val base = context.originalUri
       .orElse(url.map(_.toExternalForm))
@@ -193,7 +196,7 @@ object HttpRequest {
       val header = _headers(properties)
       val body = _body(properties)
       if (_is_absolute_url(path)) {
-        val url = new URL(path)
+        val url = URI.create(path).toURL
         val query = Option(url.getQuery).map(parseQuery).getOrElse(Record.empty)
         fromUrl(method, url, query = query, header = header, body = body)
       } else {

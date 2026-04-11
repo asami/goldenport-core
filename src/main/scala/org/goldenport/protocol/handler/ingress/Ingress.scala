@@ -20,10 +20,9 @@ import org.goldenport.http.HttpRequest
 
 /*
  * @since   Dec. 28, 2025
- *  version Dec. 28, 2025
  *  version Jan.  2, 2026
  *  version Jan. 28, 2026
- * @version Feb. 15, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -60,7 +59,7 @@ final case class IngressCollection(
     val _ = args
     ingresses.collectFirst { case ingress: ArgsIngress => ingress } match {
       case Some(ingress) => Consequence.success(ingress)
-      case None => Consequence.failArgumentMissingInput(args)
+      case None => Consequence.failArgumentMissingInput(args.toIndexedSeq)
     }
   }
 

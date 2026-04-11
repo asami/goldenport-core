@@ -16,7 +16,7 @@ import cats.data.NonEmptyVector
  * - Fix the canonical behavior of ArgsIngress
  * - args:Array[String] -> Request
  * - Service/operation identification is syntactic and uses ServiceDefinitionGroup
- * @version Mar. 29, 2026
+ * @version Apr. 11, 2026
  */
 /*
  * Canonical Parsing Contract (Normative)
@@ -65,9 +65,9 @@ class ArgsIngressSpec
   private val services = {
     val operation =
       OperationDefinition(
-        name = "query",
+        content = org.goldenport.value.BaseContent.simple("query"),
         request = RequestDefinition(parameters = Nil),
-        response = ResponseDefinition()
+        response = ResponseDefinition.void
       )
     val service =
       ServiceDefinition(
@@ -192,7 +192,7 @@ class ArgsIngressSpec
       val args = Array("query", "--mode", "--verbose", "hello")
       val opdef =
         OperationDefinition(
-          name = "query",
+          content = org.goldenport.value.BaseContent.simple("query"),
           request =
             RequestDefinition(
               parameters = List(
@@ -206,7 +206,7 @@ class ArgsIngressSpec
                 )
               )
             ),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       When("encoding args into Request with OperationDefinition")
@@ -237,7 +237,7 @@ class ArgsIngressSpec
 
       val opdef =
         OperationDefinition(
-          name = "query",
+          content = org.goldenport.value.BaseContent.simple("query"),
           request =
             RequestDefinition(
               parameters = List(
@@ -251,7 +251,7 @@ class ArgsIngressSpec
                 )
               )
             ),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       When("encoding args into Request with OperationDefinition")

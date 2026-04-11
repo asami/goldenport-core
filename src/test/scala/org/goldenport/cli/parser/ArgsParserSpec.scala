@@ -12,7 +12,7 @@ import cats.data.NonEmptyVector
 
 /*
  * @since   Mar. 12, 2026
- * @version Mar. 13, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ArgsParserSpec
@@ -24,9 +24,9 @@ class ArgsParserSpec
   private val service = {
     val operation =
       OperationDefinition(
-        name = "op",
+        content = org.goldenport.value.BaseContent.simple("op"),
         request = RequestDefinition(parameters = Nil),
-        response = ResponseDefinition()
+        response = ResponseDefinition.void
       )
     ServiceDefinition(
       name = "test",
@@ -79,24 +79,24 @@ class ArgsParserSpec
       Given("an operation definition with argument, property, and switch")
       val opdef =
         OperationDefinition(
-          name = "op",
+          content = org.goldenport.value.BaseContent.simple("op"),
           request = RequestDefinition(
             parameters = List(
               org.goldenport.protocol.spec.ParameterDefinition(
-                name = "name",
+                content = org.goldenport.value.BaseContent.simple("name"),
                 kind = org.goldenport.protocol.spec.ParameterDefinition.Kind.Argument
               ),
               org.goldenport.protocol.spec.ParameterDefinition(
-                name = "format",
+                content = org.goldenport.value.BaseContent.simple("format"),
                 kind = org.goldenport.protocol.spec.ParameterDefinition.Kind.Property
               ),
               org.goldenport.protocol.spec.ParameterDefinition(
-                name = "verbose",
+                content = org.goldenport.value.BaseContent.simple("verbose"),
                 kind = org.goldenport.protocol.spec.ParameterDefinition.Kind.Switch
               )
             )
           ),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       When("parsing arguments with explicit names")
@@ -112,16 +112,16 @@ class ArgsParserSpec
       Given("an operation definition with a single argument")
       val opdef =
         OperationDefinition(
-          name = "op",
+          content = org.goldenport.value.BaseContent.simple("op"),
           request = RequestDefinition(
             parameters = List(
               org.goldenport.protocol.spec.ParameterDefinition(
-                name = "name",
+                content = org.goldenport.value.BaseContent.simple("name"),
                 kind = org.goldenport.protocol.spec.ParameterDefinition.Kind.Argument
               )
             )
           ),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       When("parsing a positional argument")

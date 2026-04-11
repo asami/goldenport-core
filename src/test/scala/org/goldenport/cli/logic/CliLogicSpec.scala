@@ -17,7 +17,7 @@ import org.goldenport.schema.Multiplicity
 /*
  * @since   Dec. 25, 2025
  *  version Dec. 26, 2025
- * @version Jan. 17, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class CliLogicSpec extends AnyWordSpec with Matchers {
@@ -310,13 +310,11 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
 
   private def dummyOperation(name: String): OperationDefinition =
     OperationDefinition(
-      name = name,
+      content = org.goldenport.value.BaseContent.simple(name),
       request = RequestDefinition(
         parameters = Nil
       ),
-      response = ResponseDefinition(
-        result = Nil
-      )
+      response = ResponseDefinition.void
     )
 
   private final case class TestQuery(
@@ -337,15 +335,15 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "id",
+              content = org.goldenport.value.BaseContent.simple("id"),
               kind = ParameterDefinition.Kind.Argument
             ),
             ParameterDefinition(
-              name = "name",
+              content = org.goldenport.value.BaseContent.simple("name"),
               kind = ParameterDefinition.Kind.Argument
             ),
             ParameterDefinition(
-              name = "birthday",
+              content = org.goldenport.value.BaseContent.simple("birthday"),
               kind = ParameterDefinition.Kind.Argument,
               domain = org.goldenport.schema.ValueDomain(
                 multiplicity = Multiplicity.ZeroOne
@@ -353,7 +351,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
             )
           )
         ),
-        response = ResponseDefinition(result = Nil)
+        response = ResponseDefinition.void
       )
 
     override def createOperationRequest(
@@ -379,15 +377,15 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "id",
+              content = org.goldenport.value.BaseContent.simple("id"),
               kind = ParameterDefinition.Kind.Argument
             ),
             ParameterDefinition(
-              name = "name",
+              content = org.goldenport.value.BaseContent.simple("name"),
               kind = ParameterDefinition.Kind.Argument
             ),
             ParameterDefinition(
-              name = "birthday",
+              content = org.goldenport.value.BaseContent.simple("birthday"),
               kind = ParameterDefinition.Kind.Argument,
               domain = org.goldenport.schema.ValueDomain(
                 multiplicity = Multiplicity.ZeroOne
@@ -395,7 +393,7 @@ class CliLogicSpec extends AnyWordSpec with Matchers {
             )
           )
         ),
-        response = ResponseDefinition(result = Nil)
+        response = ResponseDefinition.void
       )
   }
 

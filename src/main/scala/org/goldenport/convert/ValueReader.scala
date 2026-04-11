@@ -12,8 +12,7 @@ import org.goldenport.schema.*
 /*
  * @since   Oct. 17, 2025
  *  version Feb. 19, 2026
- *  version Apr.  8, 2026
- * @version Apr.  9, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T]:
@@ -146,7 +145,7 @@ object ValueReader {
       case url: URL => Consequence.success(url)
       case uri: URI => Consequence.success(uri.toURL)
       case s: String =>
-        try Consequence.success(new URL(s.trim))
+        try Consequence.success(URI.create(s.trim).toURL)
         catch case _: Throwable => Consequence.failValueInvalid(v, XString)
       case _ => Consequence.failValueInvalid(v, XString)
 

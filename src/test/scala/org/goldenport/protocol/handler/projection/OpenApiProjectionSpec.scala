@@ -12,7 +12,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class OpenApiProjectionSpec
@@ -24,22 +24,22 @@ class OpenApiProjectionSpec
     "render a minimal OpenAPI document from definitions" in {
       Given("a service with one operation and parameters")
       val operation = OperationDefinition(
-        name = "query",
+        content = org.goldenport.value.BaseContent.simple("query"),
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "query",
+              content = org.goldenport.value.BaseContent.simple("query"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.One)
             ),
             ParameterDefinition(
-              name = "limit",
+              content = org.goldenport.value.BaseContent.simple("limit"),
               kind = ParameterDefinition.Kind.Property,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.ZeroOne)
             )
           )
         ),
-        response = ResponseDefinition(Nil)
+        response = ResponseDefinition.void
       )
       val service = ServiceDefinition(
         name = "search",
@@ -65,23 +65,23 @@ class OpenApiProjectionSpec
     "render default and constraint metadata in schemas" in {
       Given("parameters with default values and constraints")
       val operation = OperationDefinition(
-        name = "query",
+        content = org.goldenport.value.BaseContent.simple("query"),
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "p1",
+              content = org.goldenport.value.BaseContent.simple("p1"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.One),
               default = ParameterDefinition.Default.Value(5)
             ),
             ParameterDefinition(
-              name = "p2",
+              content = org.goldenport.value.BaseContent.simple("p2"),
               kind = ParameterDefinition.Kind.Property,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.ZeroOne),
               default = ParameterDefinition.Default.Empty
             ),
             ParameterDefinition(
-              name = "p3",
+              content = org.goldenport.value.BaseContent.simple("p3"),
               kind = ParameterDefinition.Kind.Property,
               domain = ValueDomain(
                 datatype = XString,
@@ -92,7 +92,7 @@ class OpenApiProjectionSpec
             )
           )
         ),
-        response = ResponseDefinition(Nil)
+        response = ResponseDefinition.void
       )
       val service = ServiceDefinition(
         name = "search",

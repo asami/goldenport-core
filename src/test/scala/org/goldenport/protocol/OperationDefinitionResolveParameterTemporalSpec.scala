@@ -18,7 +18,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 /*
  * @since   Dec. 30, 2025
  *  version Jan. 28, 2026
- * @version Feb.  7, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterTemporalSpec
@@ -48,7 +48,7 @@ class OperationDefinitionResolveParameterTemporalSpec
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "value",
+              content = org.goldenport.value.BaseContent.simple("value"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(
                 datatype = datatype,
@@ -57,7 +57,7 @@ class OperationDefinitionResolveParameterTemporalSpec
             )
           )
         ),
-        response = ResponseDefinition(result = Nil)
+        response = ResponseDefinition.void
       )
 
     override def createOperationRequest(

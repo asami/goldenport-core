@@ -13,20 +13,17 @@ import org.goldenport.protocol.spec._
 
 /*
  * @since   Dec. 28, 2025
- *  version Dec. 28, 2025
- * @version Jan. 29, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 object TestProtocol {
   def simple: Protocol = {
     val operation = OperationDefinition(
-      name = "query",
+      content = org.goldenport.value.BaseContent.simple("query"),
       request = RequestDefinition(
         parameters = Nil
       ),
-      response = ResponseDefinition(
-        result = Nil
-      )
+      response = ResponseDefinition.void
     )
     val service = ServiceDefinition(
       name = "default",
@@ -45,13 +42,11 @@ object TestProtocol {
 
   def withArgsIngress: Protocol = {
     val operation = OperationDefinition(
-      name = "query",
+      content = org.goldenport.value.BaseContent.simple("query"),
       request = RequestDefinition(
         parameters = Nil
       ),
-      response = ResponseDefinition(
-        result = Nil
-      )
+      response = ResponseDefinition.void
     )
     val service = ServiceDefinition(
       name = "default",
@@ -106,7 +101,7 @@ object TestProtocol {
           //   Cause.Argument(Cause.Reason.Redundant),
           //   Vector(Descriptor.Aspect.Operation(operation))
           // )
-          Consequence.failArgumentRedundantOperationInput(operation, args.tail)
+          Consequence.failArgumentRedundantOperationInput(operation, args.tail.toIndexedSeq)
         } else {
           Consequence.success(
             Request(

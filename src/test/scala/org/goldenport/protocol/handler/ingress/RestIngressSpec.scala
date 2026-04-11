@@ -31,15 +31,15 @@ class RestIngressSpec
 
       val opdef =
         OperationDefinition(
-          name = "op",
+          content = org.goldenport.value.BaseContent.simple("op"),
           request = RequestDefinition(parameters = Nil),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       val ingress =
         IngressCollection(
           ingresses = Vector(new RestIngress {})
-        ).ingress(http).take
+        ).ingress(http).TAKE
 
       When("encoding HttpRequest into Request")
       val result = ingress.encode(opdef, http)
@@ -69,15 +69,15 @@ class RestIngressSpec
 
       val opdef =
         OperationDefinition(
-          name = "query",
+          content = org.goldenport.value.BaseContent.simple("query"),
           request = RequestDefinition(parameters = Nil),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       val ingress =
         IngressCollection(
           ingresses = Vector(new RestIngress {})
-        ).ingress(http).take
+        ).ingress(http).TAKE
 
       When("encoding HttpRequest into Request")
       val result = ingress.encode(opdef, http)
@@ -109,15 +109,15 @@ class RestIngressSpec
 
       val opdef =
         OperationDefinition(
-          name = "query",
+          content = org.goldenport.value.BaseContent.simple("query"),
           request = RequestDefinition(parameters = Nil),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       val ingress =
         IngressCollection(
           ingresses = Vector(new RestIngress {})
-        ).ingress(http).take
+        ).ingress(http).TAKE
 
       When("encoding HttpRequest into Request")
       val result = ingress.encode(opdef, http)
@@ -150,15 +150,15 @@ class RestIngressSpec
 
       val opdef =
         OperationDefinition(
-          name = "query",
+          content = org.goldenport.value.BaseContent.simple("query"),
           request = RequestDefinition(parameters = Nil),
-          response = ResponseDefinition()
+          response = ResponseDefinition.void
         )
 
       val ingress =
         IngressCollection(
           ingresses = Vector(new RestIngress {})
-        ).ingress(http).take
+        ).ingress(http).TAKE
 
       When("encoding HttpRequest into Request")
       val result = ingress.encode(opdef, http)

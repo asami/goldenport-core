@@ -6,6 +6,7 @@ import org.goldenport.record.{Field, Record}
 import scala.collection.mutable.LinkedHashMap
 
 /*
+ * @version Apr. 11, 2026
  * Tree
  *
  * - Immutable
@@ -47,20 +48,20 @@ final case class Tree[A](
       node: TreeNode[A],
       segments: Vector[String]
     ): Option[TreeNode[A]] =
-      segments match {
-        case Vector() =>
-          Some(node)
-
-        case head +: tail =>
-          node match {
-            case TreeDir(children) =>
-              children
-                .find(_.name == head)
+      if (segments.isEmpty) {
+        Some(node)
+      } else {
+        val head = segments.head
+        val tail = segments.tail
+        node match {
+          case TreeDir(children) =>
+            children
+              .find(_.name == head)
               .flatMap(e => _loop_(e.node, tail))
 
-            case _: TreeLeaf[A] =>
-              None
-          }
+          case _: TreeLeaf[A] =>
+            None
+        }
       }
 
     _loop_(root, path.segments)
@@ -77,47 +78,47 @@ final case class Tree[A](
       dir: TreeDir[A],
       segments: Vector[String]
     ): TreeDir[A] =
-      segments match {
-        case Vector(last) =>
-          val idx = dir.children.indexWhere(_.name == last)
-          val entry = TreeEntry(last, TreeLeaf(value))
-          if (idx < 0)
-            TreeDir(dir.children :+ entry)
-          else
-            TreeDir(dir.children.updated(idx, entry))
-
-        case head +: tail =>
-          val idx = dir.children.indexWhere(_.name == head)
-          if (idx < 0) {
-            val newDir = TreeDir[A](Vector.empty)
-            val updated = _loop_(newDir, tail)
-            TreeDir(dir.children :+ TreeEntry(head, updated))
-          } else {
-            dir.children(idx).node match {
-              case d: TreeDir[A] =>
-                val updated = _loop_(d, tail)
-                TreeDir(
-                  dir.children.updated(
-                    idx,
-                    TreeEntry(head, updated)
-                  )
+      if (segments.isEmpty) {
+        dir
+      } else if (segments.tail.isEmpty) {
+        val last = segments.head
+        val idx = dir.children.indexWhere(_.name == last)
+        val entry = TreeEntry(last, TreeLeaf(value))
+        if (idx < 0)
+          TreeDir(dir.children :+ entry)
+        else
+          TreeDir(dir.children.updated(idx, entry))
+      } else {
+        val head = segments.head
+        val tail = segments.tail
+        val idx = dir.children.indexWhere(_.name == head)
+        if (idx < 0) {
+          val newDir = TreeDir[A](Vector.empty)
+          val updated = _loop_(newDir, tail)
+          TreeDir(dir.children :+ TreeEntry(head, updated))
+        } else {
+          dir.children(idx).node match {
+            case d: TreeDir[A] =>
+              val updated = _loop_(d, tail)
+              TreeDir(
+                dir.children.updated(
+                  idx,
+                  TreeEntry(head, updated)
                 )
+              )
 
-              case _: TreeLeaf[A] =>
-                // promote leaf to dir
-                val newDir = TreeDir[A](Vector.empty)
-                val updated = _loop_(newDir, tail)
-                TreeDir(
-                  dir.children.updated(
-                    idx,
-                    TreeEntry(head, updated)
-                  )
+            case _: TreeLeaf[A] =>
+              // promote leaf to dir
+              val newDir = TreeDir[A](Vector.empty)
+              val updated = _loop_(newDir, tail)
+              TreeDir(
+                dir.children.updated(
+                  idx,
+                  TreeEntry(head, updated)
                 )
-            }
+              )
           }
-
-        case Vector() =>
-          dir
+        }
       }
 
     copy(root = _loop_(root, path.segments))
@@ -128,31 +129,30 @@ final case class Tree[A](
       dir: TreeDir[A],
       segments: Vector[String]
     ): TreeDir[A] =
-      segments match {
-        case Vector(last) =>
-          TreeDir(dir.children.filterNot(_.name == last))
-
-        case head +: tail =>
-          val idx = dir.children.indexWhere(_.name == head)
-          if (idx < 0) {
-            dir
-          } else {
-            dir.children(idx).node match {
-              case d: TreeDir[A] =>
-                val updated = _loop_(d, tail)
-                TreeDir(
-                  dir.children.updated(
-                    idx,
-                    TreeEntry(head, updated)
-                  )
-                )
-              case _: TreeLeaf[A] =>
-                dir
-            }
-          }
-
-        case Vector() =>
+      if (segments.isEmpty) {
+        dir
+      } else if (segments.tail.isEmpty) {
+        TreeDir(dir.children.filterNot(_.name == segments.head))
+      } else {
+        val head = segments.head
+        val tail = segments.tail
+        val idx = dir.children.indexWhere(_.name == head)
+        if (idx < 0) {
           dir
+        } else {
+          dir.children(idx).node match {
+            case d: TreeDir[A] =>
+              val updated = _loop_(d, tail)
+              TreeDir(
+                dir.children.updated(
+                  idx,
+                  TreeEntry(head, updated)
+                )
+              )
+            case _: TreeLeaf[A] =>
+              dir
+          }
+        }
       }
 
     copy(root = _loop_(root, path.segments))
@@ -267,37 +267,37 @@ object Tree {
     segments: Vector[String],
     value: Any
   ): Either[String, Unit] = {
-    segments match {
-      case Vector() =>
-        Left("empty path segment is not allowed")
-
-      case head +: tail =>
-        val child = node.children.getOrElseUpdate(head, new TreeBuilderNode)
-        if (tail.isEmpty) {
-          value match {
-            case r: Record =>
-              if (child.leaf.isDefined)
-                Left(_conflict_message(segments))
-              else {
-                child.isDirectory = true
-                _insert_record_fields(child, r)
-              }
-            case other =>
-              if (child.isDirectory || child.leaf.isDefined)
-                Left(_conflict_message(segments))
-              else {
-                child.leaf = Some(other)
-                Right(())
-              }
-          }
-        } else {
-          if (child.leaf.isDefined)
-            Left(_conflict_message(segments))
-          else {
-            child.isDirectory = true
-            _insert_field(child, tail, value)
-          }
+    if (segments.isEmpty) {
+      Left("empty path segment is not allowed")
+    } else {
+      val head = segments.head
+      val tail = segments.tail
+      val child = node.children.getOrElseUpdate(head, new TreeBuilderNode)
+      if (tail.isEmpty) {
+        value match {
+          case r: Record =>
+            if (child.leaf.isDefined)
+              Left(_conflict_message(segments))
+            else {
+              child.isDirectory = true
+              _insert_record_fields(child, r)
+            }
+          case other =>
+            if (child.isDirectory || child.leaf.isDefined)
+              Left(_conflict_message(segments))
+            else {
+              child.leaf = Some(other)
+              Right(())
+            }
         }
+      } else {
+        if (child.leaf.isDefined)
+          Left(_conflict_message(segments))
+        else {
+          child.isDirectory = true
+          _insert_field(child, tail, value)
+        }
+      }
     }
   }
 

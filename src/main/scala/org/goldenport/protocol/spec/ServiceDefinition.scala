@@ -15,7 +15,7 @@ import org.goldenport.protocol.spec.OperationDefinition.Builder.OperationFactory
  *  version Feb.  2, 2025
  *  version Dec. 30, 2025
  *  version Jan. 21, 2026
- * @version Mar. 29, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class ServiceDefinition
@@ -79,7 +79,7 @@ object ServiceDefinition {
       res: ResponseDefinition
     ): Specification = apply(
       name,
-      OperationDefinition(opname, req, res)
+      OperationDefinition(BaseContent.simple(opname), req, res)
     )
 
     case class Builder(
@@ -150,7 +150,7 @@ object ServiceDefinition {
       req: RequestDefinition,
       res: ResponseDefinition
     ): Builder = {
-      val op = OperationDefinition(opname, req, res)
+      val op = OperationDefinition(BaseContent.simple(opname), req, res)
       operation(op)
     }
 
@@ -230,7 +230,7 @@ object ServiceDefinitionGroup {
       req: RequestDefinition,
       res: ResponseDefinition
     ): Builder = {
-      val op = OperationDefinition(opname, req, res)
+      val op = OperationDefinition(BaseContent.simple(opname), req, res)
       operation(name, op)
     }
 

@@ -18,7 +18,7 @@ import org.goldenport.convert.{StringCodex, StringCodexable}
  *  version May. 11, 2025
  *  version Jul. 23, 2025
  *  version Dec. 25, 2025
- * @version Apr.  3, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nString(
@@ -50,9 +50,11 @@ object I18nString {
   }
 
   given Decoder[I18nString] = Decoder.instance { c =>
-    c.downField("entries").as[Vector[(java.util.Locale, String)]].flatMap {
-      case x +: xs => Right(I18nString(NonEmptyVector(x, xs)))
-      case Vector() => Left(io.circe.DecodingFailure("entries must be non-empty", c.history))
+    c.downField("entries").as[Vector[(java.util.Locale, String)]].flatMap { xs =>
+      xs.headOption match {
+        case Some(x) => Right(I18nString(NonEmptyVector(x, xs.tail)))
+        case None => Left(io.circe.DecodingFailure("entries must be non-empty", c.history))
+      }
     }
   }
 

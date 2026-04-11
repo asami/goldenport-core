@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class McpGetManifestProjectionSpec
@@ -23,17 +23,17 @@ class McpGetManifestProjectionSpec
     "render a basic manifest from definitions" in {
       Given("a service with one operation and one argument")
       val operation = OperationDefinition(
-        name = "query",
+        content = org.goldenport.value.BaseContent.simple("query"),
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "query",
+              content = org.goldenport.value.BaseContent.simple("query"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.One)
             )
           )
         ),
-        response = ResponseDefinition(Nil)
+        response = ResponseDefinition.void
       )
       val service = ServiceDefinition(
         name = "search",
@@ -61,26 +61,26 @@ class McpGetManifestProjectionSpec
     "render mixed parameter kinds with required and multiple flags" in {
       Given("a service with mixed parameter kinds")
       val operation = OperationDefinition(
-        name = "query",
+        content = org.goldenport.value.BaseContent.simple("query"),
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "query",
+              content = org.goldenport.value.BaseContent.simple("query"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.One)
             ),
             ParameterDefinition(
-              name = "tag",
+              content = org.goldenport.value.BaseContent.simple("tag"),
               kind = ParameterDefinition.Kind.Property,
               domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.ZeroMore)
             ),
             ParameterDefinition(
-              name = "verbose",
+              content = org.goldenport.value.BaseContent.simple("verbose"),
               kind = ParameterDefinition.Kind.Switch
             )
           )
         ),
-        response = ResponseDefinition(Nil)
+        response = ResponseDefinition.void
       )
       val service = ServiceDefinition(
         name = "search",
@@ -106,9 +106,9 @@ class McpGetManifestProjectionSpec
     "omit optional description fields when absent" in {
       Given("a service with no description fields")
       val operation = OperationDefinition(
-        name = "query",
+        content = org.goldenport.value.BaseContent.simple("query"),
         request = RequestDefinition(parameters = Nil),
-        response = ResponseDefinition(Nil)
+        response = ResponseDefinition.void
       )
       val service = ServiceDefinition(
         name = "search",

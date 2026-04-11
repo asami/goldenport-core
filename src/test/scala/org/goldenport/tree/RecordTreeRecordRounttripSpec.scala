@@ -9,7 +9,7 @@ import org.goldenport.test.matchers.ConsequenceMatchers
 
 /*
  * @since   Feb.  5, 2026
- * @version Feb.  5, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordTreeRecordRoundtripSpec
@@ -37,7 +37,7 @@ class RecordTreeRecordRoundtripSpec
       val promoted = Tree.fromRecord[String](original)
 
       promoted should be_success
-      val roundtripped = Tree.toRecord(promoted.take)
+      val roundtripped = Tree.toRecord(promoted.TAKE)
 
       Then("the resulting record is not identical to the original")
       roundtripped should not be theSameInstanceAs(original)
@@ -72,7 +72,7 @@ class RecordTreeRecordRoundtripSpec
       val promoted = Tree.fromRecord[String](original)
 
       promoted should be_success
-      val relaxed = Tree.toRecord(promoted.take)
+      val relaxed = Tree.toRecord(promoted.TAKE)
       Then("the resulting record reflects Tree semantics, not original shape")
       relaxed should not equal original
       relaxed.getString(PathName.parse("root/child/leaf")) shouldBe Some("L")

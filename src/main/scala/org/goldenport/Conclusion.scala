@@ -25,7 +25,7 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
- * @version Mar. 13, 2026
+ * @version Apr. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -135,8 +135,13 @@ object Conclusion {
       case Taxonomy.Category.Reference => serviceUnavailable
       case Taxonomy.Category.State => internalServerError
       case Taxonomy.Category.Value => badRequest
+      case Taxonomy.Category.Entity => badRequest
       case Taxonomy.Category.Record => badRequest
       case Taxonomy.Category.Operation => badRequest
+      case Taxonomy.Category.Service => serviceUnavailable
+      case Taxonomy.Category.Component => internalServerError
+      case Taxonomy.Category.SubSystem => internalServerError
+      case Taxonomy.Category.ServiceProvider => serviceUnavailable
       case Taxonomy.Category.System => internalServerError
       case Taxonomy.Category.DataStore => internalServerError // Hint
       case Taxonomy.Category.Network => serviceUnavailable

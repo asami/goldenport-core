@@ -11,6 +11,7 @@ import org.goldenport.Consequence
 import cats.data.NonEmptyVector
 
 /**
+ * @version Apr. 11, 2026
  * CliEngineSpec
  *
  * Executable / Working Specification for CliEngine.
@@ -41,12 +42,12 @@ final class CliEngineSpec
         request = RequestDefinition(
           parameters = List(
             ParameterDefinition(
-              name = "query",
+              content = org.goldenport.value.BaseContent.simple("query"),
               kind = ParameterDefinition.Kind.Property
             )
           )
         ),
-        response = ResponseDefinition(result = Nil)
+        response = ResponseDefinition.void
       )
 
     override def createOperationRequest(
