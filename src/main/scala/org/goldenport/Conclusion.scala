@@ -406,8 +406,6 @@ object Conclusion {
       Disposition.notImplemented
     )
 
-  def unreachableReached(msg: String): Conclusion = failUnreachableReached(msg)
-
   def resourceNotFound(
     resource: Descriptor.Facet.Resource,
     facets: Seq[Descriptor.Facet]
@@ -459,8 +457,7 @@ object Conclusion {
       Disposition.fix
     )
 
-  // fail : obsolated
-  def failArgumentMissing: Conclusion =
+  def argumentMissing: Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.argumentMissing,
@@ -468,7 +465,7 @@ object Conclusion {
       Disposition.argumentMissing
     )
 
-  def failArgumentMissing(name: String): Conclusion =
+  def argumentMissing(name: String): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.argumentMissing(name),
@@ -476,16 +473,31 @@ object Conclusion {
       Disposition.argumentMissing
     )
 
-  def failArgumentMissingInput(name: String): Conclusion =
-    ???
+  def argumentMissingInput(name: String): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentMissingInput(name),
+      Interpretation.argumentMissing,
+      Disposition.argumentMissing
+    )
 
-  def failArgumentMissingInput(args: Seq[String]): Conclusion =
-    ???
+  def argumentMissingInput(args: Seq[String]): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentMissingInput(args),
+      Interpretation.argumentMissing,
+      Disposition.argumentMissing
+    )
 
-  def failArgumentMissingInput(req: HttpRequest): Conclusion =
-    ???
+  def argumentMissingInput(req: HttpRequest): Conclusion =
+    Conclusion(
+      Status.badRequest,
+      Observation.argumentMissingInput(req),
+      Interpretation.argumentMissing,
+      Disposition.argumentMissing
+    )
 
-  def failArgumentMissingOperation(name: String, operation: String): Conclusion =
+  def argumentMissingOperation(name: String, operation: String): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.argumentMissingOperation(name, operation),
@@ -493,7 +505,7 @@ object Conclusion {
       Disposition.argumentMissing
     )
 
-  def failArgumentRedundantOperation(name: String, operation: String): Conclusion =
+  def argumentRedundantOperation(name: String, operation: String): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.argumentRedundantOperation(name, operation),
@@ -501,7 +513,7 @@ object Conclusion {
       Disposition.argumentRedundant
     )
 
-  def failArgumentRedundantOperationInput(operation: String, args: Seq[String]): Conclusion =
+  def argumentRedundantOperationInput(operation: String, args: Seq[String]): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.argumentRedundantOperationInput(operation, args),
@@ -509,7 +521,7 @@ object Conclusion {
       Disposition.argumentRedundant
     )
 
-  def failArgumentDataType(name: String, value: Any, dt: DataType): Conclusion =
+  def argumentDataType(name: String, value: Any, dt: DataType): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.argumentDataType(name, value, dt),
@@ -517,7 +529,7 @@ object Conclusion {
       Disposition.argumentDataType
     )
 
-  def failArgumentConstraint(name: String, value: Any, cs: NonEmptyVector[Constraint]): Conclusion =
+  def argumentConstraint(name: String, value: Any, cs: NonEmptyVector[Constraint]): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.argumentConstraint(name, value, cs),
@@ -525,7 +537,7 @@ object Conclusion {
       Disposition.argumentConstraint
     )
 
-  def failOperationInvalid(name: String): Conclusion =
+  def operationInvalid(name: String): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.operationInvalid(name),
@@ -533,7 +545,7 @@ object Conclusion {
       Disposition.operationInvalid
     )
 
-  def failResourceInconsistency(pos: SourcePosition): Conclusion =
+  def resourceInconsistency(pos: SourcePosition): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.resourceInconsistency(pos),
@@ -541,7 +553,7 @@ object Conclusion {
       Disposition.resourceInconsistency
     )
 
-  def failRecordNotFound(pos: SourcePosition, key: String, rec: Record): Conclusion =
+  def recordNotFound(pos: SourcePosition, key: String, rec: Record): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.recordNotFound(pos, key, rec),
@@ -549,7 +561,7 @@ object Conclusion {
       Disposition.recordNotFound
     )
 
-  def failOperationNotFound(pos: SourcePosition, name: String): Conclusion =
+  def operationNotFound(pos: SourcePosition, name: String): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.operationNotFound(pos, name),
@@ -557,7 +569,7 @@ object Conclusion {
       Disposition.operationNotFound
     )
 
-  def failValueInvalid(value: Any, dt: DataType): Conclusion =
+  def valueInvalid(value: Any, dt: DataType): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.valueInvalid(value, dt),
@@ -565,7 +577,7 @@ object Conclusion {
       Disposition.valueInvalid
     )
 
-  def failValueFormatError(value: Any, dt: DataType): Conclusion =
+  def valueFormatError(value: Any, dt: DataType): Conclusion =
     Conclusion(
       Status.badRequest,
       Observation.valueFormatError(value, dt),
@@ -573,7 +585,7 @@ object Conclusion {
       Disposition.valueFormatError
     )
 
-  def failUnreachableReached(pos: SourcePosition): Conclusion =
+  def unreachableReached(pos: SourcePosition): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.unreachableReached(pos),
@@ -581,7 +593,7 @@ object Conclusion {
       Disposition.unreachableReached
     )
 
-  def failUnreachableReached(msg: String): Conclusion =
+  def unreachableReached(msg: String): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.unreachableReached(msg),
@@ -589,7 +601,7 @@ object Conclusion {
       Disposition.unreachableReached
     )
 
-  def failUninitializedState(pos: SourcePosition): Conclusion =
+  def uninitializedState(pos: SourcePosition): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.uninitializedState(pos),
@@ -597,7 +609,7 @@ object Conclusion {
       Disposition.uninitializedState
     )
 
-  def failImpossibleState(msg: String): Conclusion =
+  def impossibleState(msg: String): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.impossibleState(msg),
@@ -605,7 +617,7 @@ object Conclusion {
       Disposition.impossibleState
     )
 
-  def failUnsupported(msg: String): Conclusion =
+  def unsupported(msg: String): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.unsupported(msg),
@@ -613,7 +625,7 @@ object Conclusion {
       Disposition.unsupported
     )
 
-  def failNotImplemented(pos: SourcePosition): Conclusion =
+  def notImplemented(pos: SourcePosition): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.notImplemented(pos),
@@ -621,7 +633,7 @@ object Conclusion {
       Disposition.notImplemented
     )
 
-  def failNotImplemented(msg: String): Conclusion =
+  def notImplemented(msg: String): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.notImplemented(msg),
@@ -629,25 +641,62 @@ object Conclusion {
       Disposition.notImplemented
     )
 
-  def failInvariantViolation(msg: String): Conclusion =
+  def invariantViolation(msg: String): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.invariantViolation(msg),
       Interpretation.invariantViolation,
       Disposition.invariantViolation
     )
-  def failPreconditionViolation(msg: String): Conclusion =
+
+  def preconditionViolation(msg: String): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.preconditionViolation(msg),
       Interpretation.preconditionViolation,
       Disposition.preconditionViolation
     )
-  def failPostconditionViolation(msg: String): Conclusion =
+
+  def postconditionViolation(msg: String): Conclusion =
     Conclusion(
       Status.internalServerError,
       Observation.postconditionViolation(msg),
       Interpretation.postconditionViolation,
       Disposition.postconditionViolation
     )
+
+  // fail : obsolated
+  def failArgumentMissing: Conclusion = argumentMissing
+  def failArgumentMissing(name: String): Conclusion = argumentMissing(name)
+  def failArgumentMissingInput(name: String): Conclusion = argumentMissingInput(name)
+  def failArgumentMissingInput(args: Seq[String]): Conclusion = argumentMissingInput(args)
+  def failArgumentMissingInput(req: HttpRequest): Conclusion = argumentMissingInput(req)
+  def failArgumentMissingOperation(name: String, operation: String): Conclusion =
+    argumentMissingOperation(name, operation)
+  def failArgumentRedundantOperation(name: String, operation: String): Conclusion =
+    argumentRedundantOperation(name, operation)
+  def failArgumentRedundantOperationInput(operation: String, args: Seq[String]): Conclusion =
+    argumentRedundantOperationInput(operation, args)
+  def failArgumentDataType(name: String, value: Any, dt: DataType): Conclusion =
+    argumentDataType(name, value, dt)
+  def failArgumentConstraint(name: String, value: Any, cs: NonEmptyVector[Constraint]): Conclusion =
+    argumentConstraint(name, value, cs)
+  def failOperationInvalid(name: String): Conclusion = operationInvalid(name)
+  def failResourceInconsistency(pos: SourcePosition): Conclusion = resourceInconsistency(pos)
+  def failRecordNotFound(pos: SourcePosition, key: String, rec: Record): Conclusion =
+    recordNotFound(pos, key, rec)
+  def failOperationNotFound(pos: SourcePosition, name: String): Conclusion =
+    operationNotFound(pos, name)
+  def failValueInvalid(value: Any, dt: DataType): Conclusion = valueInvalid(value, dt)
+  def failValueFormatError(value: Any, dt: DataType): Conclusion = valueFormatError(value, dt)
+  def failUnreachableReached(pos: SourcePosition): Conclusion = unreachableReached(pos)
+  def failUnreachableReached(msg: String): Conclusion = unreachableReached(msg)
+  def failUninitializedState(pos: SourcePosition): Conclusion = uninitializedState(pos)
+  def failImpossibleState(msg: String): Conclusion = impossibleState(msg)
+  def failUnsupported(msg: String): Conclusion = unsupported(msg)
+  def failNotImplemented(pos: SourcePosition): Conclusion = notImplemented(pos)
+  def failNotImplemented(msg: String): Conclusion = notImplemented(msg)
+  def failInvariantViolation(msg: String): Conclusion = invariantViolation(msg)
+  def failPreconditionViolation(msg: String): Conclusion = preconditionViolation(msg)
+  def failPostconditionViolation(msg: String): Conclusion = postconditionViolation(msg)
 }

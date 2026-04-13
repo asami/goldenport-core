@@ -7,7 +7,9 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpec
 import cats.data.NonEmptyVector
 import org.goldenport.datatype.I18nMessage
+import org.goldenport.observation.Descriptor
 import org.goldenport.provisional.observation.Observation
+import org.goldenport.provisional.observation.Taxonomy
 // import org.goldenport.observation.Agent
 // import org.goldenport.observation.Cause
 // import org.goldenport.observation.CauseKind
@@ -24,7 +26,8 @@ import org.goldenport.provisional.observation.Observation
 /*
  * @since   Dec. 22, 2025
  *  version Dec. 30, 2025
- * @version Jan. 27, 2026
+ *  version Jan. 27, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec
@@ -188,5 +191,36 @@ class ConsequenceSpec extends AnyWordSpec
         succeed
       }
     }
+
+    "when reporting a missing operation input" should {
+      "represent the result as an argument-missing failure with an input facet" in {
+        val result =
+          Consequence.argumentMissingInput("body")
+
+        val conclusion = _failure_conclusion(result)
+        conclusion.observation.taxonomy.shouldBe(Taxonomy.argumentMissing)
+        conclusion.observation.cause.descriptor.facets.should(contain(
+          Descriptor.Facet.Input(name = Some("body"))
+        ))
+      }
+
+      "represent missing argv input as an argument-missing failure with args facet" in {
+        val args = Seq("--service", "notice")
+        val result =
+          Consequence.argumentMissingInput(args)
+
+        val conclusion = _failure_conclusion(result)
+        conclusion.observation.taxonomy.shouldBe(Taxonomy.argumentMissing)
+        conclusion.observation.cause.descriptor.facets.should(contain(
+          Descriptor.Facet.Args(args)
+        ))
+      }
+    }
   }
+
+  private def _failure_conclusion[A](p: Consequence[A]): Conclusion =
+    p match {
+      case Consequence.Failure(conclusion) => conclusion
+      case _ => fail("expected Failure")
+    }
 }

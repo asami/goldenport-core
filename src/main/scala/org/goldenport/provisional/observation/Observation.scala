@@ -6,6 +6,7 @@ import org.goldenport.record.Record
 import org.goldenport.text.Presentable
 import org.goldenport.datatype.Identifier
 import org.goldenport.id.UniversalId
+import org.goldenport.http.HttpRequest
 import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.{TraceId, SpanId}
 import org.goldenport.observation.{Subject, Agent, Resource}
@@ -131,6 +132,21 @@ object Observation {
   def argumentMissing(name: String): Observation = rejection(
     Taxonomy.argumentMissing,
     Descriptor.Facet.Parameter.argument(name)
+  )
+
+  def argumentMissingInput(name: String): Observation = rejection(
+    Taxonomy.argumentMissing,
+    Descriptor.Facet.Input(name = Some(name))
+  )
+
+  def argumentMissingInput(args: Seq[String]): Observation = rejection(
+    Taxonomy.argumentMissing,
+    Descriptor.Facet.Args(args)
+  )
+
+  def argumentMissingInput(req: HttpRequest): Observation = rejection(
+    Taxonomy.argumentMissing,
+    Descriptor.Facet.Input(value = Some(req.toString))
   )
 
   def argumentMissingOperation(name: String, operation: String): Observation = rejection(

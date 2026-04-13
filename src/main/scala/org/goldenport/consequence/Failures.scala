@@ -62,7 +62,7 @@ object Failures {
     resourceInconsistency(SourcePositionMacro.position())
 
   def resourceInconsistency(pos: SourcePosition): Consequence.Failure[Nothing] =
-    Consequence.Failure(Conclusion.failResourceInconsistency(pos))
+    Consequence.Failure(Conclusion.resourceInconsistency(pos))
 
   inline def recordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
     recordNotFound(key, rec, SourcePositionMacro.position())
@@ -72,13 +72,13 @@ object Failures {
     rec: Record,
     pos: SourcePosition
   ): Consequence.Failure[Nothing] =
-    Consequence.Failure(Conclusion.failRecordNotFound(pos, key, rec))
+    Consequence.Failure(Conclusion.recordNotFound(pos, key, rec))
 
   inline def operationNotFound(name: String): Consequence.Failure[Nothing] =
     operationNotFound(name, SourcePositionMacro.position())
 
   def operationNotFound(name: String, pos: SourcePosition): Consequence.Failure[Nothing] =
-    Consequence.Failure(Conclusion.failOperationNotFound(pos, name))
+    Consequence.Failure(Conclusion.operationNotFound(pos, name))
 
   inline def operationNotFound(
     name: String,
@@ -290,23 +290,23 @@ object Failures {
     unreachableReached(SourcePositionMacro.position())
 
   def unreachableReached(pos: SourcePosition): Consequence.Failure[Nothing] =
-    Consequence.Failure(Conclusion.failUnreachableReached(pos))
+    Consequence.Failure(Conclusion.unreachableReached(pos))
 
   inline def uninitializedState: Consequence.Failure[Nothing] =
     uninitializedState(SourcePositionMacro.position())
 
   def uninitializedState(pos: SourcePosition): Consequence.Failure[Nothing] =
-    Consequence.Failure(Conclusion.failUninitializedState(pos))
+    Consequence.Failure(Conclusion.uninitializedState(pos))
 
   inline def uninitializedState(c: Conclusion): Consequence.Failure[Nothing] =
     uninitializedState(c, SourcePositionMacro.position())
 
   def uninitializedState(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
-    Consequence.Failure(Conclusion.failUninitializedState(pos) ++ c)
+    Consequence.Failure(Conclusion.uninitializedState(pos) ++ c)
 
   inline def notImplemented: Consequence.Failure[Nothing] =
     notImplemented(SourcePositionMacro.position())
 
   def notImplemented(pos: SourcePosition): Consequence.Failure[Nothing] =
-    Consequence.Failure(Conclusion.failNotImplemented(pos))
+    Consequence.Failure(Conclusion.notImplemented(pos))
 }
