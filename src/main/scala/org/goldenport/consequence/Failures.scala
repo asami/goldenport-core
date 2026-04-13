@@ -120,6 +120,12 @@ object Failures {
   ): Consequence.Failure[Nothing] =
     operationIllegal(name, facets, SourcePositionMacro.position())
 
+  inline def operationIllegal(
+    name: String,
+    message: String
+  ): Consequence.Failure[Nothing] =
+    operationIllegal(name, Seq(Descriptor.Facet.Message(message)), SourcePositionMacro.position())
+
   def operationIllegal(
     name: String,
     facets: Seq[Descriptor.Facet],
@@ -137,6 +143,12 @@ object Failures {
   ): Consequence.Failure[Nothing] =
     operationInvalid(name, facets, SourcePositionMacro.position())
 
+  inline def operationInvalid(
+    name: String,
+    message: String
+  ): Consequence.Failure[Nothing] =
+    operationInvalid(name, Seq(Descriptor.Facet.Message(message)), SourcePositionMacro.position())
+
   def operationInvalid(
     name: String,
     facets: Seq[Descriptor.Facet],
@@ -152,6 +164,16 @@ object Failures {
     facets: Seq[Descriptor.Facet]
   ): Consequence.Failure[Nothing] =
     componentInvalid(facets, SourcePositionMacro.position())
+
+  inline def componentInvalid(
+    message: String
+  ): Consequence.Failure[Nothing] =
+    componentInvalid(Seq(Descriptor.Facet.Message(message)), SourcePositionMacro.position())
+
+  inline def componentInvalid(
+    e: Throwable
+  ): Consequence.Failure[Nothing] =
+    componentInvalid(Seq(Descriptor.Facet.Exception(e)), SourcePositionMacro.position())
 
   def componentInvalid(
     facets: Seq[Descriptor.Facet],
