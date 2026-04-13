@@ -626,6 +626,12 @@ object Taxonomy {
     Symptom.Corrupted
   )
 
+  // Service
+  val serviceUnavailable: Taxonomy = Taxonomy(
+    Category.Service,
+    Symptom.Unavailable
+  )
+
   // State
   val stateConflict: Taxonomy = Taxonomy(
     Category.State,
@@ -653,6 +659,11 @@ object Taxonomy {
   val dataStoreNotFound: Taxonomy = Taxonomy(
     Category.DataStore,
     Symptom.NotFound
+  )
+
+  val dataStoreUnavailable: Taxonomy = Taxonomy(
+    Category.DataStore,
+    Symptom.Unavailable
   )
 
   val dataStoreDuplicate: Taxonomy = Taxonomy(

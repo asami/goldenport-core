@@ -728,6 +728,42 @@ object Consequence {
   def operationInvalid[A](name: String, pos: SourcePosition): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failOperationInvalid(name).withSourcePosition(pos))
 
+  inline def stateConflict[A](message: String): Consequence.Failure[A] =
+    stateConflict(message, SourcePositionMacro.position())
+
+  def stateConflict[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.stateConflict, Cause.message(message), pos)
+
+  inline def serviceUnavailable[A](message: String): Consequence.Failure[A] =
+    serviceUnavailable(message, SourcePositionMacro.position())
+
+  def serviceUnavailable[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.serviceUnavailable(pos, Taxonomy.serviceUnavailable, Cause.message(message)))
+
+  inline def resourceNotFound[A](message: String): Consequence.Failure[A] =
+    resourceNotFound(message, SourcePositionMacro.position())
+
+  def resourceNotFound[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.resourceNotFound, Cause.message(message), pos)
+
+  inline def resourceInvalid[A](message: String): Consequence.Failure[A] =
+    resourceInvalid(message, SourcePositionMacro.position())
+
+  def resourceInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.resourceInvalid, Cause.message(message), pos)
+
+  inline def dataStoreUnavailable[A](message: String): Consequence.Failure[A] =
+    dataStoreUnavailable(message, SourcePositionMacro.position())
+
+  def dataStoreUnavailable[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.dataStoreUnavailable, Cause.message(message), pos)
+
+  inline def entityNotFound[A](message: String): Consequence.Failure[A] =
+    entityNotFound(message, SourcePositionMacro.position())
+
+  def entityNotFound[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.entityNotFound, Cause.message(message), pos)
+
   def unreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
 
