@@ -665,38 +665,66 @@ object Conclusion {
       Disposition.postconditionViolation
     )
 
-  // fail : obsolated
+  // Deprecated compatibility aliases for the old fail* naming style.
+  // New code should call semantic utilities such as argumentMissing,
+  // operationInvalid, valueInvalid, recordNotFound, or notImplemented.
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentMissing: Conclusion = argumentMissing
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentMissing(name: String): Conclusion = argumentMissing(name)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingInput(name: String): Conclusion = argumentMissingInput(name)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingInput(args: Seq[String]): Conclusion = argumentMissingInput(args)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingInput(req: HttpRequest): Conclusion = argumentMissingInput(req)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingOperation(name: String, operation: String): Conclusion =
     argumentMissingOperation(name, operation)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentRedundantOperation(name: String, operation: String): Conclusion =
     argumentRedundantOperation(name, operation)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentRedundantOperationInput(operation: String, args: Seq[String]): Conclusion =
     argumentRedundantOperationInput(operation, args)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentDataType(name: String, value: Any, dt: DataType): Conclusion =
     argumentDataType(name, value, dt)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failArgumentConstraint(name: String, value: Any, cs: NonEmptyVector[Constraint]): Conclusion =
     argumentConstraint(name, value, cs)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failOperationInvalid(name: String): Conclusion = operationInvalid(name)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failResourceInconsistency(pos: SourcePosition): Conclusion = resourceInconsistency(pos)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failRecordNotFound(pos: SourcePosition, key: String, rec: Record): Conclusion =
     recordNotFound(pos, key, rec)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failOperationNotFound(pos: SourcePosition, name: String): Conclusion =
     operationNotFound(pos, name)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failValueInvalid(value: Any, dt: DataType): Conclusion = valueInvalid(value, dt)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failValueFormatError(value: Any, dt: DataType): Conclusion = valueFormatError(value, dt)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failUnreachableReached(pos: SourcePosition): Conclusion = unreachableReached(pos)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failUnreachableReached(msg: String): Conclusion = unreachableReached(msg)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failUninitializedState(pos: SourcePosition): Conclusion = uninitializedState(pos)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failImpossibleState(msg: String): Conclusion = impossibleState(msg)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failUnsupported(msg: String): Conclusion = unsupported(msg)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failNotImplemented(pos: SourcePosition): Conclusion = notImplemented(pos)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failNotImplemented(msg: String): Conclusion = notImplemented(msg)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failInvariantViolation(msg: String): Conclusion = invariantViolation(msg)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failPreconditionViolation(msg: String): Conclusion = preconditionViolation(msg)
+  @deprecated("Use semantic Conclusion utilities instead.", "Apr. 14, 2026")
   def failPostconditionViolation(msg: String): Conclusion = postconditionViolation(msg)
 }
