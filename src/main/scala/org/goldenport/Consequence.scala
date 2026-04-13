@@ -722,11 +722,92 @@ object Consequence {
   def operationNotFound[A](name: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.operationNotFound(name, pos)
 
+  inline def operationNotFound[A](
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    operationNotFound(name, facets, SourcePositionMacro.position())
+
+  def operationNotFound[A](
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Failures.operationNotFound(name, facets, pos)
+
+  inline def operationConflict[A](
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    operationConflict(name, facets, SourcePositionMacro.position())
+
+  def operationConflict[A](
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Failures.operationConflict(name, facets, pos)
+
+  inline def operationIllegal[A](
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    operationIllegal(name, facets, SourcePositionMacro.position())
+
+  def operationIllegal[A](
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Failures.operationIllegal(name, facets, pos)
+
   inline def operationInvalid[A](name: String): Consequence.Failure[A] =
     operationInvalid(name, SourcePositionMacro.position())
 
   def operationInvalid[A](name: String, pos: SourcePosition): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failOperationInvalid(name).withSourcePosition(pos))
+
+  inline def operationInvalid[A](
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    operationInvalid(name, facets, SourcePositionMacro.position())
+
+  def operationInvalid[A](
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Failures.operationInvalid(name, facets, pos)
+
+  inline def componentInvalid[A](
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    componentInvalid(facets, SourcePositionMacro.position())
+
+  def componentInvalid[A](
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Failures.componentInvalid(facets, pos)
+
+  inline def componentNotFound[A](name: String): Consequence.Failure[A] =
+    componentNotFound(name, SourcePositionMacro.position())
+
+  def componentNotFound[A](
+    name: String,
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Failures.componentNotFound(name, pos)
+
+  inline def serviceNotFound[A](name: String): Consequence.Failure[A] =
+    serviceNotFound(name, SourcePositionMacro.position())
+
+  def serviceNotFound[A](
+    name: String,
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Failures.serviceNotFound(name, pos)
 
   inline def stateConflict[A](message: String): Consequence.Failure[A] =
     stateConflict(message, SourcePositionMacro.position())

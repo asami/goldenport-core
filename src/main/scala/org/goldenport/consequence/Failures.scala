@@ -13,7 +13,8 @@ import org.goldenport.record.Record
  * @since   Jan. 31, 2026
  *  version Feb. 28, 2026
  *  version Mar. 10, 2026
- * @version Apr.  8, 2026
+ *  version Apr.  8, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {
@@ -78,6 +79,115 @@ object Failures {
 
   def operationNotFound(name: String, pos: SourcePosition): Consequence.Failure[Nothing] =
     Consequence.Failure(Conclusion.failOperationNotFound(pos, name))
+
+  inline def operationNotFound(
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[Nothing] =
+    operationNotFound(name, facets, SourcePositionMacro.position())
+
+  def operationNotFound(
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Operation, Taxonomy.Symptom.NotFound),
+      Descriptor.Facet.Operation(name) +: facets,
+      pos
+    )
+
+  inline def operationConflict(
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[Nothing] =
+    operationConflict(name, facets, SourcePositionMacro.position())
+
+  def operationConflict(
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Operation, Taxonomy.Symptom.Conflict),
+      Descriptor.Facet.Operation(name) +: facets,
+      pos
+    )
+
+  inline def operationIllegal(
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[Nothing] =
+    operationIllegal(name, facets, SourcePositionMacro.position())
+
+  def operationIllegal(
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Operation, Taxonomy.Symptom.Illegal),
+      Descriptor.Facet.Operation(name) +: facets,
+      pos
+    )
+
+  inline def operationInvalid(
+    name: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[Nothing] =
+    operationInvalid(name, facets, SourcePositionMacro.position())
+
+  def operationInvalid(
+    name: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy.operationInvalid,
+      Descriptor.Facet.Operation(name) +: facets,
+      pos
+    )
+
+  inline def componentInvalid(
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[Nothing] =
+    componentInvalid(facets, SourcePositionMacro.position())
+
+  def componentInvalid(
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(Taxonomy.componentInvalid, facets, pos)
+
+  inline def componentNotFound(
+    name: String
+  ): Consequence.Failure[Nothing] =
+    componentNotFound(name, SourcePositionMacro.position())
+
+  def componentNotFound(
+    name: String,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Component, Taxonomy.Symptom.NotFound),
+      Seq(Descriptor.Facet.Component(name)),
+      pos
+    )
+
+  inline def serviceNotFound(
+    name: String
+  ): Consequence.Failure[Nothing] =
+    serviceNotFound(name, SourcePositionMacro.position())
+
+  def serviceNotFound(
+    name: String,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Service, Taxonomy.Symptom.NotFound),
+      Seq(Descriptor.Facet.Service(name)),
+      pos
+    )
 
   inline def unreachableReached: Consequence.Failure[Nothing] =
     unreachableReached(SourcePositionMacro.position())
