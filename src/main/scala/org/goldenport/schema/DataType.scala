@@ -190,9 +190,9 @@ abstract class CanonicalNormalizer[T] {
   def normalizeAll(values: Vector[Any]): Consequence[Vector[T]] =
     Consequence.zipN(values.map(normalize)).map(_.toVector)
 
-  final protected def fail_value_invalid(value: Any) = Consequence.failValueInvalid(value, datatype)
+  final protected def fail_value_invalid(value: Any) = Consequence.valueInvalid(value, datatype)
 
-  final protected def fail_value_format_error(value: Any) = Consequence.failValueFormatError(value, datatype)
+  final protected def fail_value_format_error(value: Any) = Consequence.valueFormatError(value, datatype)
 }
 
 private object CanonicalFailure {

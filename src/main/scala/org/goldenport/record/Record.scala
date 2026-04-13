@@ -13,7 +13,8 @@ import org.goldenport.datatype.PathName
  *  version Jan. 10, 2026
  *  version Feb. 28, 2026
  *  version Mar. 31, 2026
- * @version Apr.  8, 2026
+ *  version Apr.  8, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -41,7 +42,7 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
 
   def asC[T](key: String)(using reader: ValueReader[T]): Consequence[T] =
     fields.find(_.key == key) match {
-      case None => Consequence.failRecordNotFound(key, this)
+      case None => Consequence.recordNotFound(key, this)
       case Some(field) => field.value match {
         case Field.Value.Single(v) => reader.readC(v)
       }

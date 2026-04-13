@@ -60,7 +60,7 @@ final case class IngressCollection(
     val _ = args
     ingresses.collectFirst { case ingress: ArgsIngress => ingress } match {
       case Some(ingress) => Consequence.success(ingress)
-      case None => Consequence.failArgumentMissingInput(args.toIndexedSeq)
+      case None => Consequence.argumentMissingInput(args.toIndexedSeq)
     }
   }
 
@@ -68,7 +68,7 @@ final case class IngressCollection(
     val _ = req
     ingresses.collectFirst { case ingress: RestIngress => ingress } match {
       case Some(ingress) => Consequence.success(ingress)
-      case None => Consequence.failArgumentMissingInput(req)
+      case None => Consequence.argumentMissingInput(req)
     }
   }
 }

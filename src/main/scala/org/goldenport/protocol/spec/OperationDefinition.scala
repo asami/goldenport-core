@@ -58,7 +58,7 @@ abstract class OperationDefinition
     values match {
       case Nil =>
         if (_is_required(p))
-          Consequence.failArgumentMissing(p.name)
+          Consequence.argumentMissing(p.name)
         else
           Consequence.success(ResolvedEmpty(domain))
 
@@ -75,7 +75,7 @@ abstract class OperationDefinition
             _ <- _validate_value_domain(p, normalized)
           } yield ResolvedMultiple(normalized, domain)
         } else {
-          Consequence.failArgumentRedundantOperation(p.name, name)
+          Consequence.argumentRedundantOperation(p.name, name)
         }
     }
   }
@@ -87,13 +87,9 @@ abstract class OperationDefinition
       resolveParameter(p).flatMap {
         case ResolvedSingle(v: String, _) => Consequence.success(v)
         case ResolvedSingle(v, _) =>
-          Consequence.failArgumentFormatError(
-            p.name,
-            v,
-            "parameter is not a string"
-          )
-        case ResolvedEmpty(_) => Consequence.failArgumentMissing(p.name)
-        case ResolvedMultiple(_, _) => Consequence.failArgumentMultipleValues(p.name)
+          Consequence.argumentInvalid(s"parameter is not a string: ${p.name}=$v")
+        case ResolvedEmpty(_) => Consequence.argumentMissing(p.name)
+        case ResolvedMultiple(_, _) => Consequence.argumentInvalid(s"multiple values not allowed: ${p.name}")
       }
     }
 
@@ -162,11 +158,11 @@ abstract class OperationDefinition
   ): Consequence[Unit] = {
     val normalized = values.collect { case v: BigInt => v }
     if (normalized.size != values.size) {
-      Consequence.failArgumentFormatError(name, normalized, dt)
+      Consequence.argumentInvalid(s"argument format error: $name=$values datatype=${dt.name}")
     } else {
       val invalid = normalized.exists(value => !dt.isValid(value))
       if (invalid) {
-        Consequence.failArgumentDataType(name, normalized, dt)
+        Consequence.argumentDataType(name, normalized, dt)
       } else {
         Consequence.success(())
       }
@@ -186,7 +182,7 @@ abstract class OperationDefinition
           }
 
         if (invalid)
-          Consequence.failArgumentConstraint(name, values, NonEmptyVector(s, constraints.tail))
+          Consequence.argumentConstraint(name, values, NonEmptyVector(s, constraints.tail))
         else
           Consequence.success(())
       case None => Consequence.success(())

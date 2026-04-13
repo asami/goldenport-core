@@ -14,7 +14,8 @@ import org.goldenport.record.io.RecordEncoder
  *  version Jan.  2, 2026
  *  version Jan. 21, 2026
  *  version Feb. 26, 2026
- * @version Mar. 31, 2026
+ *  version Mar. 31, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -104,7 +105,7 @@ object OperationResponse {
 
   def from(p: Response): OperationResponse = p match {
     case m: Response.Void => Void()
-    case Response.Json(value) => Consequence.failNotImplemented.RAISE
+    case Response.Json(value) => Consequence.notImplemented.RAISE
     case Response.Yaml(value) => Yaml(value)
     case m: Response.Scalar[?] => Scalar(m.value)(using m.scalarValue)
     case Response.Opaque(value) => Opaque(value)

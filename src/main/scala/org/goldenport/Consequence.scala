@@ -336,9 +336,11 @@ object Consequence {
 
   def success[T](p: T): Consequence[T] = Success(p)
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failure[T](message: String): Consequence[T] =
     Failure(Conclusion.simple(message))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failure[T](e: Throwable): Consequence[T] =
     Failure(Conclusion.from(e))
 
@@ -348,12 +350,12 @@ object Consequence {
   ): Consequence[A] =
     opt match {
       case Some(v) => Success(v)
-      case None => failure(onNone)
+      case None => Failure(Conclusion.simple(onNone))
     }
 
   def fromTry[T](p: Try[T]): Consequence[T] = p match {
     case TrySuccess(s) => success(s)
-    case TryFailure(e) => failure(e)
+    case TryFailure(e) => Failure(Conclusion.from(e))
   }
 
   def toInt(p: String): Consequence[Int] = Consequence(p.toInt)
@@ -557,13 +559,13 @@ object Consequence {
   def successOrFail[T](p: Option[T])(observation: Observation): Consequence[T] =
     p match {
       case Some(s) => Consequence.success(s)
-      case None => fail(observation)
+      case None => Failures.fail(observation)
     }
 
   def successOrFail[T](p: Option[T])(taxonomy: Taxonomy): Consequence[T] =
     p match {
       case Some(s) => Consequence.success(s)
-      case None => fail(taxonomy)
+      case None => Failures.fail(taxonomy)
     }
 
   inline def successOrPropertyNotFound[T](key: String, v: Option[T]): Consequence[T] =
@@ -572,7 +574,7 @@ object Consequence {
   def successOrPropertyNotFound[T](key: String, v: Option[T], pos: SourcePosition): Consequence[T] =
     v match {
       case Some(s) => Consequence.success(s)
-      case None => fail(Observation.propertyNotFound(pos, key), pos)
+      case None => Failures.fail(Observation.propertyNotFound(pos, key), pos)
     }
 
   inline def successOrPropertyNotFound[T](
@@ -592,7 +594,7 @@ object Consequence {
       case Some(s) => Consequence.success(s)
       case None => fallback match {
         case Some(ss) => Consequence.success(ss)
-        case None => fail(Observation.propertyNotFound(pos, key), pos)
+        case None => Failures.fail(Observation.propertyNotFound(pos, key), pos)
       }
     }
 
@@ -603,9 +605,9 @@ object Consequence {
     rec.getAsC[T](key) match {
       case Consequence.Success(s) => s match {
         case Some(ss) => Consequence.success(ss)
-        case None => fail(Observation.recordNotFound(pos, key, rec), pos)
+        case None => Failures.fail(Observation.recordNotFound(pos, key, rec), pos)
       }
-      case Consequence.Failure(c) => fail(c, pos)
+      case Consequence.Failure(c) => Failures.fail(c, pos)
     }
 
   inline def successOrRecordNotFound[T](key: String, rec: Record, fallback: Option[T])(using reader: ValueReader[T]): Consequence[T] =
@@ -622,10 +624,10 @@ object Consequence {
         case Some(ss) => Consequence.success(ss)
         case None => fallback match {
           case Some(sss) => Consequence.success(sss)
-          case None => fail(Observation.recordNotFound(pos, key, rec), pos)
+          case None => Failures.fail(Observation.recordNotFound(pos, key, rec), pos)
         }
       }
-      case Consequence.Failure(c) => fail(c, pos)
+      case Consequence.Failure(c) => Failures.fail(c, pos)
     }
 
   inline def successOrResourceNotFound[T](
@@ -633,7 +635,7 @@ object Consequence {
   )(resource: Descriptor.Facet.Resource, facets: Descriptor.Facet*): Consequence[T] =
     rsc match {
       case Some(s) => Consequence.success(s)
-      case None => fail(Conclusion.resourceNotFound(resource, facets))
+      case None => Failures.fail(Conclusion.resourceNotFound(resource, facets))
     }
 
   inline def successOrServiceProviderNotFound[T](
@@ -641,7 +643,7 @@ object Consequence {
   )(name: String, facets: Descriptor.Facet*): Consequence[T] =
     serviceprovider match {
       case Some(s) => Consequence.success(s)
-      case None => fail(Conclusion.serviceProviderNotFound(name, facets))
+      case None => Failures.fail(Conclusion.serviceProviderNotFound(name, facets))
     }
 
   inline def successOrServiceProviderByKeyNotFound[T](
@@ -649,7 +651,7 @@ object Consequence {
   )(name: String, key: String): Consequence[T] =
     serviceprovider match {
       case Some(s) => Consequence.success(s)
-      case None => fail(Conclusion.serviceProviderNotFound(name, Vector(Descriptor.Facet.Key(key))))
+      case None => Failures.fail(Conclusion.serviceProviderNotFound(name, Vector(Descriptor.Facet.Key(key))))
     }
 
   inline def successOrEntityNotFound[T](
@@ -657,10 +659,13 @@ object Consequence {
   )(id: Identifier): Consequence[T] =
     entity match {
       case Some(s) => Consequence.success(s)
-      case None => fail(Conclusion.entityNotFound(id))
+      case None => Failures.fail(Conclusion.entityNotFound(id))
     }
 
-  // Fail
+  // Low-level structured failure builder.
+  // Use this when a semantic utility does not exist yet and the caller needs to
+  // assemble a structured taxonomy/cause/facet failure explicitly. Add a
+  // semantic utility later when the same failure shape becomes common.
   inline def fail(o: Observation): Consequence.Failure[Nothing] =
     Failures.fail(o)
 
@@ -671,7 +676,7 @@ object Consequence {
     Failures.fail(taxonomy)
 
   def fail(taxonomy: Taxonomy, message: String): Consequence.Failure[Nothing] =
-    fail(taxonomy, Cause.message(message))
+    Failures.fail(taxonomy, Cause.message(message))
 
   def fail(taxonomy: Taxonomy, message: String, facets: Seq[Descriptor.Facet]): Consequence.Failure[Nothing] =
     Failures.fail(taxonomy, Descriptor.Facet.Message(message) +: facets)
@@ -709,6 +714,33 @@ object Consequence {
 
   def argumentMissing[A](name: String, pos: SourcePosition): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentMissing(name).withSourcePosition(pos))
+
+  def argumentMissing[A]: Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissing)
+
+  def argumentMissingInput[A](name: String): Consequence.Failure[A] =
+    argumentInvalid(s"missing input: $name")
+
+  def argumentMissingInput[A](args: Seq[String]): Consequence.Failure[A] =
+    argumentInvalid(s"missing input: ${args.mkString(" ")}")
+
+  def argumentMissingInput[A](req: HttpRequest): Consequence.Failure[A] =
+    argumentInvalid(s"missing input: ${req}")
+
+  def argumentMissingOperation[A](name: String, operation: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissingOperation(name, operation))
+
+  def argumentRedundantOperation[A](name: String, operation: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentRedundantOperation(name, operation))
+
+  def argumentRedundantOperationInput[A](operation: String, args: Seq[String]): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentRedundantOperationInput(operation, args))
+
+  def argumentDataType[A](name: String, value: Any, dt: DataType): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentDataType(name, value, dt))
+
+  def argumentConstraint[A](name: String, value: Any, constraints: NonEmptyVector[Constraint]): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentConstraint(name, value, constraints))
 
   inline def argumentInvalid[A](message: String): Consequence.Failure[A] =
     argumentInvalid(message, SourcePositionMacro.position())
@@ -798,11 +830,17 @@ object Consequence {
   def valueInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.valueInvalid(message, pos)
 
+  def valueInvalid[A](value: Any, dt: DataType): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failValueInvalid(value, dt))
+
   inline def valueFormatError[A](message: String): Consequence.Failure[A] =
     valueFormatError(message, SourcePositionMacro.position())
 
   def valueFormatError[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.valueFormatError(message, pos)
+
+  def valueFormatError[A](value: Any, dt: DataType): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failValueFormatError(value, dt))
 
   inline def configurationInvalid[A](message: String): Consequence.Failure[A] =
     configurationInvalid(message, SourcePositionMacro.position())
@@ -897,74 +935,109 @@ object Consequence {
   def entityNotFound[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.fail(Taxonomy.entityNotFound, Cause.message(message), pos)
 
+  inline def recordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
+    Failures.recordNotFound(key, rec)
+
   def unreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
 
   def unreachableReached(msg: String): Consequence.Failure[Nothing] =
     Failures.fail(Conclusion.unreachableReached(msg))
 
+  def uninitializedState[A]: Consequence.Failure[A] =
+    Failures.uninitializedState
+
+  def uninitializedState[A](conclusion: Conclusion): Consequence.Failure[A] =
+    Failures.uninitializedState(conclusion)
+
+  // Deprecated compatibility aliases for the old fail* naming style.
+  // New code should call semantic utilities such as argumentMissing,
+  // operationInvalid, valueInvalid, recordNotFound, or notImplemented. Keep
+  // these aliases only for source compatibility during migration.
+
   // def failArgumentEmpty[A]: Consequence.Failure[A] =
   //   Consequence.Failure(Conclusion.failArgumentEmpty)
 
   // obsolated. use argumentFormatError
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentFormatError[A](name: String, value: Any, dt: DataType): Consequence.Failure[A] = ???
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentFormatError[A](name: String, value: Any, msg: String): Consequence.Failure[A] = ???
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentFormatError[A](name: String, value: Option[Any], msg: Option[String]): Consequence.Failure[A] = ???
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentMissing[A]: Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentMissing)
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentMissing[A](name: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentMissing(name))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingInput[A](name: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentMissingInput(name))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingInput[A](args: Seq[String]): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentMissingInput(args))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingInput[A](req: HttpRequest): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentMissingInput(req))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentMissingOperation[A](name: String, operation: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentMissingOperation(name, operation))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentRedundantOperation[A](name: String, operation: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentRedundantOperation(name, operation))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentRedundantOperationInput[A](operation: String, args: Seq[String]): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentRedundantOperationInput(operation, args))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentDataType[A](name: String, value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentDataType(name, value, dt))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentConstraint[A](name: String, value: Any, constraints: NonEmptyVector[Constraint]): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failArgumentConstraint(name, value, constraints))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failArgumentMultipleValues[A](name: String): Consequence.Failure[A] = ???
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   inline def failOperationNotFound[A](name: String): Consequence[A] =
     Failures.operationNotFound(name)
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failOperationInvalid[A](name: String): Consequence[A] =
     Consequence.Failure(Conclusion.failOperationInvalid(name))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failResourceInconsistency: Consequence.Failure[Nothing] =
     Failures.resourceInconsistency
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   inline def failRecordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
     Failures.recordNotFound(key, rec)
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failValueInvalid[A](value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failValueInvalid(value, dt))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failValueFormatError[A](value: Any, dt: DataType): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failValueFormatError(value, dt))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failNetworkUnavailable(e: Throwable, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
-    fail(Taxonomy.networkUnavailable, e, (facet +: facets))
+    Failures.fail(Taxonomy.networkUnavailable, Descriptor.Facet.Exception(e) +: (facet +: facets))
 
   inline def securityAuthenticationRequired[A](message: String): Consequence.Failure[A] =
     securityAuthenticationRequired(message, SourcePositionMacro.position())
@@ -991,71 +1064,84 @@ object Consequence {
   ): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.securityPermissionDenied(message, facets).withSourcePosition(pos))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failUnreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failUnreachableReached[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failUnreachableReached(msg))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failUninitializedState[A]: Consequence.Failure[A] =
     Failures.uninitializedState
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failUninitializedState[A](conclusion: Conclusion): Consequence.Failure[A] =
     Failures.uninitializedState(conclusion)
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failImpossibleState[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failImpossibleState(msg))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failUnsupported[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failUnsupported(msg))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failNotImplemented: Consequence.Failure[Nothing] =
     Failures.notImplemented
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failNotImplemented[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failNotImplemented(msg))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failInvariantViolation[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failInvariantViolation(msg))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failPreconditionViolation[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failPreconditionViolation(msg))
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failPostconditionViolation[A](msg: String): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failPostconditionViolation(msg))
 
   // obsolated. Use notImplemented
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def NotImplemented: Consequence.Failure[Nothing] =
-    fail(Taxonomy.notImplemented)
+    Failures.fail(Taxonomy.notImplemented)
 
+  @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def NotImplemented(msg: String): Consequence.Failure[Nothing] =
-    fail(Taxonomy.notImplemented, Cause.message(msg))
+    Failures.fail(Taxonomy.notImplemented, Cause.message(msg))
 
   def DataStoreNotFound(id: String): Consequence.Failure[Nothing] =
-    fail(
+    Failures.fail(
       Taxonomy.dataStoreNotFound,
-      Descriptor.Facet.Id(id)
+      Seq(Descriptor.Facet.Id(id))
     )
 
   def DataStoreDuplicate(id: String): Consequence.Failure[Nothing] =
-    fail(
+    Failures.fail(
       Taxonomy.dataStoreDuplicate,
-      Descriptor.Facet.Id(id)
+      Seq(Descriptor.Facet.Id(id))
     )
 
   // RAISE
   object RAISE {
-    inline def UnreachableReached: Nothing = failUnreachableReached.RAISE
-    inline def UnreachableReached(msg: String): Nothing = failUnreachableReached(msg).RAISE
-    inline def UninitializedState: Nothing = failUninitializedState.RAISE
-    inline def UninitializedState(c: Conclusion): Nothing = failUninitializedState(c).RAISE
-    inline def ImpossibleState(msg: String): Nothing = failImpossibleState(msg).RAISE
-    inline def Unsupported(msg: String): Nothing = failUnsupported(msg).RAISE
-    inline def NotImplemented: Nothing = failNotImplemented.RAISE
-    inline def NotImplemented(msg: String): Nothing = failNotImplemented(msg).RAISE
-    inline def InvariantViolation(msg: String): Nothing = failInvariantViolation(msg).RAISE
-    inline def PreconditionViolation(msg: String): Nothing = failPreconditionViolation(msg).RAISE
-    inline def PostconditionViolation(msg: String): Nothing = failPostconditionViolation(msg).RAISE
+    inline def UnreachableReached: Nothing = unreachableReached.RAISE
+    inline def UnreachableReached(msg: String): Nothing = unreachableReached(msg).RAISE
+    inline def UninitializedState: Nothing = uninitializedState.RAISE
+    inline def UninitializedState(c: Conclusion): Nothing = uninitializedState(c).RAISE
+    inline def ImpossibleState(msg: String): Nothing = Failure(Conclusion.failImpossibleState(msg)).RAISE
+    inline def Unsupported(msg: String): Nothing = Failure(Conclusion.failUnsupported(msg)).RAISE
+    inline def NotImplemented: Nothing = notImplemented.RAISE
+    inline def NotImplemented(msg: String): Nothing = notImplemented(msg).RAISE
+    inline def InvariantViolation(msg: String): Nothing = Failure(Conclusion.failInvariantViolation(msg)).RAISE
+    inline def PreconditionViolation(msg: String): Nothing = Failure(Conclusion.failPreconditionViolation(msg)).RAISE
+    inline def PostconditionViolation(msg: String): Nothing = Failure(Conclusion.failPostconditionViolation(msg)).RAISE
   }
 }
 

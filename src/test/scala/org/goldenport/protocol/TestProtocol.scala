@@ -13,7 +13,8 @@ import org.goldenport.protocol.spec._
 
 /*
  * @since   Dec. 28, 2025
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 object TestProtocol {
@@ -75,7 +76,7 @@ object TestProtocol {
     override def encode(args: Array[String]): Consequence[Request] =
       if (args.isEmpty) {
         // _failure("syntax error", Cause.SyntaxError)
-        Consequence.failArgumentMissing
+        Consequence.argumentMissing
       } else {
         val operation = args.head
         if (operation != "query") {
@@ -84,7 +85,7 @@ object TestProtocol {
           //   Cause.Argument(Cause.Reason.ValidationError),
           //   Vector(Descriptor.Aspect.Operation(operation))
           // )
-          Consequence.failOperationInvalid(operation)
+          Consequence.operationInvalid(operation)
         } else if (args.length == 1) {
           // _failure(
           //   "missing argument",
@@ -94,14 +95,14 @@ object TestProtocol {
           //     Descriptor.Aspect.Input(name = Some("target"), value = None)
           //   )
           // )
-          Consequence.failArgumentMissingOperation("target", operation)
+          Consequence.argumentMissingOperation("target", operation)
         } else if (args.length > 2) {
           // _failure(
           //   "redundant argument",
           //   Cause.Argument(Cause.Reason.Redundant),
           //   Vector(Descriptor.Aspect.Operation(operation))
           // )
-          Consequence.failArgumentRedundantOperationInput(operation, args.tail.toIndexedSeq)
+          Consequence.argumentRedundantOperationInput(operation, args.tail.toIndexedSeq)
         } else {
           Consequence.success(
             Request(

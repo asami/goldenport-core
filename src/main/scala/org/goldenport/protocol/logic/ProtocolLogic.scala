@@ -76,7 +76,7 @@ class ProtocolLogic(protocol: Protocol) {
   ): Consequence[OperationDefinition] =
     service.operations.operations.find(_.name == req.operation) match {
       case Some(op) => Consequence.success(op)
-      case None => Consequence.failOperationNotFound(req.operation)
+      case None => Consequence.operationNotFound(req.operation)
     }
 
   def makeRequest(args: Array[String]): Consequence[Request] = {

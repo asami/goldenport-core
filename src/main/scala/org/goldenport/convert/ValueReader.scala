@@ -31,10 +31,10 @@ object ValueReader {
         s.trim.toLowerCase match
           case "true" | "t" | "yes" | "y" | "1" => Consequence.success(true)
           case "false" | "f" | "no" | "n" | "0" => Consequence.success(false)
-          case _ => Consequence.failValueInvalid(v, XBoolean)
+          case _ => Consequence.valueInvalid(v, XBoolean)
       case n: Int => Consequence.success(n != 0)
       case n: Long => Consequence.success(n != 0L)
-      case _ => Consequence.failValueInvalid(v, XBoolean)
+      case _ => Consequence.valueInvalid(v, XBoolean)
 
   given ValueReader[Byte] with
     def readC(v: Any): Consequence[Byte] = v match
@@ -46,8 +46,8 @@ object ValueReader {
         val trimmed = s.trim
         trimmed.toByteOption match
           case Some(value) => Consequence.success(value)
-          case None => Consequence.failValueInvalid(v, XInt)
-      case _ => Consequence.failValueInvalid(v, XInt)
+          case None => Consequence.valueInvalid(v, XInt)
+      case _ => Consequence.valueInvalid(v, XInt)
 
   given ValueReader[Short] with
     def readC(v: Any): Consequence[Short] = v match
@@ -59,8 +59,8 @@ object ValueReader {
         val trimmed = s.trim
         trimmed.toShortOption match
           case Some(value) => Consequence.success(value)
-          case None => Consequence.failValueInvalid(v, XInt)
-      case _ => Consequence.failValueInvalid(v, XInt)
+          case None => Consequence.valueInvalid(v, XInt)
+      case _ => Consequence.valueInvalid(v, XInt)
 
   given ValueReader[Int] with
     def readC(v: Any): Consequence[Int] = v match
@@ -70,8 +70,8 @@ object ValueReader {
         val trimmed = s.trim
         trimmed.toIntOption match
           case Some(value) => Consequence.success(value)
-          case None => Consequence.failValueInvalid(v, XInt)
-      case _ => Consequence.failValueInvalid(v, XInt)
+          case None => Consequence.valueInvalid(v, XInt)
+      case _ => Consequence.valueInvalid(v, XInt)
 
   given ValueReader[Long] with
     def readC(v: Any): Consequence[Long] = v match
@@ -81,8 +81,8 @@ object ValueReader {
         val trimmed = s.trim
         trimmed.toLongOption match
           case Some(value) => Consequence.success(value)
-          case None => Consequence.failValueInvalid(v, XLong)
-      case _ => Consequence.failValueInvalid(v, XLong)
+          case None => Consequence.valueInvalid(v, XLong)
+      case _ => Consequence.valueInvalid(v, XLong)
 
   given ValueReader[Float] with
     def readC(v: Any): Consequence[Float] = v match
@@ -95,8 +95,8 @@ object ValueReader {
         val trimmed = s.trim
         trimmed.toFloatOption match
           case Some(value) => Consequence.success(value)
-          case None => Consequence.failValueInvalid(v, XDouble)
-      case _ => Consequence.failValueInvalid(v, XDouble)
+          case None => Consequence.valueInvalid(v, XDouble)
+      case _ => Consequence.valueInvalid(v, XDouble)
 
   given ValueReader[Double] with
     def readC(v: Any): Consequence[Double] = v match
@@ -108,8 +108,8 @@ object ValueReader {
         val trimmed = s.trim
         trimmed.toDoubleOption match
           case Some(value) => Consequence.success(value)
-          case None => Consequence.failValueInvalid(v, XDouble)
-      case _ => Consequence.failValueInvalid(v, XDouble)
+          case None => Consequence.valueInvalid(v, XDouble)
+      case _ => Consequence.valueInvalid(v, XDouble)
 
   given ValueReader[BigInt] with
     def readC(v: Any): Consequence[BigInt] = v match
@@ -120,8 +120,8 @@ object ValueReader {
         try
           Consequence.success(BigInt(s.trim))
         catch
-          case _: NumberFormatException => Consequence.failValueInvalid(v, XInteger)
-      case _ => Consequence.failValueInvalid(v, XInteger)
+          case _: NumberFormatException => Consequence.valueInvalid(v, XInteger)
+      case _ => Consequence.valueInvalid(v, XInteger)
 
   given ValueReader[BigDecimal] with
     def readC(v: Any): Consequence[BigDecimal] = v match
@@ -135,8 +135,8 @@ object ValueReader {
         try
           Consequence.success(BigDecimal(s.trim))
         catch
-          case _: NumberFormatException => Consequence.failValueInvalid(v, XDecimal)
-      case _ => Consequence.failValueInvalid(v, XDecimal)
+          case _: NumberFormatException => Consequence.valueInvalid(v, XDecimal)
+      case _ => Consequence.valueInvalid(v, XDecimal)
 
   given ValueReader[URL] with
     def readC(v: Any): Consequence[URL] = v match
@@ -144,8 +144,8 @@ object ValueReader {
       case uri: URI => Consequence.success(uri.toURL)
       case s: String =>
         try Consequence.success(URI.create(s.trim).toURL)
-        catch case _: Throwable => Consequence.failValueInvalid(v, XString)
-      case _ => Consequence.failValueInvalid(v, XString)
+        catch case _: Throwable => Consequence.valueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[URI] with
     def readC(v: Any): Consequence[URI] = v match
@@ -153,29 +153,29 @@ object ValueReader {
       case url: URL => Consequence.success(url.toURI)
       case s: String =>
         try Consequence.success(URI.create(s.trim))
-        catch case _: Throwable => Consequence.failValueInvalid(v, XString)
-      case _ => Consequence.failValueInvalid(v, XString)
+        catch case _: Throwable => Consequence.valueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[Urn] with
     def readC(v: Any): Consequence[Urn] = v match
       case urn: Urn => Consequence.success(urn)
       case uri: URI => Urn.parse(uri.toString)
       case s: String => Urn.parse(s)
-      case _ => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[LocalTime] with
     def readC(v: Any): Consequence[LocalTime] = v match
       case t: LocalTime => Consequence.success(t)
       case s: String =>
         try Consequence.success(LocalTime.parse(s.trim))
-        catch case _: Throwable => Consequence.failValueInvalid(v, XString)
-      case _ => Consequence.failValueInvalid(v, XString)
+        catch case _: Throwable => Consequence.valueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[Locale] with
     def readC(v: Any): Consequence[Locale] = v match
       case locale: Locale => Consequence.success(locale)
       case s: String => Consequence.success(Locale.forLanguageTag(s.trim))
-      case _ => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[TimeZone] with
     def readC(v: Any): Consequence[TimeZone] = v match
@@ -186,33 +186,33 @@ object ValueReader {
         if id.nonEmpty && (tz.getID == id || id.equalsIgnoreCase("GMT") || id.startsWith("GMT")) then
           Consequence.success(tz)
         else
-          Consequence.failValueInvalid(v, XString)
-      case _ => Consequence.failValueInvalid(v, XString)
+          Consequence.valueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[Bag] with
     def readC(v: Any): Consequence[Bag] = v match
       case bag: Bag => Consequence.success(bag)
       case bytes: Array[Byte] => Consequence.success(Bag.fromBytes(bytes))
       case s: String => Consequence.success(Bag.text(s))
-      case _ => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[BinaryBag] with
     def readC(v: Any): Consequence[BinaryBag] = v match
       case bag: BinaryBag => Consequence.success(bag)
       case bag: Bag => Consequence.success(bag.promoteToBinary())
       case bytes: Array[Byte] => Consequence.success(Bag.binary(bytes))
-      case _ => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[TextBag] with
     def readC(v: Any): Consequence[TextBag] = v match
       case bag: TextBag => Consequence.success(bag)
       case bag: Bag => Consequence.success(TextBag(bag))
       case s: String => Consequence.success(Bag.text(s))
-      case _ => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
 
   given ValueReader[String] with
     def readC(v: Any): Consequence[String] = v match
-      case null => Consequence.failValueInvalid(v, XString)
+      case null => Consequence.valueInvalid(v, XString)
       case s: String => Consequence.success(s)
       case other => Consequence.success(other.toString)
 

@@ -9,7 +9,8 @@ import org.goldenport.record.Record
 
 /*
  * @since   Apr.  8, 2026
- * @version Apr.  8, 2026
+ *  version Apr.  8, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSourcePositionSpec extends AnyFlatSpec with Matchers {
@@ -30,7 +31,7 @@ class ConsequenceSourcePositionSpec extends AnyFlatSpec with Matchers {
     actual.line should be (expected.line)
   }
 
-  "Consequence.failRecordNotFound" should "attach the caller source position" in {
+  "Consequence.recordNotFound" should "attach the caller source position" in {
     val rec = Record.data("present" -> "value")
     val (expected, result) = _fail_record_not_found(rec)
     val actual = _source_position(result)
@@ -56,5 +57,5 @@ class ConsequenceSourcePositionSpec extends AnyFlatSpec with Matchers {
     (SourcePositionMacro.position(), Consequence.successOrRecordNotFound[String]("missing", rec))
 
   private inline def _fail_record_not_found(rec: Record): (SourcePosition, Consequence.Failure[Nothing]) =
-    (SourcePositionMacro.position(), Consequence.failRecordNotFound("missing", rec))
+    (SourcePositionMacro.position(), Consequence.recordNotFound("missing", rec))
 }
