@@ -44,6 +44,28 @@ Consequence.Failure[T]
 - Failure contains a Conclusion, not an exception
 - A Conclusion may represent multiple aggregated errors
 
+### Semantic Failure Constructors
+
+Recurring failure meanings must be exposed as semantic utility methods.
+
+Examples:
+
+- `notImplemented(message)`
+- `securityPermissionDenied(...)`
+- `argumentMissingInput(...)`
+
+The method name should describe the error meaning.  Callers should not need
+to assemble taxonomy, cause, facets, and status for common cases.
+
+`Consequence.fail(...)` and the corresponding `Conclusion` constructor forms
+remain the low-level escape hatch for application-specific structured
+failures when no semantic utility exists yet.  They are not the preferred API
+for recurring framework failures.
+
+Legacy `failXxx(...)` aliases are deprecated.  New code should use the
+semantic utility name directly, or add a semantic utility before introducing
+another repeated low-level failure shape.
+
 ---
 
 ## Try Semantics (Exception Boundary)

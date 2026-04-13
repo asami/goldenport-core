@@ -53,6 +53,19 @@ No runtime projections (CLI, HTTP, client) are defined here.
 `Consequence` is the only supported mechanism
 for expressing failure in core logic.
 
+Recurring failures must be created through semantic utility methods where
+available.  The utility method name should describe the failure meaning, for
+example `argumentMissingInput(...)`, rather than exposing the caller to the
+internal taxonomy/facet construction.
+
+`Consequence.fail(...)` remains available as a low-level structured failure
+builder for application-specific cases where no semantic utility exists.
+It is not the preferred API for framework-defined recurring failures.
+
+Legacy `Consequence.failXxx(...)` aliases are deprecated and should be
+replaced by semantic utility names.  `Consequence.failure(...)` remains a
+last-resort fallback for cases that have not yet been structured.
+
 ---
 
 ### 3.2 Conclusion
@@ -65,6 +78,10 @@ A `Conclusion` contains:
 
 `Conclusion` is the canonical container
 used by higher layers to interpret failures.
+
+The same naming policy applies to `Conclusion`: semantic utility methods
+are preferred, low-level construction is reserved for explicit structured
+cases, and legacy `Conclusion.failXxx(...)` aliases are deprecated.
 
 ---
 
