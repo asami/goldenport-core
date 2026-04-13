@@ -18,7 +18,8 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 /*
  * @since   Dec. 30, 2025
  *  version Jan. 28, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterTemporalSpec
@@ -69,9 +70,9 @@ class OperationDefinitionResolveParameterTemporalSpec
         case ResolvedSingle(v, _) =>
           Consequence.success(TemporalRequest(req, v))
         case ResolvedEmpty(_) =>
-          Consequence.failure("parameter missing")
+          Consequence.argumentMissing(param.name)
         case ResolvedMultiple(_, _) =>
-          Consequence.failure("multiple values not allowed")
+          Consequence.argumentInvalid("multiple values not allowed")
       }
     }
   }

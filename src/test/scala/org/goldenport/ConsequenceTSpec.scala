@@ -6,7 +6,8 @@ import org.scalatest.matchers.should.Matchers
 
 /*
  * @since   Jan. 10, 2026
- * @version Jan. 10, 2026
+ *  version Jan. 10, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceTSpec
@@ -29,7 +30,7 @@ class ConsequenceTSpec
 
   "ConsequenceT.fromConsequence" should {
     "lift a Consequence into the target context" in {
-      val source = Consequence.failure[Int]("boom")
+      val source = Consequence.operationInvalid[Int]("boom")
       val result = ConsequenceT.fromConsequence[Option, Int](source)
       result.value shouldBe Some(source)
     }
@@ -40,7 +41,7 @@ class ConsequenceTSpec
       val success = ConsequenceT.fromConsequence[Id, Int](Consequence.success(1))
       success.map(_ + 1).value shouldBe Consequence.Success(2)
 
-      val failure = ConsequenceT.fromConsequence[Id, Int](Consequence.failure("nope"))
+      val failure = ConsequenceT.fromConsequence[Id, Int](Consequence.operationInvalid("nope"))
       failure.map(_ + 1).value shouldBe failure.value
     }
   }
@@ -48,7 +49,7 @@ class ConsequenceTSpec
   "ConsequenceT.flatMap" should {
     "not evaluate on Failure" in {
       var called = 0
-      val failure = ConsequenceT.fromConsequence[Option, Int](Consequence.failure("nope"))
+      val failure = ConsequenceT.fromConsequence[Option, Int](Consequence.operationInvalid("nope"))
       val result =
         failure.flatMap { _ =>
           called += 1

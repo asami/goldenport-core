@@ -18,7 +18,8 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 /*
  * @since   Dec. 29, 2025
  *  version Jan. 29, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec
@@ -92,11 +93,11 @@ class OperationDefinitionResolveParameterSpec
         case ResolvedSingle(v: BigInt, _) =>
           Consequence.success(IntRequest(req, v))
         case ResolvedSingle(_, _) =>
-          Consequence.failure("unexpected parameter type")
+          Consequence.argumentInvalid("unexpected parameter type")
         case ResolvedEmpty(_) =>
-          Consequence.failure("parameter missing")
+          Consequence.argumentMissing(param.name)
         case ResolvedMultiple(_, _) =>
-          Consequence.failure("multiple values not allowed")
+          Consequence.argumentInvalid("multiple values not allowed")
       }
     }
   }
@@ -134,11 +135,11 @@ class OperationDefinitionResolveParameterSpec
         case ResolvedSingle(v: String, _) =>
           Consequence.success(StringRequest(req, v))
         case ResolvedSingle(_, _) =>
-          Consequence.failure("unexpected parameter type")
+          Consequence.argumentInvalid("unexpected parameter type")
         case ResolvedEmpty(_) =>
-          Consequence.failure("parameter missing")
+          Consequence.argumentMissing(param.name)
         case ResolvedMultiple(_, _) =>
-          Consequence.failure("multiple values not allowed")
+          Consequence.argumentInvalid("multiple values not allowed")
       }
     }
   }

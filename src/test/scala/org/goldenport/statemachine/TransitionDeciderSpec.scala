@@ -9,7 +9,8 @@ import org.goldenport.Consequence
 
 /*
  * @since   Mar. 20, 2026
- * @version Mar. 20, 2026
+ *  version Mar. 20, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class TransitionDeciderSpec
@@ -89,7 +90,7 @@ class TransitionDeciderSpec
       Given("guard evaluation failure")
       val errorguard = new Guard[Runtime, String] {
         def eval(state: Runtime, event: String): Consequence[Boolean] =
-          Consequence.failure("guard evaluation error")
+          Consequence.operationInvalid("guard evaluation error")
       }
       val sm = machine(
         Vector(
