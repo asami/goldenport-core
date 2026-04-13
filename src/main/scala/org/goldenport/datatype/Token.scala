@@ -5,7 +5,8 @@ import org.goldenport.Consequence
 /*
  * @since   Jul. 23, 2025
  *  version Jul. 23, 2025
- * @version Apr.  9, 2026
+ *  version Apr.  9, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Token() extends StringDataType() {
@@ -27,7 +28,7 @@ import org.goldenport.convert.ValueReader
 
   given ValueReader[Token] with
     def readC(v: Any): Consequence[Token] = Option(v) match
-      case None => Consequence.failure("Invalid Token value: null")
+      case None => Consequence.valueInvalid("Invalid Token value: null")
       case Some(value) => value match
         case t: Token => Consequence.success(t)
         case s: String => Consequence.success(Instance(s))

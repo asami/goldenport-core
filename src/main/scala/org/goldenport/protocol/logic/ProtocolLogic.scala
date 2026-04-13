@@ -14,7 +14,8 @@ import org.goldenport.protocol.handler.egress.Egress
  *  version Dec. 28, 2025
  *  version Jan.  2, 2026
  *  version Jan.  3, 2026
- * @version Feb.  7, 2026
+ *  version Feb.  7, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolLogic(protocol: Protocol) {
@@ -60,12 +61,12 @@ class ProtocolLogic(protocol: Protocol) {
       case Some(name) =>
         protocol.services.services.find(_.name == name) match {
           case Some(service) => Consequence.success(service)
-          case None => Consequence.failure("service not found")
+          case None => Consequence.serviceNotFound(name)
         }
       case None =>
         protocol.services.services.find(_.operations.operations.exists(_.name == req.operation)) match {
           case Some(service) => Consequence.success(service)
-          case None => Consequence.failure("operation not found")
+          case None => Consequence.operationNotFound(req.operation)
         }
     }
 

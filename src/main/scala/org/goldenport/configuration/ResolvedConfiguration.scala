@@ -26,7 +26,8 @@ import org.goldenport.Consequence
  */
 /*
  * @since   Dec. 18, 2025
- * @version Mar. 24, 2026
+ *  version Mar. 24, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ResolvedConfiguration(
@@ -39,7 +40,7 @@ case class ResolvedConfiguration(
       case Some(value) =>
         reader.read(_unwrap(value)) match {
           case Some(v) => Consequence.success(Some(v))
-          case None => Consequence.failure(s"Invalid value for key: $key")
+          case None => Consequence.configurationInvalid(s"Invalid value for key: $key")
         }
     }
   }

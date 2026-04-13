@@ -6,7 +6,8 @@ import org.goldenport.record.{Field, Record}
 import scala.collection.mutable.LinkedHashMap
 
 /*
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * Tree
  *
  * - Immutable
@@ -257,7 +258,7 @@ object Tree {
       }
 
     result match {
-      case Left(err) => Consequence.failure(err)
+      case Left(err) => Consequence.valueInvalid(err)
       case Right(_) => Consequence.success(builder.toTreeDir[A])
     }
   }

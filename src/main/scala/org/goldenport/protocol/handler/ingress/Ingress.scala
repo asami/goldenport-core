@@ -22,7 +22,8 @@ import org.goldenport.http.HttpRequest
  * @since   Dec. 28, 2025
  *  version Jan.  2, 2026
  *  version Jan. 28, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -138,10 +139,8 @@ abstract class ArgsIngress(
   }
 
   def encode(args: Array[String]): Consequence[Request] =
-    Consequence.failure(
-      new IllegalStateException(
-        "ArgsIngress.encode(args) requires ServiceDefinitionGroup; use encode(services, args)"
-      )
+    Consequence.protocolInvalid(
+      "ArgsIngress.encode(args) requires ServiceDefinitionGroup; use encode(services, args)"
     )
 
   protected final case class ParsedArgs(
@@ -434,9 +433,7 @@ object ArgsIngress {
               ResolvedExternalRef(contentType, bag)
             }
           case other =>
-            Consequence.failure(
-              new IllegalArgumentException(s"Unsupported @ref scheme: ${other}")
-            )
+            Consequence.resourceUnsupported(s"Unsupported @ref scheme: ${other}")
         }
       }
     }
@@ -450,13 +447,11 @@ object ArgsIngress {
       } else if (scheme == "") {
         Consequence.success(Paths.get(ref).toUri)
       } else {
-        Consequence.failure(
-          new IllegalArgumentException(s"Unsupported @ref scheme: ${scheme}")
-        )
+        Consequence.resourceUnsupported(s"Unsupported @ref scheme: ${scheme}")
       }
     } catch {
       case NonFatal(e) =>
-        Consequence.failure(e)
+        Consequence.resourceInvalid(e.getMessage)
     }
   }
 }

@@ -18,7 +18,8 @@ import org.goldenport.convert.{StringCodex, StringCodexable}
  *  version May. 11, 2025
  *  version Jul. 23, 2025
  *  version Dec. 25, 2025
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nString(
@@ -76,7 +77,7 @@ object I18nString {
       else if (p.startsWith("{"))
         parse(p).flatMap(_.as[I18nString]) match {
           case Right(s) => Consequence.success(s)
-          case Left(e) => Consequence.failure(e.getMessage)
+          case Left(e) => Consequence.valueFormatError(e.getMessage)
         }
       else
         Consequence.success(I18nString(NonEmptyVector.one(ctx.locale -> p)))

@@ -12,7 +12,8 @@ import org.goldenport.schema.*
 /*
  * @since   Oct. 17, 2025
  *  version Feb. 19, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T]:
@@ -20,9 +21,6 @@ trait ValueReader[T]:
   def readC(value: Any): Consequence[T]
 
 object ValueReader {
-  // private def invalid[T](value: Any, expected: String): Consequence[T] =
-  //   Consequence.failure(s"Invalid $expected value: $value")
-
   given ValueReader[Any] with
     def readC(v: Any): Consequence[Any] = Consequence.success(v)
 

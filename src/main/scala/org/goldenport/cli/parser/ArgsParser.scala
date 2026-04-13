@@ -9,7 +9,8 @@ import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, S
 /*
  * @since   Dec. 23, 2025
  *  version Dec. 25, 2025
- * @version Mar. 13, 2026
+ *  version Mar. 13, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class ArgsParser(config: ArgsParser.Config) {
@@ -181,45 +182,7 @@ class ArgsParser(config: ArgsParser.Config) {
 
 
   // Legacy validation-based implementation (kept for reference)
-  // Validation is now handled in CliLogic using Consequence.
-
-  // def parse0(
-  //   service: Service,
-  //   args: List[String]
-  // ): Consequence[OperationRequest] =
-  //   args match
-  //     case Nil =>
-  //       Consequence.failure("missing operation")
-
-  //     case operationName :: params =>
-  //       _validateOperation(service, operationName)
-  //         .flatMap(_ => _validateParams(params))
-  //         .map(_ =>
-  //           OperationRequest(
-  //             service   = service.name,
-  //             operation = operationName,
-  //             params    = params
-  //           )
-  //         )
-
-  // private def _validateOperation(
-  //   service: Service,
-  //   operationName: String
-  // ): Consequence[Unit] =
-  //   if (operationName.trim.isEmpty)
-  //     Consequence.failure("operation must not be empty")
-  //   else if (!service.operations.exists(_.name == operationName))
-  //     Consequence.failure(s"unknown operation: $operationName")
-  //   else
-  //     Consequence.Success(())
-
-  // private def _validateParams(params: List[String]): Consequence[Unit] =
-  //   if (params.exists(_.trim.isEmpty))
-  //     Consequence.failure("parameter must not be empty")
-  //   else if (params.exists(_.length > MaxParamLength))
-  //     Consequence.failure(s"parameter must not exceed $MaxParamLength characters")
-  //   else
-  //     Consequence.Success(())
+  // Validation is handled in CliLogic using structured Consequence errors.
 }
 
 object ArgsParser {

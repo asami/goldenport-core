@@ -21,7 +21,7 @@ trait TemporalValueReader[T]:
 
 object TemporalValueReader:
   private def _parse_fail[T](name: String, s: String, e: Throwable): Consequence[T] =
-    Consequence.failure(s"$name parse failed: '$s' (${e.getClass.getSimpleName})")
+    Consequence.valueFormatError(s"$name parse failed: '$s' (${e.getClass.getSimpleName})")
 
   given TemporalValueReader[Instant] with
     def read(v: Any)(using ec: ExecutionContext): Consequence[Instant] = v match
@@ -31,7 +31,7 @@ object TemporalValueReader:
         catch
           case e: DateTimeParseException => _parse_fail("Instant", s, e)
       case _ =>
-        Consequence.failure("Instant value is invalid")
+        Consequence.valueInvalid("Instant value is invalid")
 
   given TemporalValueReader[LocalDate] with
     def read(v: Any)(using ec: ExecutionContext): Consequence[LocalDate] = v match
@@ -41,7 +41,7 @@ object TemporalValueReader:
         catch
           case e: DateTimeParseException => _parse_fail("LocalDate", s, e)
       case _ =>
-        Consequence.failure("LocalDate value is invalid")
+        Consequence.valueInvalid("LocalDate value is invalid")
 
   given TemporalValueReader[LocalDateTime] with
     def read(v: Any)(using ec: ExecutionContext): Consequence[LocalDateTime] = v match
@@ -51,7 +51,7 @@ object TemporalValueReader:
         catch
           case e: DateTimeParseException => _parse_fail("LocalDateTime", s, e)
       case _ =>
-        Consequence.failure("LocalDateTime value is invalid")
+        Consequence.valueInvalid("LocalDateTime value is invalid")
 
   given TemporalValueReader[ZonedDateTime] with
     def read(v: Any)(using ec: ExecutionContext): Consequence[ZonedDateTime] = v match
@@ -67,7 +67,7 @@ object TemporalValueReader:
         catch
           case e: DateTimeParseException => _parse_fail("ZonedDateTime", s, e)
       case _ =>
-        Consequence.failure("ZonedDateTime value is invalid")
+        Consequence.valueInvalid("ZonedDateTime value is invalid")
 
   given TemporalValueReader[Duration] with
     def read(v: Any)(using ec: ExecutionContext): Consequence[Duration] = v match
@@ -77,5 +77,5 @@ object TemporalValueReader:
         catch
           case e: DateTimeParseException => _parse_fail("Duration", s, e)
       case _ =>
-        Consequence.failure("Duration value is invalid")
+        Consequence.valueInvalid("Duration value is invalid")
 

@@ -11,7 +11,8 @@ import org.goldenport.convert.ValueReader
 /*
  * @since   Sep. 17, 2025
  *  version Nov. 19, 2025
- * @version Feb. 19, 2026
+ *  version Feb. 19, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Age() extends NonNegativeInt() {
@@ -33,8 +34,8 @@ object Age {
             createC(s.trim.toInt)
           catch
             case _: NumberFormatException =>
-              Consequence.failure(s"Invalid Age value: $s")
-        case _ => Consequence.failure(s"Invalid Age value: $v")
+              Consequence.valueInvalid(s"Invalid Age value: $s")
+        case _ => Consequence.valueInvalid(s"Invalid Age value: $v")
 
   // Age is serialized as an integer.
   // Decoder uses emap so validation errors can be returned later.

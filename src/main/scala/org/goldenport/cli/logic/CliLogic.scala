@@ -14,7 +14,8 @@ import org.goldenport.cli.parser.ArgsParser
 
 /*
  * @since   Dec. 24, 2025
- * @version Dec. 26, 2025
+ *  version Dec. 26, 2025
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class CliLogic(
@@ -46,12 +47,12 @@ class CliLogic(
       case Some(name) =>
         serviceGroup.services.find(_.name == name) match {
           case Some(service) => Consequence.success(service)
-          case None => Consequence.failure("service not found")
+          case None => Consequence.serviceNotFound(name)
         }
       case None =>
         serviceGroup.services.find(_.operations.operations.exists(_.name == req.operation)) match {
           case Some(service) => Consequence.success(service)
-          case None => Consequence.failure("operation not found")
+          case None => Consequence.operationNotFound(req.operation)
         }
     }
 
@@ -61,7 +62,7 @@ class CliLogic(
   ): Consequence[org.goldenport.protocol.spec.OperationDefinition] =
     service.operations.operations.find(_.name == req.operation) match {
       case Some(op) => Consequence.success(op)
-      case None => Consequence.failure("operation not found")
+      case None => Consequence.operationNotFound(req.operation)
     }
 
   def makeOperationRequest(args: Array[String]): Consequence[OperationRequest] =

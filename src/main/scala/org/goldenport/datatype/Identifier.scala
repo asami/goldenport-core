@@ -12,7 +12,8 @@ import org.goldenport.convert.ValueReader
  * @since   Jul. 20, 2025
  *  version Jul. 23, 2025
  *  version Nov. 19, 2025
- * @version Feb. 19, 2026
+ *  version Feb. 19, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Identifier() extends StringDataType() {
@@ -35,7 +36,7 @@ object Identifier {
 
   given ValueReader[Identifier] with
       def readC(v: Any): Consequence[Identifier] = Option(v) match
-        case None => Consequence.failure("Invalid Identifier value: null")
+        case None => Consequence.valueInvalid("Invalid Identifier value: null")
         case Some(value) => value match
           case id: Identifier => Consequence.success(id)
           case s: String => Consequence.success(Identifier(s))

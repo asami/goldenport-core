@@ -10,7 +10,8 @@ import org.goldenport.protocol.handler.projection.ProjectionKind
 /*
  * @since   Dec. 28, 2025
  *  version Dec. 31, 2025
- * @version Jan. 17, 2026
+ *  version Jan. 17, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Protocol(
@@ -36,7 +37,7 @@ case class Protocol(
       handler.ingresses.ingress(a).asInstanceOf[Consequence[I]]
     // Future: Add cases for HttpRequest, etc.
     case _ =>
-      Consequence.failure(new IllegalArgumentException(s"Unsupported ingress input: ${input.getClass.getName}"))
+      Consequence.protocolInvalid(s"Unsupported ingress input: ${input.getClass.getName}")
   }
 
   /**

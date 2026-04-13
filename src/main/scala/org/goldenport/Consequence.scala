@@ -792,6 +792,36 @@ object Consequence {
   ): Consequence.Failure[A] =
     Failures.operationInvalid(name, facets, pos)
 
+  inline def valueInvalid[A](message: String): Consequence.Failure[A] =
+    valueInvalid(message, SourcePositionMacro.position())
+
+  def valueInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.valueInvalid(message, pos)
+
+  inline def valueFormatError[A](message: String): Consequence.Failure[A] =
+    valueFormatError(message, SourcePositionMacro.position())
+
+  def valueFormatError[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.valueFormatError(message, pos)
+
+  inline def configurationInvalid[A](message: String): Consequence.Failure[A] =
+    configurationInvalid(message, SourcePositionMacro.position())
+
+  def configurationInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.configurationInvalid(message, pos)
+
+  inline def resourceUnsupported[A](message: String): Consequence.Failure[A] =
+    resourceUnsupported(message, SourcePositionMacro.position())
+
+  def resourceUnsupported[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.resourceUnsupported(message, pos)
+
+  inline def protocolInvalid[A](message: String): Consequence.Failure[A] =
+    protocolInvalid(message, SourcePositionMacro.position())
+
+  def protocolInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.protocolInvalid(message, pos)
+
   inline def componentInvalid[A](
     facets: Seq[Descriptor.Facet]
   ): Consequence.Failure[A] =

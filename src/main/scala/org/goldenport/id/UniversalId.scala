@@ -12,7 +12,8 @@ import org.goldenport.datatype.Identifier
  *  version Jan. 20, 2026
  *  version Feb. 25, 2026
  *  version Mar. 31, 2026
- * @version Apr.  8, 2026
+ *  version Apr.  8, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -259,7 +260,7 @@ object UniversalId {
     expectedkind: String
   ): Consequence[Parts] = {
     if (!_valid_label(expectedkind))
-      Consequence.failure(s"Invalid expected kind label: '$expectedkind'")
+      Consequence.valueInvalid(s"Invalid expected kind label: '$expectedkind'")
     else {
       val tokens = value.split("-").toVector
 
@@ -285,7 +286,7 @@ object UniversalId {
             expectedkind
           )
         case _ =>
-          Consequence.failure(s"Invalid UniversalId format: '$value'")
+          Consequence.valueFormatError(s"Invalid UniversalId format: '$value'")
       }
     }
   }
@@ -300,17 +301,17 @@ object UniversalId {
     expectedkind: String
   ): Consequence[Parts] = {
     if (kind != expectedkind)
-      Consequence.failure(s"Invalid kind: expected '$expectedkind' but was '$kind'")
+      Consequence.valueInvalid(s"Invalid kind: expected '$expectedkind' but was '$kind'")
     else if (!_valid_label(major))
-      Consequence.failure(s"Invalid label in major: '$major'")
+      Consequence.valueInvalid(s"Invalid label in major: '$major'")
     else if (!_valid_label(minor))
-      Consequence.failure(s"Invalid label in minor: '$minor'")
+      Consequence.valueInvalid(s"Invalid label in minor: '$minor'")
     else if (!_valid_label(kind))
-      Consequence.failure(s"Invalid label in kind: '$kind'")
+      Consequence.valueInvalid(s"Invalid label in kind: '$kind'")
     else if (subkind.exists(x => !_valid_label(x)))
-      Consequence.failure(s"Invalid label in subkind: '${subkind.get}'")
+      Consequence.valueInvalid(s"Invalid label in subkind: '${subkind.get}'")
     else if (entropy.isEmpty)
-      Consequence.failure("Entropy must not be empty")
+      Consequence.valueInvalid("Entropy must not be empty")
     else
       Consequence(timestamplabel.toLong)
         .map(ts => Instant.ofEpochMilli(ts))

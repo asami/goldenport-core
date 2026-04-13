@@ -10,7 +10,8 @@ import org.goldenport.convert.ValueReader
 
 /*
  * @since   Apr.  9, 2026
- * @version Apr.  9, 2026
+ *  version Apr.  9, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Urn() extends StringDataType() {
@@ -41,7 +42,7 @@ object Urn {
 
   given ValueReader[Urn] with
     def readC(v: Any): Consequence[Urn] = Option(v) match
-      case None => Consequence.failure("Invalid Urn value: null")
+      case None => Consequence.valueInvalid("Invalid Urn value: null")
       case Some(value) => value match
         case u: Urn => Consequence.success(u)
         case uri: URI => parse(uri.toString)
@@ -55,7 +56,7 @@ object Urn {
     if (validate_urn(normalized))
       Consequence.success(Instance(normalized))
     else
-      Consequence.failure(s"Invalid URN: $s")
+      Consequence.valueInvalid(s"Invalid URN: $s")
   }
 
   def validate_urn(s: String): Boolean =

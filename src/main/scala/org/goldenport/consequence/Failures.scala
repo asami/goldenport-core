@@ -160,6 +160,81 @@ object Failures {
       pos
     )
 
+  inline def valueInvalid(
+    message: String
+  ): Consequence.Failure[Nothing] =
+    valueInvalid(message, SourcePositionMacro.position())
+
+  def valueInvalid(
+    message: String,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Value, Taxonomy.Symptom.Invalid),
+      Seq(Descriptor.Facet.Message(message)),
+      pos
+    )
+
+  inline def valueFormatError(
+    message: String
+  ): Consequence.Failure[Nothing] =
+    valueFormatError(message, SourcePositionMacro.position())
+
+  def valueFormatError(
+    message: String,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Value, Taxonomy.Symptom.FormatError),
+      Seq(Descriptor.Facet.Message(message)),
+      pos
+    )
+
+  inline def configurationInvalid(
+    message: String
+  ): Consequence.Failure[Nothing] =
+    configurationInvalid(message, SourcePositionMacro.position())
+
+  def configurationInvalid(
+    message: String,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Configuration, Taxonomy.Symptom.Invalid),
+      Seq(Descriptor.Facet.Message(message)),
+      pos
+    )
+
+  inline def resourceUnsupported(
+    message: String
+  ): Consequence.Failure[Nothing] =
+    resourceUnsupported(message, SourcePositionMacro.position())
+
+  def resourceUnsupported(
+    message: String,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Resource, Taxonomy.Symptom.Unsupported),
+      Seq(Descriptor.Facet.Message(message)),
+      pos
+    )
+
+  inline def protocolInvalid(
+    message: String
+  ): Consequence.Failure[Nothing] =
+    protocolInvalid(message, SourcePositionMacro.position())
+
+  def protocolInvalid(
+    message: String,
+    pos: SourcePosition
+  ): Consequence.Failure[Nothing] =
+    fail(
+      Taxonomy(Taxonomy.Category.Operation, Taxonomy.Symptom.Invalid),
+      Seq(Descriptor.Facet.Message(message)),
+      pos
+    )
+
   inline def componentInvalid(
     facets: Seq[Descriptor.Facet]
   ): Consequence.Failure[Nothing] =

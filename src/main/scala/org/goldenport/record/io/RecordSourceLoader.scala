@@ -8,7 +8,8 @@ import org.goldenport.record.{Field, Record, RecordDecoder as TypedRecordDecoder
 
 /*
  * @since   Apr.  8, 2026
- * @version Apr.  8, 2026
+ *  version Apr.  8, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 object RecordSourceLoader:
@@ -17,7 +18,7 @@ object RecordSourceLoader:
   def load(path: Path): Consequence[Record] =
     formatFrom(path)
       .map(load(path, _))
-      .getOrElse(Consequence.failure(s"unsupported record format: ${path}"))
+      .getOrElse(Consequence.resourceUnsupported(s"unsupported record format: ${path}"))
 
   def load(path: Path, format: RecordFormat): Consequence[Record] =
     _read(path).flatMap(load(_, format))
@@ -32,7 +33,7 @@ object RecordSourceLoader:
   def loadRecords(path: Path): Consequence[Vector[Record]] =
     formatFrom(path)
       .map(loadRecords(path, _))
-      .getOrElse(Consequence.failure(s"unsupported record format: ${path}"))
+      .getOrElse(Consequence.resourceUnsupported(s"unsupported record format: ${path}"))
 
   def loadRecords(path: Path, format: RecordFormat): Consequence[Vector[Record]] =
     _read(path).flatMap(loadRecords(_, format))

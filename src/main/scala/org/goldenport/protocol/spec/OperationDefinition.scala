@@ -22,7 +22,8 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Jan. 29, 2026
  *  version Feb.  7, 2026
  *  version Mar. 29, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -92,9 +93,7 @@ abstract class OperationDefinition
             "parameter is not a string"
           )
         case ResolvedEmpty(_) => Consequence.failArgumentMissing(p.name)
-        // Consequence.failure(s"parameter missing: ${p.name}")
         case ResolvedMultiple(_, _) => Consequence.failArgumentMultipleValues(p.name)
-        // Consequence.failure(s"multiple values not allowed: ${p.name}")
       }
     }
 
@@ -112,7 +111,7 @@ abstract class OperationDefinition
   private def _parameter_definition(name: String): Consequence[ParameterDefinition] =
     specification.request.parameters.find(_.name == name) match {
       case Some(p) => Consequence.success(p)
-      case None => Consequence.failure(s"parameter not defined: ${name}")
+      case None => Consequence.argumentInvalid(s"parameter not defined: ${name}")
     }
 
   private def _is_required(p: ParameterDefinition): Boolean = p.multiplicity match {
