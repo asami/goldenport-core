@@ -4,8 +4,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 
+import org.goldenport.Consequence
+import org.goldenport.observation.Descriptor
 import org.goldenport.protocol.{Argument, Property, Switch}
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ParameterDefinition, RequestDefinition, ResponseDefinition, ServiceDefinition, ServiceDefinitionGroup}
+import org.goldenport.provisional.observation.Taxonomy
 import org.goldenport.value.BaseContent
 import cats.data.NonEmptyVector
 
@@ -53,7 +56,8 @@ import cats.data.NonEmptyVector
 /*
  * @since   Jan.  1, 2026
  *  version Jan.  2, 2026
- * @version Mar. 24, 2026
+ *  version Mar. 24, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 class ArgsIngressSpec
@@ -270,6 +274,24 @@ class ArgsIngressSpec
         case org.goldenport.Consequence.Failure(err) =>
           fail(err.toString)
       }
+    }
+
+    "report a missing ArgsIngress as a structured missing input failure" in {
+      Given("an empty ingress collection and CLI-like arguments")
+      val args = Array("query", "--limit", "10")
+
+      When("resolving an ArgsIngress")
+      val result = IngressCollection.empty.ingress(args)
+
+      Then("it fails as an argument-missing result with the original args")
+      val conclusion = result match {
+        case Consequence.Failure(conclusion) => conclusion
+        case Consequence.Success(_) => fail("expected failure")
+      }
+      conclusion.observation.taxonomy shouldBe Taxonomy.argumentMissing
+      conclusion.observation.cause.descriptor.facets should contain(
+        Descriptor.Facet.Args(args.toIndexedSeq)
+      )
     }
   }
 }

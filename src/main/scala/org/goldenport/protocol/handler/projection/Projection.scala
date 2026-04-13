@@ -5,8 +5,7 @@ import org.goldenport.protocol.spec.ServiceDefinitionGroup
 
 /*
  * @since   Dec. 30, 2025
- *  version Dec. 30, 2025
-project *  version Jan. 28, 2026
+ *  version Jan. 28, 2026
  *  version Feb. 15, 2026
  * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
