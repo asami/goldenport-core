@@ -704,6 +704,30 @@ object Consequence {
   def notImplemented(pos: SourcePosition, msg: String): Consequence.Failure[Nothing] =
     Consequence.Failure(Conclusion.notImplemented(pos, msg))
 
+  inline def argumentMissing[A](name: String): Consequence.Failure[A] =
+    argumentMissing(name, SourcePositionMacro.position())
+
+  def argumentMissing[A](name: String, pos: SourcePosition): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failArgumentMissing(name).withSourcePosition(pos))
+
+  inline def argumentInvalid[A](message: String): Consequence.Failure[A] =
+    argumentInvalid(message, SourcePositionMacro.position())
+
+  def argumentInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, Cause.message(message), pos)
+
+  inline def operationNotFound[A](name: String): Consequence.Failure[A] =
+    operationNotFound(name, SourcePositionMacro.position())
+
+  def operationNotFound[A](name: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.operationNotFound(name, pos)
+
+  inline def operationInvalid[A](name: String): Consequence.Failure[A] =
+    operationInvalid(name, SourcePositionMacro.position())
+
+  def operationInvalid[A](name: String, pos: SourcePosition): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failOperationInvalid(name).withSourcePosition(pos))
+
   def unreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
 
@@ -773,17 +797,30 @@ object Consequence {
   def failNetworkUnavailable(e: Throwable, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
     fail(Taxonomy.networkUnavailable, e, (facet +: facets))
 
-  def securityAuthenticationRequired[A](message: String): Consequence.Failure[A] =
-    Consequence.Failure(Conclusion.securityAuthenticationRequired(message))
+  inline def securityAuthenticationRequired[A](message: String): Consequence.Failure[A] =
+    securityAuthenticationRequired(message, SourcePositionMacro.position())
 
-  def securityPermissionDenied[A](message: String): Consequence.Failure[A] =
-    Consequence.Failure(Conclusion.securityPermissionDenied(message))
+  def securityAuthenticationRequired[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.securityAuthenticationRequired(message).withSourcePosition(pos))
 
-  def securityPermissionDenied[A](
+  inline def securityPermissionDenied[A](message: String): Consequence.Failure[A] =
+    securityPermissionDenied(message, SourcePositionMacro.position())
+
+  def securityPermissionDenied[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.securityPermissionDenied(message).withSourcePosition(pos))
+
+  inline def securityPermissionDenied[A](
     message: String,
     facets: Seq[Descriptor.Facet]
   ): Consequence.Failure[A] =
-    Consequence.Failure(Conclusion.securityPermissionDenied(message, facets))
+    securityPermissionDenied(message, facets, SourcePositionMacro.position())
+
+  def securityPermissionDenied[A](
+    message: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.securityPermissionDenied(message, facets).withSourcePosition(pos))
 
   def failUnreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
