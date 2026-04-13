@@ -53,7 +53,8 @@ import org.goldenport.id.UniversalId
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
  *  version Mar. 13, 2026
- * @version Apr.  9, 2026
+ *  version Apr.  9, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -690,7 +691,7 @@ object Consequence {
   def fail(c: Conclusion, pos: SourcePosition): Consequence.Failure[Nothing] =
     Failures.fail(c, pos)
 
-  //
+  // Utilities
   def notImplemented: Consequence.Failure[Nothing] =
     Failures.notImplemented
 
@@ -772,6 +773,18 @@ object Consequence {
   def failNetworkUnavailable(e: Throwable, facet: Descriptor.Facet, facets: Descriptor.Facet*): Consequence.Failure[Nothing] =
     fail(Taxonomy.networkUnavailable, e, (facet +: facets))
 
+  def securityAuthenticationRequired[A](message: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.securityAuthenticationRequired(message))
+
+  def securityPermissionDenied[A](message: String): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.securityPermissionDenied(message))
+
+  def securityPermissionDenied[A](
+    message: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.securityPermissionDenied(message, facets))
+
   def failUnreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached
 
@@ -814,7 +827,7 @@ object Consequence {
 
   def DataStoreNotFound(id: String): Consequence.Failure[Nothing] =
     fail(
-      Taxonomy.dataStoreDuplicate,
+      Taxonomy.dataStoreNotFound,
       Descriptor.Facet.Id(id)
     )
 

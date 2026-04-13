@@ -25,7 +25,8 @@ import org.goldenport.http.HttpRequest
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -136,6 +137,10 @@ object Conclusion {
       case Taxonomy.Category.State => internalServerError
       case Taxonomy.Category.Value => badRequest
       case Taxonomy.Category.Entity => badRequest
+      case Taxonomy.Category.Security => taxonomy.symptom match {
+        case Taxonomy.Symptom.AuthenticationRequired => unauthorized
+        case _ => forbidden
+      }
       case Taxonomy.Category.Record => badRequest
       case Taxonomy.Category.Operation => badRequest
       case Taxonomy.Category.Service => serviceUnavailable
@@ -420,6 +425,30 @@ object Conclusion {
       Observation.serviceProviderNotFound(name, facets),
       Interpretation.configurationFailure,
       Disposition.serviceUnavailable
+    )
+
+  def securityAuthenticationRequired(message: String): Conclusion =
+    Conclusion(
+      Status.unauthorized,
+      Observation.securityAuthenticationRequired(message),
+      Interpretation.domainFailure,
+      Disposition.fix
+    )
+
+  def securityPermissionDenied(message: String): Conclusion =
+    Conclusion(
+      Status.forbidden,
+      Observation.securityPermissionDenied(message),
+      Interpretation.domainFailure,
+      Disposition.fix
+    )
+
+  def securityPermissionDenied(message: String, facets: Seq[Descriptor.Facet]): Conclusion =
+    Conclusion(
+      Status.forbidden,
+      Observation.securityPermissionDenied(message, facets),
+      Interpretation.domainFailure,
+      Disposition.fix
     )
 
   def entityNotFound(id: Identifier): Conclusion =

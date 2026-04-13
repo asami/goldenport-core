@@ -19,7 +19,8 @@ import org.goldenport.util.Strings
  *  version Feb. 21, 2021
  *  version Dec. 25, 2025
  *  version Jan. 21, 2026
- * @version Feb.  6, 2026
+ *  version Feb.  6, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
@@ -153,6 +154,8 @@ sealed abstract class HttpStatus(val code: Int)
 object HttpStatus {
   case object Ok extends HttpStatus(200)
   case object BadRequest extends HttpStatus(400)
+  case object Unauthorized extends HttpStatus(401)
+  case object Forbidden extends HttpStatus(403)
   case object NotFound extends HttpStatus(404)
   case object InternalServerError extends HttpStatus(500)
 
@@ -160,6 +163,8 @@ object HttpStatus {
     code match {
       case 200 => Some(Ok)
       case 400 => Some(BadRequest)
+      case 401 => Some(Unauthorized)
+      case 403 => Some(Forbidden)
       case 404 => Some(NotFound)
       case 500 => Some(InternalServerError)
       case _   => None

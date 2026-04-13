@@ -44,7 +44,8 @@ import org.goldenport.util.SmEnum
  *  version Dec. 30, 2025
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
- * @version Mar. 13, 2026
+ *  version Mar. 13, 2026
+ * @version Apr. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -258,6 +259,25 @@ object Observation {
     Descriptor.Facet.Operation(name)
   )
 
+  // Security
+  def securityAuthenticationRequired(message: String): Observation = rejection(
+    Taxonomy.securityAuthenticationRequired,
+    Descriptor.Facet.Message(message)
+  )
+
+  def securityPermissionDenied(message: String): Observation = rejection(
+    Taxonomy.securityPermissionDenied,
+    Descriptor.Facet.Message(message)
+  )
+
+  def securityPermissionDenied(
+    message: String,
+    facets: Seq[Descriptor.Facet]
+  ): Observation = rejection(
+    Taxonomy.securityPermissionDenied,
+    Descriptor.Facet.Message(message) +: facets
+  )
+
   // State
   def stateConflict(state: String): Observation = failure(
     Taxonomy.stateConflict,
@@ -439,6 +459,8 @@ object Taxonomy {
 
     case Entity extends Category("entity", 17)
 
+    case Security extends Category("security", 18)
+
     case Record extends Category("value", 8)
 
     /** The problem is observed at the system level and cannot be meaningfully attributed to argument, property, configuration, resource, or state.
@@ -493,6 +515,8 @@ object Taxonomy {
     /** The observed data or resource is damaged, inconsistent, or internally broken in a way that prevents correct use. */
     case Corrupted extends Symptom("corrupted", 13)
     case Duplicate extends Symptom("duplicate", 22)
+    case AuthenticationRequired extends Symptom("authentication-required", 23)
+    case PermissionDenied extends Symptom("permission-denied", 24)
 
     // OutOfControl
     case UnreachableReached extends Symptom("unreachable-reached", 14)
@@ -557,6 +581,17 @@ object Taxonomy {
     Symptom.NotFound
   )
 
+  // Security
+  val securityAuthenticationRequired: Taxonomy = Taxonomy(
+    Category.Security,
+    Symptom.AuthenticationRequired
+  )
+
+  val securityPermissionDenied: Taxonomy = Taxonomy(
+    Category.Security,
+    Symptom.PermissionDenied
+  )
+
   // Resource
   val resourceNotFound: Taxonomy = Taxonomy(
     Category.Resource,
@@ -615,6 +650,11 @@ object Taxonomy {
   )
 
   // DataStore
+  val dataStoreNotFound: Taxonomy = Taxonomy(
+    Category.DataStore,
+    Symptom.NotFound
+  )
+
   val dataStoreDuplicate: Taxonomy = Taxonomy(
     Category.DataStore,
     Symptom.Duplicate

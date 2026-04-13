@@ -5,7 +5,7 @@ lazy val root = project
   .settings(
     organization := "org.goldenport",
     name := "goldenport-core",
-    version := "0.3.3",
+    version := "0.3.4-SNAPSHOT",
 
     scalaVersion := scala3Version,
 
@@ -26,6 +26,7 @@ lazy val root = project
     libraryDependencies += "com.typesafe" % "config" % "1.4.3",
     libraryDependencies += "org.yaml" % "snakeyaml" % "2.1",
     publishMavenStyle := true,
+    Compile / packageDoc / publishArtifact := false,
 
     publishTo := {
       val repo = sys.env.get("SIMPLEMODELING_MAVEN_LOCAL")
