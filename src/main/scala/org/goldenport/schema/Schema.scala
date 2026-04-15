@@ -70,7 +70,8 @@ case class WebColumn(
   values: Vector[String] = Vector.empty,
   multiple: Boolean = false,
   placeholder: Option[String] = None,
-  help: Option[String] = None
+  help: Option[String] = None,
+  validation: WebValidationHints = WebValidationHints.empty
 ) {
   def isEmpty: Boolean =
     this == WebColumn.empty
@@ -78,6 +79,22 @@ case class WebColumn(
 
 object WebColumn {
   val empty: WebColumn = WebColumn()
+}
+
+case class WebValidationHints(
+  min: Option[BigDecimal] = None,
+  max: Option[BigDecimal] = None,
+  step: Option[BigDecimal] = None,
+  minLength: Option[Int] = None,
+  maxLength: Option[Int] = None,
+  pattern: Option[String] = None
+) {
+  def isEmpty: Boolean =
+    this == WebValidationHints.empty
+}
+
+object WebValidationHints {
+  val empty: WebValidationHints = WebValidationHints()
 }
 
 case class ValueDomain(

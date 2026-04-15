@@ -15,6 +15,7 @@ Column exists to define:
 - its datatype
 - its multiplicity
 - its constraints
+- portable Web/form metadata
 - how raw input is validated and converted
 
 Column is the bridge between:
@@ -31,6 +32,7 @@ A Column encapsulates:
 - datatype
 - multiplicity (single, optional, multiple)
 - constraints (size, range, pattern, etc.)
+- Web metadata for presentation and input admission hints
 
 Column is responsible for:
 
@@ -84,7 +86,30 @@ Typical constraints include:
 
 This allows Schema to remain minimal.
 
-----------------------------------------------------------------------  
+----------------------------------------------------------------------
+Web Metadata
+----------------------------------------------------------------------
+
+Column may carry `WebColumn` metadata for Web/form use cases.
+
+This metadata is declarative and portable. It may describe:
+
+- control type
+- requiredness
+- hidden/system/readonly flags
+- selectable values
+- placeholder and help text
+- validation hints such as min/max, step, minLength/maxLength, and pattern
+
+Validation hints are not execution logic. They are metadata that downstream
+adapters can project into HTML attributes, JSON form definitions, OpenAPI/JSON
+Schema, or server-side input admission checks.
+
+`WebValidationHints` is intentionally attached through `WebColumn` so both
+`Column` and `ParameterDefinition` can carry the same Web/form contract without
+duplicating framework-specific fields.
+
+----------------------------------------------------------------------
 Extensibility
 ----------------------------------------------------------------------
 
