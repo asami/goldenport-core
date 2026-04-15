@@ -8,7 +8,7 @@ import org.goldenport.schema.*
 
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 30, 2025
+ * @version Apr. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 case object OpenApi extends ProjectionKind[Json] {
@@ -105,8 +105,9 @@ class OpenApiProjection extends Projection[Json] {
     val base = Vector("type" -> Json.fromString(_type_name(p, forceBoolean)))
     val format = _format_name(p, forceBoolean).map(v => "format" -> Json.fromString(v))
     val defaults = _render_default(p)
+    val validation = _render_web_validation(p)
     val constraints = _render_constraints(p)
-    Json.obj((base ++ format ++ defaults ++ constraints)*)
+    Json.obj((base ++ format ++ defaults ++ validation ++ constraints)*)
   }
 
   private def _type_name(p: ParameterDefinition, forceBoolean: Boolean): String =
@@ -144,6 +145,18 @@ class OpenApiProjection extends Projection[Json] {
       Vector("x-constraints" -> Json.fromString("opaque"))
     else
       Vector.empty
+
+  private def _render_web_validation(p: ParameterDefinition): Vector[(String, Json)] = {
+    val validation = p.web.validation
+    Vector(
+      validation.min.map(x => "minimum" -> Json.fromBigDecimal(x)),
+      validation.max.map(x => "maximum" -> Json.fromBigDecimal(x)),
+      validation.minLength.map(x => "minLength" -> Json.fromInt(x)),
+      validation.maxLength.map(x => "maxLength" -> Json.fromInt(x)),
+      validation.pattern.map(x => "pattern" -> Json.fromString(x)),
+      validation.step.map(x => "multipleOf" -> Json.fromBigDecimal(x))
+    ).flatten
+  }
 
   private def _literal_json(value: Any): Json = value match {
     case v: String => Json.fromString(v)
