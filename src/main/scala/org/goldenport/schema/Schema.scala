@@ -45,7 +45,8 @@ import org.goldenport.value.BaseContent
  *  version Mar. 17, 2021
  *  version Oct. 31, 2021 restart
  *  version Dec. 24, 2025 Scala3
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Apr. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -55,8 +56,28 @@ case class Schema(
 
 case class Column(
   baseContent: BaseContent,
-  domain: ValueDomain
+  domain: ValueDomain,
+  web: WebColumn = WebColumn.empty
 ) extends BaseContent.Holder {
+}
+
+case class WebColumn(
+  controlType: Option[String] = None,
+  required: Option[Boolean] = None,
+  hidden: Boolean = false,
+  system: Boolean = false,
+  readonly: Boolean = false,
+  values: Vector[String] = Vector.empty,
+  multiple: Boolean = false,
+  placeholder: Option[String] = None,
+  help: Option[String] = None
+) {
+  def isEmpty: Boolean =
+    this == WebColumn.empty
+}
+
+object WebColumn {
+  val empty: WebColumn = WebColumn()
 }
 
 case class ValueDomain(

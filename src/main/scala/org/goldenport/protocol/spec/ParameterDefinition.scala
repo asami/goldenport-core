@@ -15,13 +15,15 @@ import org.goldenport.util.{SmEnum, SmEnumClass}
  *  version Jun.  5, 2025
  *  version Dec. 30, 2025
  *  version Feb.  6, 2026
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Apr. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ParameterDefinition(
   content: BaseContent,
   kind: ParameterDefinition.Kind,
   domain: ValueDomain = ValueDomain(),
+  web: WebColumn = WebColumn.empty,
   default: ParameterDefinition.Default = ParameterDefinition.Default.Undefined,
   isMagicSequence: Boolean = true,
   isEagerSequence: Boolean = false
