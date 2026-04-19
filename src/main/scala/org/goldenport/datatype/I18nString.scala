@@ -18,8 +18,7 @@ import org.goldenport.convert.{StringCodex, StringCodexable}
  *  version May. 11, 2025
  *  version Jul. 23, 2025
  *  version Dec. 25, 2025
- *  version Apr. 11, 2026
- * @version Apr. 14, 2026
+ * @version Apr. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nString(
@@ -36,6 +35,27 @@ case class I18nString(
       .collectFirst { case Some(value) => value }
       .getOrElse(entries.head._2)
   }
+
+  def displayMessage(locale: java.util.Locale): String =
+    displayMessage(Vector(locale))
+
+  def displayMessage(locales: Iterable[java.util.Locale]): String = {
+    val requested = locales.iterator.filter(_ != null).toVector
+    val priorities =
+      (requested ++ requested.map(_root_locale) ++ Vector(java.util.Locale.ROOT, java.util.Locale.ENGLISH, java.util.Locale.JAPANESE))
+        .distinct
+    val byLocale = entries.toVector.toMap
+    priorities.iterator
+      .map(byLocale.get)
+      .collectFirst { case Some(value) => value }
+      .getOrElse(entries.head._2)
+  }
+
+  private def _root_locale(locale: java.util.Locale): java.util.Locale =
+    if (locale == null || locale.getLanguage.isEmpty)
+      java.util.Locale.ROOT
+    else
+      java.util.Locale.forLanguageTag(locale.getLanguage)
 }
 
 object I18nString {

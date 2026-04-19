@@ -7,11 +7,12 @@ import org.goldenport.convert.{StringCodex, StringCodexable}
 /*
  * @since   Aug.  2, 2025
  *  version Dec. 30, 2025
- * @version Apr.  3, 2026
+ * @version Apr. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nText(value: I18nString = I18nString("")) extends StringCodexable {
   def toI18nString: I18nString = value
+  def displayMessage(locale: java.util.Locale): String = value.displayMessage(locale)
   def encode(using ctx: ExecutionContext): String = summon[StringCodex[I18nText]].encode(this)
 }
 

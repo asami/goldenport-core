@@ -2,6 +2,7 @@ package org.goldenport.schema
 
 import cats.data.NonEmptyList
 import cats.data.NonEmptyVector
+import org.goldenport.datatype.I18nLabel
 import org.goldenport.value.BaseContent
 
 /*
@@ -46,7 +47,7 @@ import org.goldenport.value.BaseContent
  *  version Oct. 31, 2021 restart
  *  version Dec. 24, 2025 Scala3
  *  version Mar. 29, 2026
- * @version Apr. 16, 2026
+ * @version Apr. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -57,6 +58,7 @@ case class Schema(
 case class Column(
   baseContent: BaseContent,
   domain: ValueDomain,
+  override val label: Option[I18nLabel] = None,
   web: WebColumn = WebColumn.empty
 ) extends BaseContent.Holder {
 }
