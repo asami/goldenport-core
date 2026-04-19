@@ -27,7 +27,7 @@ import org.goldenport.provisional.observation.Taxonomy
  * @since   Dec. 22, 2025
  *  version Dec. 30, 2025
  *  version Jan. 27, 2026
- * @version Apr. 14, 2026
+ * @version Apr. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec
@@ -113,8 +113,7 @@ class ConsequenceSpec extends AnyWordSpec
             case Consequence.Failure(conclusion) => conclusion
             case _ => fail("expected Failure")
           }
-          // c.causes.map(_.observation.displayMessage).shouldBe(Seq("A", "B"))
-          println(c)
+          c.causes.map(_.displayMessage).shouldBe(Seq("A", "B"))
         }
       }
       "combine three independent validations using zip3" should {
@@ -140,8 +139,7 @@ class ConsequenceSpec extends AnyWordSpec
             case Consequence.Failure(conclusion) => conclusion
             case _ => fail("expected Failure")
           }
-          // c.causes.map(_.observation.displayMessage).shouldBe(Seq("A", "C"))
-          println(c)
+          c.causes.map(_.displayMessage).shouldBe(Seq("A", "C"))
         }
       }
       "combine an arbitrary number of validations using zipN" should {
@@ -160,8 +158,7 @@ class ConsequenceSpec extends AnyWordSpec
             case Consequence.Failure(conclusion) => conclusion
             case _ => fail("expected Failure")
           }
-          // c.causes.map(_.observation.displayMessage).shouldBe(Seq("A", "C", "D"))
-          println(c)
+          c.causes.map(_.displayMessage).shouldBe(Seq("A", "C", "D"))
         }
         "preserve the input order of observations in failures" in {
           val r =
@@ -177,8 +174,7 @@ class ConsequenceSpec extends AnyWordSpec
             case Consequence.Failure(conclusion) => conclusion
             case _ => fail("expected Failure")
           }
-          // c.causes.map(_.observation.displayMessage).shouldBe(Seq("first", "second", "third"))
-          println(c)
+          c.causes.map(_.displayMessage).shouldBe(Seq("first", "second", "third"))
         }
       }
     }
