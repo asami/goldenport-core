@@ -13,7 +13,8 @@ import org.goldenport.datatype.I18nString
  *  version Aug.  2, 2025
  *  version Dec. 30, 2025
  *  version Jan. 21, 2026
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Apr. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 case class NameAttributes(
@@ -22,8 +23,7 @@ case class NameAttributes(
   title: Option[I18nTitle],
   code: Option[Identifier],
   alias: Option[NonEmptyVector[I18nLabel]],
-  slug: Option[Slug],
-  shortid: Option[Identifier]
+  slug: Option[Slug]
 ) {
   def withName(p: Name) = copy(name = p)
   def withLabel(p: I18nLabel) = copy(label = Some(p))
@@ -56,8 +56,7 @@ object NameAttributes {
       title = None,
       code = None,
       alias = None,
-      slug = None,
-      shortid = None
+      slug = None
     )
 
   case class Builder(
@@ -66,8 +65,7 @@ object NameAttributes {
     btitle: Option[I18nTitle] = None,
     bcode: Option[Identifier] = None,
     balias: Option[NonEmptyVector[I18nLabel]] = None,
-    bslug: Option[Slug] = None,
-    bshortid: Option[Identifier] = None
+    bslug: Option[Slug] = None
   ) {
     def build(): NameAttributes = NameAttributes(
       bname.get,
@@ -75,8 +73,7 @@ object NameAttributes {
       btitle,
       bcode,
       balias,
-      bslug,
-      bshortid
+      bslug
     )
 
     def name(p: String) = copy(bname = Some(Name(p)))

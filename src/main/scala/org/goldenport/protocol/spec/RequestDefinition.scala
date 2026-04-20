@@ -13,7 +13,8 @@ import org.goldenport.schema.{Multiplicity, ValueDomain, XString}
  *  version Dec. 25, 2025
  *  version Jan. 14, 2026
  *  version Feb.  6, 2026
- * @version Mar. 29, 2026
+ *  version Mar. 29, 2026
+ * @version Apr. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 case class RequestDefinition(
@@ -72,8 +73,7 @@ object RequestDefinition {
       title = None,
       code = None,
       alias = Some(NonEmptyVector.one(I18nLabel(alias))),
-      slug = None,
-      shortid = None
+      slug = None
     )
     BaseContent(nameattributes, DescriptiveAttributes.empty)
   }
