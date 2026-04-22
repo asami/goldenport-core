@@ -23,7 +23,7 @@ import org.goldenport.http.HttpRequest
  *  version Jan.  2, 2026
  *  version Jan. 28, 2026
  *  version Apr. 11, 2026
- * @version Apr. 14, 2026
+ * @version Apr. 23, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -503,6 +503,10 @@ abstract class RestIngress extends Ingress[HttpRequest] {
 
       val arguments =
         Ingress.recordToArguments(inputs)
+      val properties =
+        req.header.asNameStringVector.map {
+          case (k, v) => Property(k, v, None)
+        }.toList
 
       Consequence.success(
         Request(
@@ -511,7 +515,7 @@ abstract class RestIngress extends Ingress[HttpRequest] {
           operation = op.name,
           arguments = arguments,
           switches = Nil,
-          properties = Nil
+          properties = properties
         )
       )
     }

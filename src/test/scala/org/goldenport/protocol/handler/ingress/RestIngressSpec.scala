@@ -12,6 +12,11 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
 import org.goldenport.http.HttpRequest
 import org.goldenport.record.Record
 
+/*
+ * @since   Apr. 23, 2026
+ * @version Apr. 23, 2026
+ * @author  ASAMI, Tomoharu
+ */
 class RestIngressSpec
     extends AnyWordSpec
     with GivenWhenThen
@@ -170,6 +175,49 @@ class RestIngressSpec
           req.arguments shouldBe Nil
           req.switches shouldBe Nil
           req.properties shouldBe Nil
+
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "carry HTTP headers into Request properties" in {
+      Given("an HttpRequest with authentication and cookie headers")
+      val http =
+        HttpRequest.fromPath(
+          method = HttpRequest.POST,
+          path = "/query",
+          query = Record.empty,
+          header = Record.data(
+            "x-textus-session" -> "sess-1",
+            "Cookie" -> "textus-session-test=sess-1"
+          ),
+          form = Record.data("name" -> "alice")
+        )
+
+      val opdef =
+        OperationDefinition(
+          content = org.goldenport.value.BaseContent.simple("query"),
+          request = RequestDefinition(parameters = Nil),
+          response = ResponseDefinition.void
+        )
+
+      val ingress =
+        IngressCollection(
+          ingresses = Vector(new RestIngress {})
+        ).ingress(http).TAKE
+
+      When("encoding HttpRequest into Request")
+      val result = ingress.encode(opdef, http)
+
+      result match {
+        case Consequence.Success(req) =>
+          Then("it preserves headers as Request properties for downstream ingress resolution")
+          req.arguments shouldBe List(
+            Argument("name", "alice", None)
+          )
+          req.properties should contain (Property("x-textus-session", "sess-1", None))
+          req.properties should contain (Property("Cookie", "textus-session-test=sess-1", None))
 
         case Consequence.Failure(err) =>
           fail(err.toString)
