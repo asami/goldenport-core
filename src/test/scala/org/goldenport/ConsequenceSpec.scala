@@ -27,7 +27,7 @@ import org.goldenport.provisional.observation.Taxonomy
  * @since   Dec. 22, 2025
  *  version Dec. 30, 2025
  *  version Jan. 27, 2026
- * @version Apr. 20, 2026
+ * @version Apr. 23, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec
@@ -79,6 +79,13 @@ class ConsequenceSpec extends AnyWordSpec
   //   )
 
   "Consequence" should {
+    "expose isFaillure as the inverse of isSuccess" in {
+      ok(1).isSuccess shouldBe true
+      ok(1).isFaillure shouldBe false
+      ng("A").isSuccess shouldBe false
+      ng("A").isFaillure shouldBe true
+    }
+
     "when used in validation style (applicative composition)" should {
       "combine independent results using zip" should {
         "return Success when both sides succeed" in {

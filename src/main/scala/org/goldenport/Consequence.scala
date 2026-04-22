@@ -54,10 +54,17 @@ import org.goldenport.id.UniversalId
  *  version Feb. 28, 2026
  *  version Mar. 13, 2026
  *  version Apr.  9, 2026
- * @version Apr. 14, 2026
+ * @version Apr. 23, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
+  def isSuccess: Boolean = this match {
+    case Consequence.Success(_) => true
+    case Consequence.Failure(_) => false
+  }
+
+  def isFaillure: Boolean = !isSuccess
+
   def get: Option[T]
 
   def TAKE: T
