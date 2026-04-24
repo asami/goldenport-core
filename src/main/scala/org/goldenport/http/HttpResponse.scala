@@ -20,13 +20,17 @@ import org.goldenport.util.Strings
  *  version Dec. 25, 2025
  *  version Jan. 21, 2026
  *  version Feb.  6, 2026
- * @version Apr. 14, 2026
+ * @version Apr. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
   def status: HttpStatus
   final def code: Int = status.code
   def contentType: ContentType
+  def header: Record
+  final def headerValue(name: String): Option[String] =
+    header.fields.find(_.key.equalsIgnoreCase(name)).map(_.value.single.toString)
+  def withHeader(header: Record): HttpResponse
   def mime: MimeType = contentType.mimeType
   def charset: Option[Charset] = contentType.charset
   def bag: Bag
@@ -51,24 +55,30 @@ object HttpResponse {
   case class Text(
     status: HttpStatus,
     contentType: ContentType,
-    bag: TextBag
+    bag: TextBag,
+    header: Record = Record.empty
   ) extends HttpResponse {
     def print = show
     override lazy val show = s"Response(${getString.map(Strings.cutstring(_, 32)).getOrElse("")})"
     def json = RAISE.unsupportedOperationFault
+    def withHeader(header: Record): HttpResponse = copy(header = header)
   }
 
   case class Binary(
     status: HttpStatus,
     contentType: ContentType,
-    bag: BinaryBag
+    bag: BinaryBag,
+    header: Record = Record.empty
   ) extends HttpResponse {
     def print = show
     override lazy val show = s"Response(Binary[${bag.metadata.size.getOrElse(0)}])"
+    def withHeader(header: Record): HttpResponse = copy(header = header)
   }
 
   def parser(code: Int, header: Map[String, IndexedSeq[String]], in: InputStream): HttpResponse = {
-    val contenttype = header.get("Content-Type").flatMap(_.headOption.map(ContentType.parse)).getOrElse(ContentType.APPLICATION_OCTET_STREAM)
+    val contenttype = _header_value(header, "Content-Type")
+      .map(ContentType.parse)
+      .getOrElse(ContentType.APPLICATION_OCTET_STREAM)
     val status = HttpStatus.fromInt(code).getOrElse(HttpStatus.InternalServerError)
     def text = {
       contenttype.charset.
@@ -83,10 +93,32 @@ object HttpResponse {
         )
     }
     def binary = in.readAllBytes()
-    if (contenttype.mimeType.isText)
-      HttpResponse.Text(status, contenttype, Bag.text(text))
-    else
-      HttpResponse.Binary(status, contenttype, Bag.binary(binary))
+    val response =
+      if (contenttype.mimeType.isText)
+        HttpResponse.Text(status, contenttype, Bag.text(text))
+      else
+        HttpResponse.Binary(status, contenttype, Bag.binary(binary))
+    response.withHeader(_header_record(header))
+  }
+
+  private def _header_value(
+    header: Map[String, IndexedSeq[String]],
+    name: String
+  ): Option[String] =
+    header.iterator.collectFirst {
+      case (key, values) if key != null && key.equalsIgnoreCase(name) =>
+        values.find(_ != null)
+    }.flatten
+
+  private def _header_record(
+    header: Map[String, IndexedSeq[String]]
+  ): Record = {
+    val values = header.toVector.flatMap { case (key, values) =>
+      Option(key).flatMap { k =>
+        values.find(_ != null).map(v => k -> v)
+      }
+    }.sortBy { case (key, _) => key.toLowerCase(java.util.Locale.ROOT) }
+    Record.create(values)
   }
 
   private val _regex_xml = """(?i)[<][?]xml[ ][^?]+(encoding[ ]*[=][ ]*["]([^"]+)["])""".r

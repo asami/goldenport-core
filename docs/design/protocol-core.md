@@ -93,6 +93,15 @@ subsidiary to the core protocol boundary.
 - CLI help, REST OpenAPI, MCP get_manifest projections
 - See `docs/design/protocol-introspection.md`.
 
+## HTTP Response Metadata
+
+`org.goldenport.http.HttpResponse` is a protocol-level HTTP response carrier and
+therefore owns response headers as protocol metadata. Headers are preserved for
+adapters and clients that need transport metadata such as operational job ids.
+
+Header metadata MUST remain separate from semantic operation data. A response
+body contract must not change just because response headers are present.
+
 ## Subsystem-specific Adapters
 
 - CLI adapter boundary: `docs/design/cli-engine.md`.
