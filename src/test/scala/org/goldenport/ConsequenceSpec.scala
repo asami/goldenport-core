@@ -27,7 +27,7 @@ import org.goldenport.provisional.observation.Taxonomy
  * @since   Dec. 22, 2025
  *  version Dec. 30, 2025
  *  version Jan. 27, 2026
- * @version Apr. 23, 2026
+ * @version Apr. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec
@@ -183,6 +183,60 @@ class ConsequenceSpec extends AnyWordSpec
           }
           c.causes.map(_.displayMessage).shouldBe(Seq("first", "second", "third"))
         }
+      }
+    }
+
+    "with ValidatedBuilder" should {
+      "return Success when all reads succeed" in {
+        val result = Consequence.ValidatedBuilder.run { builder =>
+          val a = builder.read(ok(1))
+          val b = builder.read(ok(2))
+          builder.build {
+            a.value + b.value
+          }
+        }
+
+        result.shouldBe(Consequence.Success(3))
+      }
+      "accumulate multiple failures instead of stopping at the first failure" in {
+        val result = Consequence.ValidatedBuilder.run { builder =>
+          val a = builder.read[Int](ng("A"))
+          val b = builder.read(ok(2))
+          val c = builder.read[Int](ng("C"))
+          builder.build {
+            a.value + b.value + c.value
+          }
+        }
+
+        val conclusion = _failure_conclusion(result)
+        conclusion.causes.map(_.displayMessage).shouldBe(Seq("A", "C"))
+      }
+      "not evaluate build body when any read failed" in {
+        var evaluated = false
+
+        val result = Consequence.ValidatedBuilder.run { builder =>
+          val a = builder.read[Int](ng("A"))
+          builder.build {
+            evaluated = true
+            a.value
+          }
+        }
+
+        result shouldBe a[Consequence.Failure[?]]
+        evaluated.shouldBe(false)
+      }
+      "preserve aggregated failure cause order" in {
+        val result = Consequence.ValidatedBuilder.run { builder =>
+          val a = builder.read[Int](ng("first"))
+          val b = builder.read[Int](ng("second"))
+          val c = builder.read[Int](ng("third"))
+          builder.build {
+            Seq(a.value, b.value, c.value)
+          }
+        }
+
+        val conclusion = _failure_conclusion(result)
+        conclusion.causes.map(_.displayMessage).shouldBe(Seq("first", "second", "third"))
       }
     }
 

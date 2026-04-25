@@ -53,8 +53,7 @@ import org.goldenport.id.UniversalId
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
  *  version Mar. 13, 2026
- *  version Apr.  9, 2026
- * @version Apr. 23, 2026
+ * @version Apr. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -230,6 +229,54 @@ object Consequence {
     def orElse[U >: T](body: => Consequence[U]): Consequence[U] = body
 
     def toOption = None
+  }
+
+  sealed trait ValidatedValue[+T] {
+    def value: T
+  }
+
+  object ValidatedValue {
+    final case class Success[+T](a: T) extends ValidatedValue[T] {
+      def value: T = a
+    }
+
+    case object Failure extends ValidatedValue[Nothing] {
+      def value: Nothing =
+        throw new IllegalStateException(
+          "Consequence.ValidatedValue.value is only valid inside a successful ValidatedBuilder.build body"
+        )
+    }
+  }
+
+  final class ValidatedBuilder private[Consequence] () {
+    private val _failures = scala.collection.mutable.ArrayBuffer.empty[Conclusion]
+
+    def read[T](p: => Consequence[T]): ValidatedValue[T] =
+      Consequence.run(p) match {
+        case Success(a) => ValidatedValue.Success(a)
+        case Failure(c) =>
+          _failures += c
+          ValidatedValue.Failure
+      }
+
+    def build[T](body: => T): Consequence[T] =
+      _conclusion match {
+        case Some(c) => Failure(c)
+        case None => Consequence(body)
+      }
+
+    private def _conclusion: Option[Conclusion] =
+      if (_failures.isEmpty)
+        None
+      else
+        Some(_failures.reduceLeft(_ ++ _))
+  }
+
+  object ValidatedBuilder {
+    def run[T](body: ValidatedBuilder => Consequence[T]): Consequence[T] = {
+      val builder = new ValidatedBuilder()
+      Consequence.run(body(builder))
+    }
   }
 
   implicit object ConsequenceMonad extends Monad[Consequence] {
