@@ -6,6 +6,7 @@ import org.scalatest.matchers.should.Matchers
 
 import org.goldenport.Consequence
 import org.goldenport.bag.Bag
+import org.goldenport.datatype.{ContentType, MimeBody}
 import org.goldenport.protocol.{Argument, Property}
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
@@ -14,7 +15,7 @@ import org.goldenport.record.Record
 
 /*
  * @since   Apr. 23, 2026
- * @version Apr. 23, 2026
+ * @version Apr. 27, 2026
  * @author  ASAMI, Tomoharu
  */
 class RestIngressSpec
@@ -135,6 +136,44 @@ class RestIngressSpec
             Argument("name", "alice", None)
           )
           req.properties shouldBe Nil
+
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "preserve multipart MimeBody form values as named Arguments" in {
+      Given("an HttpRequest with a binary multipart form value")
+      val body = MimeBody(ContentType.IMAGE_PNG, Bag.binary(Array[Byte](1, 2, 3)))
+      val http =
+        HttpRequest.fromPath(
+          method = HttpRequest.POST,
+          path = "/upload",
+          query = Record.empty,
+          header = Record.empty,
+          form = Record.data("blob.mainImage" -> body)
+        )
+
+      val opdef =
+        OperationDefinition(
+          content = org.goldenport.value.BaseContent.simple("upload"),
+          request = RequestDefinition(parameters = Nil),
+          response = ResponseDefinition.void
+        )
+
+      val ingress =
+        IngressCollection(
+          ingresses = Vector(new RestIngress {})
+        ).ingress(http).TAKE
+
+      When("encoding HttpRequest into Request")
+      val result = ingress.encode(opdef, http)
+
+      result match {
+        case Consequence.Success(req) =>
+          Then("the MimeBody remains available to operation code")
+          req.arguments.map(_.name) shouldBe List("blob.mainImage")
+          req.arguments.head.value shouldBe body
 
         case Consequence.Failure(err) =>
           fail(err.toString)

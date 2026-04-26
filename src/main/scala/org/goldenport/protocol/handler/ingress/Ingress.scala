@@ -23,7 +23,7 @@ import org.goldenport.http.HttpRequest
  *  version Jan.  2, 2026
  *  version Jan. 28, 2026
  *  version Apr. 11, 2026
- * @version Apr. 23, 2026
+ * @version Apr. 27, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -33,6 +33,11 @@ abstract class Ingress[T] {
 
 object Ingress {
   def recordToArguments(record: org.goldenport.record.Record): List[Argument] =
+    record.fields.map { field =>
+      Argument(field.key, field.value.single, None)
+    }.toList
+
+  def recordToStringArguments(record: org.goldenport.record.Record): List[Argument] =
     record.asNameStringVector.map {
       case (k, v) => Argument(k, v, None)
     }.toList
