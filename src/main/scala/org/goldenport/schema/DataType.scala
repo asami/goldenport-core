@@ -47,7 +47,7 @@ import org.goldenport.text.Presentable
  *  version Dec. 29, 2025
  *  version Jan. 29, 2026
  *  version Feb. 19, 2026
- * @version Apr.  1, 2026
+ * @version Apr. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -112,6 +112,14 @@ case object XPositiveInteger extends IntegerDataType {
 
 case object XDecimal extends DataType {
   def name = "decimal"
+}
+
+case object XBlob extends DataType {
+  def name = "blob"
+}
+
+case object XClob extends DataType {
+  def name = "clob"
 }
 
 case class ZonedDateTimeNormalizer(datatype: DataType) extends CanonicalNormalizer[ZonedDateTime] {

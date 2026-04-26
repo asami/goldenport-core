@@ -5,15 +5,14 @@ import io.circe.Json
 import org.goldenport.Consequence
 import org.goldenport.protocol.handler.projection.OpenApiProjection
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ParameterDefinition, RequestDefinition, ResponseDefinition, ServiceDefinition, ServiceDefinitionGroup}
-import org.goldenport.schema.{Constraint, Multiplicity, ValueDomain, WebColumn, WebValidationHints, XNonNegativeInteger, XString}
+import org.goldenport.schema.{Constraint, Multiplicity, ValueDomain, WebColumn, WebValidationHints, XBlob, XClob, XNonNegativeInteger, XString}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Dec. 30, 2025
- *  version Apr. 11, 2026
- * @version Apr. 16, 2026
+ * @version Apr. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 class OpenApiProjectionSpec
@@ -143,6 +142,67 @@ class OpenApiProjectionSpec
               .downField("schema")
 
           constraintsSchema.get[String]("x-constraints").toOption.shouldBe(Some("opaque"))
+        case _ =>
+          fail("expected Success for OpenAPI projection")
+      }
+    }
+
+    "render Blob and Clob schema metadata" in {
+      Given("an operation with Blob and Clob parameters")
+      val operation = OperationDefinition(
+        content = org.goldenport.value.BaseContent.simple("upload"),
+        request = RequestDefinition(
+          parameters = List(
+            ParameterDefinition(
+              content = org.goldenport.value.BaseContent.simple("payload"),
+              kind = ParameterDefinition.Kind.Argument,
+              domain = ValueDomain(datatype = XBlob, multiplicity = Multiplicity.One)
+            ),
+            ParameterDefinition(
+              content = org.goldenport.value.BaseContent.simple("description"),
+              kind = ParameterDefinition.Kind.Property,
+              domain = ValueDomain(datatype = XClob, multiplicity = Multiplicity.ZeroOne)
+            )
+          )
+        ),
+        response = ResponseDefinition.void
+      )
+      val service = ServiceDefinition(
+        name = "blob",
+        operations = OperationDefinitionGroup(NonEmptyVector.of(operation))
+      )
+      val defs = ServiceDefinitionGroup(Vector(service))
+
+      When("projecting OpenAPI")
+      val result = new OpenApiProjection().project(defs)
+
+      Then("Blob is rendered as a binary string and Clob as a string")
+      result match {
+        case Consequence.Success(json) =>
+          val payloadSchema =
+            json.hcursor
+              .downField("paths")
+              .downField("/blob/upload")
+              .downField("post")
+              .downField("requestBody")
+              .downField("content")
+              .downField("application/json")
+              .downField("schema")
+              .downField("properties")
+              .downField("payload")
+          payloadSchema.get[String]("type").toOption.shouldBe(Some("string"))
+          payloadSchema.get[String]("format").toOption.shouldBe(Some("binary"))
+
+          val descriptionSchema =
+            json.hcursor
+              .downField("paths")
+              .downField("/blob/upload")
+              .downField("post")
+              .downField("parameters")
+              .downArray
+              .downField("schema")
+          descriptionSchema.get[String]("type").toOption.shouldBe(Some("string"))
+          descriptionSchema.get[String]("format").toOption.shouldBe(None)
         case _ =>
           fail("expected Success for OpenAPI projection")
       }

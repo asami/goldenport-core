@@ -20,7 +20,7 @@ import org.goldenport.util.Strings
  *  version Dec. 25, 2025
  *  version Jan. 21, 2026
  *  version Feb.  6, 2026
- * @version Apr. 25, 2026
+ * @version Apr. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
@@ -185,6 +185,8 @@ sealed abstract class HttpStatus(val code: Int)
 
 object HttpStatus {
   case object Ok extends HttpStatus(200)
+  case object SeeOther extends HttpStatus(303)
+  case object TemporaryRedirect extends HttpStatus(307)
   case object BadRequest extends HttpStatus(400)
   case object Unauthorized extends HttpStatus(401)
   case object Forbidden extends HttpStatus(403)
@@ -194,6 +196,8 @@ object HttpStatus {
   def fromInt(code: Int): Option[HttpStatus] =
     code match {
       case 200 => Some(Ok)
+      case 303 => Some(SeeOther)
+      case 307 => Some(TemporaryRedirect)
       case 400 => Some(BadRequest)
       case 401 => Some(Unauthorized)
       case 403 => Some(Forbidden)
