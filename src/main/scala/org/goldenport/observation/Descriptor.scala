@@ -21,7 +21,8 @@ import org.goldenport.util.StringUtils
  * @since   Dec. 28, 2025
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
- * @version Mar. 13, 2026
+ *  version Mar. 13, 2026
+ * @version Apr. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -150,6 +151,42 @@ object Descriptor {
       def print: String = s"value:${Presentable.print(value)}"
 
       def toRecord: Record = Record.data("value" -> value)
+    }
+
+    case class FieldPath(path: String) extends Facet {
+      def print: String = s"field-path:${path}"
+
+      def toRecord: Record = Record.data("fieldPath" -> path)
+    }
+
+    case class Expected(value: Any) extends Facet {
+      def print: String = s"expected:${Presentable.print(value)}"
+
+      def toRecord: Record = Record.data("expected" -> value)
+    }
+
+    case class Actual(value: Any) extends Facet {
+      def print: String = s"actual:${Presentable.print(value)}"
+
+      def toRecord: Record = Record.data("actual" -> value)
+    }
+
+    case class Limit(value: Any) extends Facet {
+      def print: String = s"limit:${Presentable.print(value)}"
+
+      def toRecord: Record = Record.data("limit" -> value)
+    }
+
+    case class Policy(name: String) extends Facet {
+      def print: String = s"policy:${name}"
+
+      def toRecord: Record = Record.data("policy" -> name)
+    }
+
+    case class Algorithm(name: String) extends Facet {
+      def print: String = s"algorithm:${name}"
+
+      def toRecord: Record = Record.data("algorithm" -> name)
     }
 
     case class Id(id: String) extends Facet {

@@ -53,7 +53,8 @@ import org.goldenport.id.UniversalId
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
  *  version Mar. 13, 2026
- * @version Apr. 25, 2026
+ *  version Apr. 25, 2026
+ * @version Apr. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -413,6 +414,8 @@ object Consequence {
   }
 
   def toInt(p: String): Consequence[Int] = Consequence(p.toInt)
+
+  def toBoolean(p: String): Consequence[Boolean] = Consequence(p.toBoolean)
 
   def zip3[A, B, C](
     ca: Consequence[A],
@@ -801,6 +804,112 @@ object Consequence {
 
   def argumentInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.fail(Taxonomy.argumentInvalid, Cause.message(message), pos)
+
+  inline def argumentFormatError[A](parameter: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentFormatError(parameter, expected, actual, SourcePositionMacro.position())
+
+  def argumentFormatError[A](parameter: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentFormatError, _argument_cause(Some(Cause.Kind.Format), _parameter_validation_facets(parameter, Some(expected), actual, None, None)), pos)
+
+  inline def argumentFieldFormatError[A](fieldPath: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentFieldFormatError(fieldPath, expected, actual, SourcePositionMacro.position())
+
+  def argumentFieldFormatError[A](fieldPath: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentFormatError, _argument_cause(Some(Cause.Kind.Format), _field_validation_facets(fieldPath, Some(expected), actual, None, None)), pos)
+
+  inline def argumentInvalid[A](parameter: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentInvalid(parameter, expected, actual, SourcePositionMacro.position())
+
+  def argumentInvalid[A](parameter: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(None, _parameter_validation_facets(parameter, Some(expected), actual, None, None)), pos)
+
+  inline def argumentFieldInvalid[A](fieldPath: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentFieldInvalid(fieldPath, expected, actual, SourcePositionMacro.position())
+
+  def argumentFieldInvalid[A](fieldPath: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(None, _field_validation_facets(fieldPath, Some(expected), actual, None, None)), pos)
+
+  inline def argumentLimitExceeded[A](parameter: String, limit: Any, actual: Any, policy: String): Consequence.Failure[A] =
+    argumentLimitExceeded(parameter, limit, actual, policy, SourcePositionMacro.position())
+
+  def argumentLimitExceeded[A](parameter: String, limit: Any, actual: Any, policy: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Limit), _parameter_validation_facets(parameter, None, actual, Some(limit), Some(policy))), pos)
+
+  inline def argumentFieldLimitExceeded[A](fieldPath: String, limit: Any, actual: Any, policy: String): Consequence.Failure[A] =
+    argumentFieldLimitExceeded(fieldPath, limit, actual, policy, SourcePositionMacro.position())
+
+  def argumentFieldLimitExceeded[A](fieldPath: String, limit: Any, actual: Any, policy: String, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Limit), _field_validation_facets(fieldPath, None, actual, Some(limit), Some(policy))), pos)
+
+  inline def argumentPolicyViolation[A](parameter: String, policy: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentPolicyViolation(parameter, policy, expected, actual, SourcePositionMacro.position())
+
+  def argumentPolicyViolation[A](parameter: String, policy: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Policy), _parameter_validation_facets(parameter, Some(expected), actual, None, Some(policy))), pos)
+
+  inline def argumentFieldPolicyViolation[A](fieldPath: String, policy: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentFieldPolicyViolation(fieldPath, policy, expected, actual, SourcePositionMacro.position())
+
+  def argumentFieldPolicyViolation[A](fieldPath: String, policy: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Policy), _field_validation_facets(fieldPath, Some(expected), actual, None, Some(policy))), pos)
+
+  inline def argumentExpectedActualMismatch[A](parameter: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentExpectedActualMismatch(parameter, expected, actual, SourcePositionMacro.position())
+
+  def argumentExpectedActualMismatch[A](parameter: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Inconsistency), _parameter_validation_facets(parameter, Some(expected), actual, None, None)), pos)
+
+  inline def argumentFieldExpectedActualMismatch[A](fieldPath: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentFieldExpectedActualMismatch(fieldPath, expected, actual, SourcePositionMacro.position())
+
+  def argumentFieldExpectedActualMismatch[A](fieldPath: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Inconsistency), _field_validation_facets(fieldPath, Some(expected), actual, None, None)), pos)
+
+  inline def argumentIntegrityMismatch[A](parameter: String, algorithm: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentIntegrityMismatch(parameter, algorithm, expected, actual, SourcePositionMacro.position())
+
+  def argumentIntegrityMismatch[A](parameter: String, algorithm: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Inconsistency), _parameter_validation_facets(parameter, Some(expected), actual, None, None) :+ Descriptor.Facet.Algorithm(algorithm)), pos)
+
+  inline def argumentFieldIntegrityMismatch[A](fieldPath: String, algorithm: String, expected: Any, actual: Any): Consequence.Failure[A] =
+    argumentFieldIntegrityMismatch(fieldPath, algorithm, expected, actual, SourcePositionMacro.position())
+
+  def argumentFieldIntegrityMismatch[A](fieldPath: String, algorithm: String, expected: Any, actual: Any, pos: SourcePosition): Consequence.Failure[A] =
+    Failures.fail(Taxonomy.argumentInvalid, _argument_cause(Some(Cause.Kind.Inconsistency), _field_validation_facets(fieldPath, Some(expected), actual, None, None) :+ Descriptor.Facet.Algorithm(algorithm)), pos)
+
+  private def _argument_cause(kind: Option[Cause.Kind], facets: Vector[Descriptor.Facet]): Cause =
+    Cause(kind, Descriptor(facets))
+
+  private def _parameter_validation_facets(
+    parameter: String,
+    expected: Option[Any],
+    actual: Any,
+    limit: Option[Any],
+    policy: Option[String]
+  ): Vector[Descriptor.Facet] =
+    _validation_facets(Descriptor.Facet.Parameter.argument(parameter), expected, actual, limit, policy)
+
+  private def _field_validation_facets(
+    fieldPath: String,
+    expected: Option[Any],
+    actual: Any,
+    limit: Option[Any],
+    policy: Option[String]
+  ): Vector[Descriptor.Facet] =
+    _validation_facets(Descriptor.Facet.FieldPath(fieldPath), expected, actual, limit, policy)
+
+  private def _validation_facets(
+    target: Descriptor.Facet,
+    expected: Option[Any],
+    actual: Any,
+    limit: Option[Any],
+    policy: Option[String]
+  ): Vector[Descriptor.Facet] =
+    Vector(target) ++
+      policy.map(Descriptor.Facet.Policy.apply).toVector ++
+      limit.map(Descriptor.Facet.Limit.apply).toVector ++
+      expected.map(Descriptor.Facet.Expected.apply).toVector ++
+      Option(actual).map(Descriptor.Facet.Actual.apply).toVector
 
   inline def operationNotFound[A](name: String): Consequence.Failure[A] =
     operationNotFound(name, SourcePositionMacro.position())

@@ -46,7 +46,8 @@ import org.goldenport.util.SmEnum
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
  *  version Mar. 13, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version Apr. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -800,6 +801,8 @@ object Cause {
     case Conflict extends Kind("conflict", 4)
     case Inconsistency extends Kind("inconsistency", 5)
     case Corruption extends Kind("corruption", 6)
+    case Format extends Kind("format", 7)
+    case Policy extends Kind("policy", 8)
     case Unknown extends Kind("unknown", 99)
   }
 
