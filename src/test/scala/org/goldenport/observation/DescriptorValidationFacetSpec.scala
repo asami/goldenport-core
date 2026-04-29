@@ -17,7 +17,12 @@ class DescriptorValidationFacetSpec extends AnyWordSpec with Matchers {
         Descriptor.Facet.Limit(10L),
         Descriptor.Facet.Expected("image/*"),
         Descriptor.Facet.Actual("application/octet-stream"),
-        Descriptor.Facet.Algorithm("sha-256")
+        Descriptor.Facet.Algorithm("sha-256"),
+        Descriptor.Facet.Reason("required-capability"),
+        Descriptor.Facet.Capability("collection:blob:create"),
+        Descriptor.Facet.Permission("execute"),
+        Descriptor.Facet.Guard("abac-condition"),
+        Descriptor.Facet.Relation("owner")
       )).toRecord
 
       record.getString("fieldPath") shouldBe Some("payload.byteSize")
@@ -26,6 +31,11 @@ class DescriptorValidationFacetSpec extends AnyWordSpec with Matchers {
       record.getString("expected") shouldBe Some("image/*")
       record.getString("actual") shouldBe Some("application/octet-stream")
       record.getString("algorithm") shouldBe Some("sha-256")
+      record.getString("reason") shouldBe Some("required-capability")
+      record.getString("capability") shouldBe Some("collection:blob:create")
+      record.getString("permission") shouldBe Some("execute")
+      record.getString("guard") shouldBe Some("abac-condition")
+      record.getString("relation") shouldBe Some("owner")
     }
   }
 }

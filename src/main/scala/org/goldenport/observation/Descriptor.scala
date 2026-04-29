@@ -189,6 +189,36 @@ object Descriptor {
       def toRecord: Record = Record.data("algorithm" -> name)
     }
 
+    case class Reason(name: String) extends Facet {
+      def print: String = s"reason:${name}"
+
+      def toRecord: Record = Record.data("reason" -> name)
+    }
+
+    case class Capability(name: String) extends Facet {
+      def print: String = s"capability:${name}"
+
+      def toRecord: Record = Record.data("capability" -> name)
+    }
+
+    case class Permission(name: String) extends Facet {
+      def print: String = s"permission:${name}"
+
+      def toRecord: Record = Record.data("permission" -> name)
+    }
+
+    case class Guard(name: String) extends Facet {
+      def print: String = s"guard:${name}"
+
+      def toRecord: Record = Record.data("guard" -> name)
+    }
+
+    case class Relation(name: String) extends Facet {
+      def print: String = s"relation:${name}"
+
+      def toRecord: Record = Record.data("relation" -> name)
+    }
+
     case class Id(id: String) extends Facet {
       def print: String = s"id:${id}"
 

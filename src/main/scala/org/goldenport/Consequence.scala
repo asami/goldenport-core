@@ -1227,6 +1227,25 @@ object Consequence {
   ): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.securityPermissionDenied(message, facets).withSourcePosition(pos))
 
+  inline def securityPermissionDenied[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    securityPermissionDenied(message, kind, facets, SourcePositionMacro.position())
+
+  def securityPermissionDenied[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] = {
+    val conclusion = Conclusion.securityPermissionDenied(message, facets)
+    val cause = conclusion.observation.cause.copy(kind = Some(kind))
+    val observation = conclusion.observation.copy(cause = cause)
+    Consequence.Failure(conclusion.copy(observation = observation).withSourcePosition(pos))
+  }
+
   @deprecated("Use semantic Consequence utilities instead.", "Apr. 14, 2026")
   def failUnreachableReached: Consequence.Failure[Nothing] =
     Failures.unreachableReached

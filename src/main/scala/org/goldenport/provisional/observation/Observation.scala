@@ -803,6 +803,10 @@ object Cause {
     case Corruption extends Kind("corruption", 6)
     case Format extends Kind("format", 7)
     case Policy extends Kind("policy", 8)
+    case Capability extends Kind("capability", 9)
+    case Permission extends Kind("permission", 10)
+    case Guard extends Kind("guard", 11)
+    case Relation extends Kind("relation", 12)
     case Unknown extends Kind("unknown", 99)
   }
 

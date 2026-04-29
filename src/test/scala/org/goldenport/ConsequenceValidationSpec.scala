@@ -69,6 +69,24 @@ class ConsequenceValidationSpec extends AnyWordSpec with Matchers {
       facets.collect { case x: Descriptor.Facet.Expected => x } shouldBe Nil
     }
 
+
+
+    "preserve public Cause.Kind numeric values while appending diagnostics kinds" in {
+      Cause.Kind.Limit.value shouldBe 1
+      Cause.Kind.Exhaustion.value shouldBe 2
+      Cause.Kind.Timeout.value shouldBe 3
+      Cause.Kind.Conflict.value shouldBe 4
+      Cause.Kind.Inconsistency.value shouldBe 5
+      Cause.Kind.Corruption.value shouldBe 6
+      Cause.Kind.Format.value shouldBe 7
+      Cause.Kind.Policy.value shouldBe 8
+      Cause.Kind.Capability.value shouldBe 9
+      Cause.Kind.Permission.value shouldBe 10
+      Cause.Kind.Guard.value shouldBe 11
+      Cause.Kind.Relation.value shouldBe 12
+      Cause.Kind.Unknown.value shouldBe 99
+    }
+
     "create integrity mismatch failures" in {
       val result = Consequence.argumentIntegrityMismatch[String](
         "expectedDigest",
