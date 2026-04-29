@@ -6,8 +6,7 @@ import org.scalatest.matchers.should.Matchers
 
 /*
  * @since   Jan. 10, 2026
- *  version Jan. 10, 2026
- * @version Apr. 14, 2026
+ * @version Apr. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceTSpec
@@ -58,6 +57,35 @@ class ConsequenceTSpec
 
       called shouldBe 0
       result.value shouldBe failure.value
+    }
+  }
+
+  "ConsequenceT.guarantee" should {
+    "evaluate the finalizer after Success" in {
+      var finalized = false
+      val result = ConsequenceT
+        .pure[Id, Int](1)
+        .guarantee {
+          finalized = true
+          ConsequenceT.pure[Id, Unit](())
+        }
+
+      finalized shouldBe true
+      result.value shouldBe Consequence.Success(1)
+    }
+
+    "evaluate the finalizer after Failure and keep the original failure" in {
+      var finalized = false
+      val source = Consequence.operationInvalid[Int]("boom")
+      val result = ConsequenceT
+        .fromConsequence[Id, Int](source)
+        .guarantee {
+          finalized = true
+          ConsequenceT.pure[Id, Unit](())
+        }
+
+      finalized shouldBe true
+      result.value shouldBe source
     }
   }
 }

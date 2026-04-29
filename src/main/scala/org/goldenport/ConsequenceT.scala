@@ -4,8 +4,8 @@ import cats.{Applicative, Functor, Monad}
 
 /*
  * @since   Jan. 10, 2026
- *  version Jan. 10, 2026
- * @version Feb. 27, 2026
+ *  version Feb. 27, 2026
+ * @version Apr. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class ConsequenceT[F[_], A](
@@ -75,5 +75,22 @@ extension [F[_], A](self: ConsequenceT[F, A])
           f(a).value
         case e @ Consequence.Failure(_) =>
           Monad[F].pure(e.asInstanceOf[Consequence[B]])
+      }
+    )
+
+  def guarantee(finalizer: => ConsequenceT[F, Unit])(using Monad[F]): ConsequenceT[F, A] =
+    ConsequenceT(
+      Monad[F].flatMap(self.value) { result =>
+        Functor[F].map(finalizer.value) {
+          case Consequence.Success(_) =>
+            result
+          case Consequence.Failure(cleanup) =>
+            result match {
+              case Consequence.Success(_) =>
+                Consequence.Failure(cleanup)
+              case Consequence.Failure(original) =>
+                Consequence.Failure(original ++ cleanup)
+            }
+        }
       }
     )
