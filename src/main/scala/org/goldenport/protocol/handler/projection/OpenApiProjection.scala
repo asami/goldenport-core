@@ -8,7 +8,7 @@ import org.goldenport.schema.*
 
 /*
  * @since   Dec. 30, 2025
- * @version Apr. 26, 2026
+ * @version Apr. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 case object OpenApi extends ProjectionKind[Json] {
@@ -116,6 +116,7 @@ class OpenApiProjection extends Projection[Json] {
       p.datatype match {
         case XString => "string"
         case XBlob => "string"
+        case XFileBundle => "string"
         case XClob => "string"
         case XNonNegativeInteger => "integer"
         case XPositiveInteger => "integer"
@@ -133,6 +134,7 @@ class OpenApiProjection extends Projection[Json] {
         case XLocalDateTime => Some("date-time")
         case XYearMonth => Some("year-month")
         case XBlob => Some("binary")
+        case XFileBundle => Some("binary")
         case _ => None
       }
 

@@ -8,7 +8,7 @@ import org.scalatest.wordspec.AnyWordSpec
  * Executable specification for binary and character large object datatypes.
  *
  * @since   Apr. 26, 2026
- * @version Apr. 26, 2026
+ * @version Apr. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 final class BlobClobDataTypeSpec
@@ -22,6 +22,8 @@ final class BlobClobDataTypeSpec
       Then("Blob and Clob have stable public names")
       XBlob.name shouldBe "blob"
       XBlob.print shouldBe "blob"
+      XFileBundle.name shouldBe "filebundle"
+      XFileBundle.print shouldBe "filebundle"
       XClob.name shouldBe "clob"
       XClob.print shouldBe "clob"
     }

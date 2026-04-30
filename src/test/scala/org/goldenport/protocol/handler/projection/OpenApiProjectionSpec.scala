@@ -5,14 +5,14 @@ import io.circe.Json
 import org.goldenport.Consequence
 import org.goldenport.protocol.handler.projection.OpenApiProjection
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ParameterDefinition, RequestDefinition, ResponseDefinition, ServiceDefinition, ServiceDefinitionGroup}
-import org.goldenport.schema.{Constraint, Multiplicity, ValueDomain, WebColumn, WebValidationHints, XBlob, XClob, XNonNegativeInteger, XString}
+import org.goldenport.schema.{Constraint, Multiplicity, ValueDomain, WebColumn, WebValidationHints, XBlob, XClob, XFileBundle, XNonNegativeInteger, XString}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Dec. 30, 2025
- * @version Apr. 26, 2026
+ * @version Apr. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 class OpenApiProjectionSpec
@@ -147,8 +147,8 @@ class OpenApiProjectionSpec
       }
     }
 
-    "render Blob and Clob schema metadata" in {
-      Given("an operation with Blob and Clob parameters")
+    "render Blob, FileBundle, and Clob schema metadata" in {
+      Given("an operation with Blob, FileBundle, and Clob parameters")
       val operation = OperationDefinition(
         content = org.goldenport.value.BaseContent.simple("upload"),
         request = RequestDefinition(
@@ -157,6 +157,11 @@ class OpenApiProjectionSpec
               content = org.goldenport.value.BaseContent.simple("payload"),
               kind = ParameterDefinition.Kind.Argument,
               domain = ValueDomain(datatype = XBlob, multiplicity = Multiplicity.One)
+            ),
+            ParameterDefinition(
+              content = org.goldenport.value.BaseContent.simple("bundle"),
+              kind = ParameterDefinition.Kind.Argument,
+              domain = ValueDomain(datatype = XFileBundle, multiplicity = Multiplicity.One)
             ),
             ParameterDefinition(
               content = org.goldenport.value.BaseContent.simple("description"),
@@ -176,7 +181,7 @@ class OpenApiProjectionSpec
       When("projecting OpenAPI")
       val result = new OpenApiProjection().project(defs)
 
-      Then("Blob is rendered as a binary string and Clob as a string")
+      Then("Blob and FileBundle are rendered as binary strings and Clob as a string")
       result match {
         case Consequence.Success(json) =>
           val payloadSchema =
@@ -192,6 +197,20 @@ class OpenApiProjectionSpec
               .downField("payload")
           payloadSchema.get[String]("type").toOption.shouldBe(Some("string"))
           payloadSchema.get[String]("format").toOption.shouldBe(Some("binary"))
+
+          val bundleSchema =
+            json.hcursor
+              .downField("paths")
+              .downField("/blob/upload")
+              .downField("post")
+              .downField("requestBody")
+              .downField("content")
+              .downField("application/json")
+              .downField("schema")
+              .downField("properties")
+              .downField("bundle")
+          bundleSchema.get[String]("type").toOption.shouldBe(Some("string"))
+          bundleSchema.get[String]("format").toOption.shouldBe(Some("binary"))
 
           val descriptionSchema =
             json.hcursor

@@ -47,7 +47,7 @@ import org.goldenport.text.Presentable
  *  version Dec. 29, 2025
  *  version Jan. 29, 2026
  *  version Feb. 19, 2026
- * @version Apr. 26, 2026
+ * @version Apr. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -116,6 +116,10 @@ case object XDecimal extends DataType {
 
 case object XBlob extends DataType {
   def name = "blob"
+}
+
+case object XFileBundle extends DataType {
+  def name = "filebundle"
 }
 
 case object XClob extends DataType {
