@@ -16,7 +16,7 @@ import org.goldenport.record.io.RecordEncoder
  * @since   Jan.  1, 2026
  *  version Jan.  3, 2026
  *  version Jan. 21, 2026
- * @version Mar. 31, 2026
+ * @version Apr. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Response extends Presentable {
@@ -64,6 +64,20 @@ object Response {
     def print = value
     override def display: String = value
     override def show: String = value
+  }
+
+  final case class Content(
+    override val contentType: ContentType,
+    bag: Bag
+  ) extends Response {
+    def mimeType = contentType.mimeType
+    override def charset: Option[Charset] = contentType.charset
+    def print: String = bag match {
+      case t: TextBag => t.toTextUnsafe
+      case _ => show
+    }
+    override def display: String = print
+    override def show: String = s"Content(${contentType.header})"
   }
 
   /**

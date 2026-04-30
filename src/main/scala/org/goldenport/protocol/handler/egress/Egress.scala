@@ -16,8 +16,7 @@ import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, Res
  *  version Jan. 28, 2026
  *  version Feb. 15, 2026
  *  version Mar. 29, 2026
- *  version Apr. 10, 2026
- * @version Apr. 14, 2026
+ * @version Apr. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Egress[Out] {
@@ -99,6 +98,14 @@ final case class RestEgress() extends Egress[HttpResponse] {
   ): HttpResponse = {
     val _ = op
     res match {
+      case Response.Content(contentType, bag) => bag match {
+        case text: org.goldenport.bag.TextBag =>
+          HttpResponse.Text(HttpStatus.Ok, contentType, text)
+        case binary: org.goldenport.bag.BinaryBag =>
+          HttpResponse.Binary(HttpStatus.Ok, contentType, binary)
+        case other =>
+          HttpResponse.Binary(HttpStatus.Ok, contentType, other.promoteToBinary())
+      }
       case m: TextResponse => HttpResponse.Text(
         HttpStatus.Ok,
         m.contentType,
