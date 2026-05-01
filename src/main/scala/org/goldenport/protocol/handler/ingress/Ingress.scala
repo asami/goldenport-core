@@ -23,7 +23,8 @@ import org.goldenport.http.HttpRequest
  *  version Jan.  2, 2026
  *  version Jan. 28, 2026
  *  version Apr. 11, 2026
- * @version Apr. 27, 2026
+ *  version Apr. 27, 2026
+ * @version May.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -37,6 +38,33 @@ object Ingress {
       Argument(field.key, field.value.single, None)
     }.toList
 
+  def recordToParameters(
+    op: OperationDefinition,
+    record: org.goldenport.record.Record
+  ): (List[Argument], List[Switch], List[Property]) = {
+    val definitions = op.specification.request.parameters
+    val switchnames = _name_map(definitions, ParameterDefinition.Kind.Switch)
+    val propertynames = _name_map(definitions, ParameterDefinition.Kind.Property)
+    val argumentnames = _name_map(definitions, ParameterDefinition.Kind.Argument)
+    record.fields.foldLeft((List.empty[Argument], List.empty[Switch], List.empty[Property])) {
+      case ((arguments, switches, properties), field) =>
+        val key = field.key
+        val value = field.value.single
+        switchnames.get(key) match {
+          case Some(name) =>
+            (arguments, switches :+ Switch(name, _boolean_value(value), None), properties)
+          case None =>
+            argumentnames.get(key) match {
+              case Some(name) =>
+                (arguments :+ Argument(name, value, None), switches, properties)
+              case None =>
+                val name = propertynames.getOrElse(key, key)
+                (arguments, switches, properties :+ Property(name, value, None))
+            }
+        }
+    }
+  }
+
   def recordToStringArguments(record: org.goldenport.record.Record): List[Argument] =
     record.asNameStringVector.map {
       case (k, v) => Argument(k, v, None)
@@ -47,6 +75,26 @@ object Ingress {
     values.zipWithIndex.map {
       case (v, i) => Argument(s"param${i + 1}", v, None)
     }.toList
+
+  private def _boolean_value(value: Any): Boolean =
+    value match {
+      case b: Boolean => b
+      case s: String =>
+        s.trim.toLowerCase(java.util.Locale.ROOT) match {
+          case "true" | "yes" | "on" | "1" => true
+          case _ => false
+        }
+      case n: java.lang.Number => n.intValue != 0
+      case _ => false
+    }
+
+  private def _name_map(
+    definitions: List[ParameterDefinition],
+    kind: ParameterDefinition.Kind
+  ): Map[String, String] =
+    definitions.collect {
+      case p if p.kind == kind => p.names.map(_ -> p.name)
+    }.flatten.toMap
 }
 
 final case class IngressCollection(
@@ -506,10 +554,10 @@ abstract class RestIngress extends Ingress[HttpRequest] {
           case HttpRequest.DELETE  => req.query
         }
 
-      val arguments =
-        Ingress.recordToArguments(inputs)
+      val (arguments, switches, properties0) =
+        Ingress.recordToParameters(op, inputs)
       val properties =
-        req.header.asNameStringVector.map {
+        properties0 ++ req.header.asNameStringVector.map {
           case (k, v) => Property(k, v, None)
         }.toList
 
@@ -519,7 +567,7 @@ abstract class RestIngress extends Ingress[HttpRequest] {
           service = None,
           operation = op.name,
           arguments = arguments,
-          switches = Nil,
+          switches = switches,
           properties = properties
         )
       )
