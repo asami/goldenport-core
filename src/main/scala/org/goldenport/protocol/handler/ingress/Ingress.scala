@@ -24,7 +24,7 @@ import org.goldenport.http.HttpRequest
  *  version Jan. 28, 2026
  *  version Apr. 11, 2026
  *  version Apr. 27, 2026
- * @version May.  1, 2026
+ * @version May.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -58,8 +58,12 @@ object Ingress {
               case Some(name) =>
                 (arguments :+ Argument(name, value, None), switches, properties)
               case None =>
-                val name = propertynames.getOrElse(key, key)
-                (arguments, switches, properties :+ Property(name, value, None))
+                propertynames.get(key) match {
+                  case Some(name) =>
+                    (arguments, switches, properties :+ Property(name, value, None))
+                  case None =>
+                    (arguments :+ Argument(key, value, None), switches, properties)
+                }
             }
         }
     }

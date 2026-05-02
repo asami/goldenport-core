@@ -14,7 +14,8 @@ import org.goldenport.datatype.PathName
  *  version Feb. 28, 2026
  *  version Mar. 31, 2026
  *  version Apr.  8, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version May.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -25,6 +26,7 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
   def getAs[T](key: String)(using reader: ValueReader[T]): Option[T] =
     fields.find(_.key == key).flatMap { field =>
       field.value match {
+        case Field.Value.Single(v) if java.util.Objects.isNull(v) => None
         case Field.Value.Single(v) => reader.read(v)
       }
     }
@@ -33,6 +35,7 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     fields.find(_.key == key) match {
       case None => Consequence.none
       case Some(field) => field.value match {
+        case Field.Value.Single(v) if java.util.Objects.isNull(v) => Consequence.none
         case Field.Value.Single(v) => reader.readC(v).map(Some.apply)
       }
     }
@@ -49,8 +52,12 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     }
 
   def getAny(key: String): Option[Any] =
-    fields.find(_.key == key).map {
-      case field => field.value.single
+    fields.find(_.key == key).flatMap { field =>
+      val value = field.value.single
+      if (java.util.Objects.isNull(value))
+        None
+      else
+        Some(value)
     }
 
   def getFirst(keys: Seq[String]): Option[Any] =
@@ -58,10 +65,23 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
 
   def keySet: Set[String] = asMap.keySet
 
-  lazy val asMap: Map[String, Any] = fields.map(x => (x.key, x.value.single)).toMap
+  lazy val asMap: Map[String, Any] =
+    fields.flatMap { x =>
+      val value = x.value.single
+      if (java.util.Objects.isNull(value))
+        None
+      else
+        Some(x.key -> value)
+    }.toMap
 
   def asNameStringVector: Vector[(String, String)] =
-    fields.map(x => x.key -> x.value.single.toString)
+    fields.flatMap { x =>
+      val value = x.value.single
+      if (java.util.Objects.isNull(value))
+        None
+      else
+        Some(x.key -> value.toString)
+    }
 
   def ++(rhs: Record): Record = copy(fields = fields ++ rhs.fields)
 
@@ -137,10 +157,10 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     }
 
   def getStringVector(key: String): Option[Vector[String]] =
-    getVector(key).map(_.map(_to_string))
+    getVector(key).map(_.flatMap(_to_string_option))
 
   def getString(path: PathName): Option[String] =
-    _value_for_segments(path.segments).map(_to_string)
+    _value_for_segments(path.segments).flatMap(_to_string_option)
 
   private def _value_for_segments(segments: Vector[String]): Option[Any] =
     segments match {
@@ -148,13 +168,16 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
       case _ =>
         val pathKey = segments.mkString("/")
         asMap.get(pathKey) match {
-          case Some(value) => Some(value)
+          case Some(value) if !java.util.Objects.isNull(value) => Some(value)
+          case Some(_) => None
           case None =>
             fields.find(_.key == segments.head).flatMap { field =>
               val value = field.value match {
                 case Field.Value.Single(v) => v
               }
-              if (segments.tail.isEmpty)
+              if (java.util.Objects.isNull(value))
+                None
+              else if (segments.tail.isEmpty)
                 Some(value)
               else
                 value match {
@@ -165,7 +188,14 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
         }
     }
 
-  private def _to_string(p: Any): String = p.toString // TODO
+  private def _to_string(p: Any): String =
+    _to_string_option(p).getOrElse("")
+
+  private def _to_string_option(p: Any): Option[String] =
+    if (java.util.Objects.isNull(p))
+      None
+    else
+      Some(p.toString)
 
   private def _record_as[T](reader: ValueReader[T]): Option[T] =
     reader.read(asMap)
@@ -188,6 +218,7 @@ object Record {
 
   def create(xs: Seq[(String, Any)]): Record = {
     val a = xs.flatMap {
+      case (_, v) if java.util.Objects.isNull(v) => None
       case (k, v) => v match {
         case m: Record if m.isEmpty => None
         case _ => Some(Field(k, Field.Value.Single(v)))
@@ -213,6 +244,7 @@ object Record {
 
   def dataAuto(xs: (String, Any)*): Record = {
     val a = xs.flatMap {
+      case (_, v) if java.util.Objects.isNull(v) => None
       case (k, v) => v match {
         case Some(s) => Some(k -> s)
         case None => None
