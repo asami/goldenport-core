@@ -1,11 +1,13 @@
 package org.goldenport.schema
 
+import java.nio.charset.Charset
 import java.time.{LocalDateTime, OffsetDateTime, YearMonth, ZonedDateTime}
 import scala.util.Try
 import org.goldenport.{Conclusion, Consequence}
-import org.goldenport.datatype.I18nMessage
+import org.goldenport.datatype.{I18nMessage, MimeType}
 import org.goldenport.provisional.observation.Cause
 import org.goldenport.text.Presentable
+import org.goldenport.value.{ContentBody, ContentMarkup}
 
 /*
  * Datatype reference used by schema definitions.
@@ -47,7 +49,8 @@ import org.goldenport.text.Presentable
  *  version Dec. 29, 2025
  *  version Jan. 29, 2026
  *  version Feb. 19, 2026
- * @version Apr. 30, 2026
+ *  version Apr. 30, 2026
+ * @version May.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -124,6 +127,66 @@ case object XFileBundle extends DataType {
 
 case object XClob extends DataType {
   def name = "clob"
+}
+
+case class MimeTypeNormalizer(datatype: DataType) extends CanonicalNormalizer[MimeType] {
+  def normalize(value: Any): Consequence[MimeType] =
+    value match {
+      case v: MimeType => Consequence.success(v)
+      case v: String if v.trim.nonEmpty => Consequence.success(MimeType(v.trim))
+      case _ => fail_value_invalid(value)
+    }
+}
+
+case object XMimeType extends CanonicalDataType[MimeType] {
+  def name = "mimetype"
+  def normalizer: CanonicalNormalizer[MimeType] = MimeTypeNormalizer(this)
+}
+
+case class CharsetNormalizer(datatype: DataType) extends CanonicalNormalizer[Charset] {
+  def normalize(value: Any): Consequence[Charset] =
+    value match {
+      case v: Charset => Consequence.success(v)
+      case v: String if v.trim.nonEmpty =>
+        Try(Charset.forName(v.trim)) match {
+          case scala.util.Success(result) => Consequence.success(result)
+          case scala.util.Failure(_) => fail_value_format_error(value)
+        }
+      case _ => fail_value_invalid(value)
+    }
+}
+
+case object XCharset extends CanonicalDataType[Charset] {
+  def name = "charset"
+  def normalizer: CanonicalNormalizer[Charset] = CharsetNormalizer(this)
+}
+
+case class ContentBodyNormalizer(datatype: DataType) extends CanonicalNormalizer[ContentBody] {
+  def normalize(value: Any): Consequence[ContentBody] =
+    value match {
+      case v: ContentBody => Consequence.success(v)
+      case v: String => Consequence.success(ContentBody(v))
+      case _ => fail_value_invalid(value)
+    }
+}
+
+case object XContentBody extends CanonicalDataType[ContentBody] {
+  def name = "contentbody"
+  def normalizer: CanonicalNormalizer[ContentBody] = ContentBodyNormalizer(this)
+}
+
+case class ContentMarkupNormalizer(datatype: DataType) extends CanonicalNormalizer[ContentMarkup] {
+  def normalize(value: Any): Consequence[ContentMarkup] =
+    value match {
+      case v: ContentMarkup => Consequence.success(v)
+      case v: String => ContentMarkup.parseC(v)
+      case _ => fail_value_invalid(value)
+    }
+}
+
+case object XContentMarkup extends CanonicalDataType[ContentMarkup] {
+  def name = "contentmarkup"
+  def normalizer: CanonicalNormalizer[ContentMarkup] = ContentMarkupNormalizer(this)
 }
 
 case class ZonedDateTimeNormalizer(datatype: DataType) extends CanonicalNormalizer[ZonedDateTime] {

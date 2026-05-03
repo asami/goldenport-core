@@ -1,8 +1,10 @@
 package org.goldenport.value
 
+import java.nio.charset.{Charset, StandardCharsets}
+import scala.util.Try
 import org.goldenport.Consequence
 import org.goldenport.convert.ValueReader
-import org.goldenport.datatype.I18nText
+import org.goldenport.datatype.{I18nText, MimeType}
 import org.goldenport.record.Record
 import org.goldenport.record.RecordPresentable
 import org.goldenport.schema.XString
@@ -11,9 +13,67 @@ import org.goldenport.schema.XString
  * SimpleEntity content body and derived content-reference index.
  *
  * @since   May.  3, 2026
- * @version May.  3, 2026
+ * @version May.  4, 2026
  * @author  ASAMI, Tomoharu
  */
+final case class ContentBody(value: String) {
+  def print: String = value
+  override def toString: String = value
+}
+
+object ContentBody {
+  given ValueReader[ContentBody] with {
+    def readC(v: Any): Consequence[ContentBody] = v match {
+      case m: ContentBody => Consequence.success(m)
+      case m: I18nText => Consequence.success(ContentBody(m.toI18nString.displayMessage))
+      case m: String => Consequence.success(ContentBody(m))
+      case m: Record =>
+        _string(m, "value", "content")
+          .map(s => Consequence.success(ContentBody(s)))
+          .getOrElse(Consequence.failValueInvalid(v, XString))
+      case _ => Consequence.failValueInvalid(v, XString)
+    }
+  }
+
+  private def _string(record: Record, names: String*): Option[String] =
+    names.iterator.flatMap(record.getAny).map {
+      case Some(v) => v.toString
+      case v => v.toString
+    }.nextOption()
+}
+
+enum ContentMarkup(val value: String) {
+  case HtmlFragment extends ContentMarkup("html-fragment")
+  case MarkdownGfm extends ContentMarkup("markdown-gfm")
+  case SmartDox extends ContentMarkup("smartdox")
+
+  def print: String = value
+  override def toString: String = value
+}
+
+object ContentMarkup {
+  def parseC(value: String): Consequence[ContentMarkup] =
+    parseOption(value).map(Consequence.success).getOrElse(Consequence.failValueInvalid(value, XString))
+
+  def parseOption(value: String): Option[ContentMarkup] =
+    Option(value).map(_.trim.toLowerCase(java.util.Locale.ROOT)).flatMap {
+      case "html-fragment" | "htmlfragment" | "html" => Some(HtmlFragment)
+      case "markdown-gfm" | "markdowngfm" | "gfm" | "markdown" => Some(MarkdownGfm)
+      case "smartdox" | "smart-dox" => Some(SmartDox)
+      case _ => None
+    }
+
+  given ValueReader[ContentMarkup] with {
+    def readC(v: Any): Consequence[ContentMarkup] = v match {
+      case m: ContentMarkup => Consequence.success(m)
+      case m: String => parseC(m)
+      case m: Record =>
+        m.getString("value").map(parseC).getOrElse(Consequence.failValueInvalid(v, XString))
+      case _ => Consequence.failValueInvalid(v, XString)
+    }
+  }
+}
+
 case class ContentReferenceOccurrence(
   contentField: Option[String] = None,
   markup: Option[String] = None,
@@ -100,18 +160,33 @@ object ContentReferenceOccurrence {
 }
 
 case class ContentAttributes(
-  content: Option[I18nText] = None,
-  mimeType: Option[String] = None,
-  markup: Option[String] = None,
+  content: Option[ContentBody] = None,
+  mimeType: Option[MimeType] = None,
+  charset: Option[Charset] = None,
+  markup: Option[ContentMarkup] = None,
   references: Vector[ContentReferenceOccurrence] = Vector.empty
 ) extends RecordPresentable {
   def toRecord(): Record =
     Record.dataAuto(
-      "content" -> content.map(_.toI18nString.displayMessage),
-      "mime_type" -> mimeType,
-      "markup" -> markup,
+      "content" -> content.map(_.value),
+      "mime_type" -> mimeType.map(_.print),
+      "charset" -> charset.map(_.name()),
+      "markup" -> markup.map(_.value),
       "references" -> references.map(_.toRecord())
     )
+
+  def contentText: Option[String] =
+    content.map(_.value)
+
+  def effectiveCharset: Charset =
+    charset.getOrElse(StandardCharsets.UTF_8)
+
+  def effectiveMimeType: MimeType =
+    mimeType.orElse(markup.flatMap {
+      case ContentMarkup.HtmlFragment => Some(MimeType.TEXT_HTML)
+      case ContentMarkup.MarkdownGfm => Some(MimeType.TEXT_MARKDOWN)
+      case ContentMarkup.SmartDox => None
+    }).getOrElse(MimeType.TEXT_PLAIN)
 }
 
 object ContentAttributes {
@@ -121,34 +196,42 @@ object ContentAttributes {
   trait Holder {
     protected def content_Attributes: ContentAttributes
 
-    def content: Option[I18nText] = content_Attributes.content
-    def contentMimeType: Option[String] = content_Attributes.mimeType
-    def contentMarkup: Option[String] = content_Attributes.markup
+    def content: Option[ContentBody] = content_Attributes.content
+    def contentMimeType: Option[MimeType] = content_Attributes.mimeType
+    def contentCharset: Option[Charset] = content_Attributes.charset
+    def contentMarkup: Option[ContentMarkup] = content_Attributes.markup
     def contentReferences: Vector[ContentReferenceOccurrence] = content_Attributes.references
   }
 
   trait BareHolder {
     protected def content_Attributes: ContentAttributes
 
-    def contentText: Option[String] = content_Attributes.content.map(_.toI18nString.displayMessage)
-    def contentMimeType: Option[String] = content_Attributes.mimeType
-    def contentMarkup: Option[String] = content_Attributes.markup
+    def contentText: Option[String] = content_Attributes.contentText
+    def contentMimeType: Option[MimeType] = content_Attributes.mimeType
+    def contentCharset: Option[Charset] = content_Attributes.charset
+    def contentMarkup: Option[ContentMarkup] = content_Attributes.markup
     def contentReferences: Vector[ContentReferenceOccurrence] = content_Attributes.references
   }
 
   case class Builder(
     contentAttributes: Option[ContentAttributes] = None,
-    content: Option[I18nText] = None,
-    mimeType: Option[String] = None,
-    markup: Option[String] = None,
+    content: Option[ContentBody] = None,
+    mimeType: Option[MimeType] = None,
+    charset: Option[Charset] = None,
+    markup: Option[ContentMarkup] = None,
     references: Option[Vector[ContentReferenceOccurrence]] = None
   ) {
     def withContentAttributes(p: ContentAttributes): Builder = copy(contentAttributes = Some(p))
-    def withContent(p: I18nText): Builder = copy(content = Some(p))
-    def withContent(p: String): Builder = copy(content = Some(I18nText(p)))
-    def withMimeType(p: String): Builder = copy(mimeType = Some(p))
+    def withContent(p: ContentBody): Builder = copy(content = Some(p))
+    def withContent(p: I18nText): Builder = withContent(ContentBody(p.toI18nString.displayMessage))
+    def withContent(p: String): Builder = withContent(ContentBody(p))
+    def withMimeType(p: MimeType): Builder = copy(mimeType = Some(p))
+    def withMimeType(p: String): Builder = withMimeType(MimeType(p))
     def withContentType(p: String): Builder = withMimeType(p)
-    def withMarkup(p: String): Builder = copy(markup = Some(p))
+    def withCharset(p: Charset): Builder = copy(charset = Some(p))
+    def withCharset(p: String): Builder = copy(charset = Some(Charset.forName(p)))
+    def withMarkup(p: ContentMarkup): Builder = copy(markup = Some(p))
+    def withMarkup(p: String): Builder = copy(markup = ContentMarkup.parseOption(p))
     def withReferences(p: Vector[ContentReferenceOccurrence]): Builder = copy(references = Some(p))
 
     def build(): ContentAttributes = {
@@ -156,6 +239,7 @@ object ContentAttributes {
       base.copy(
         content = content.orElse(base.content),
         mimeType = mimeType.orElse(base.mimeType),
+        charset = charset.orElse(base.charset),
         markup = markup.orElse(base.markup),
         references = references.getOrElse(base.references)
       )
@@ -171,17 +255,23 @@ object ContentAttributes {
     def readC(v: Any): Consequence[ContentAttributes] = v match {
       case m: ContentAttributes => Consequence.success(m)
       case m: Record => createC(m)
-      case s: String => Consequence.success(ContentAttributes(content = Some(I18nText(s))))
+      case s: String => Consequence.success(ContentAttributes(content = Some(ContentBody(s))))
       case _ => Consequence.failValueInvalid(v, XString)
     }
   }
 
   def createC(record: Record): Consequence[ContentAttributes] =
-    _references(record).map { refs =>
+    for {
+      refs <- _references(record)
+      mime <- _mime_type(record, "contentMimeType", "content_mime_type", "mimeType", "mime_type", "contentType", "content_type")
+      charset <- _charset(record, "contentCharset", "content_charset", "charset")
+      markup <- _markup(record, "contentMarkup", "content_markup", "markup")
+    } yield {
       ContentAttributes(
-        content = _string(record, "content").map(I18nText(_)),
-        mimeType = _string(record, "mimeType", "mime_type", "contentType", "content_type"),
-        markup = _string(record, "markup"),
+        content = _string(record, "content").map(ContentBody(_)),
+        mimeType = mime,
+        charset = charset,
+        markup = markup,
         references = refs
       )
     }
@@ -213,4 +303,42 @@ object ContentAttributes {
       case Some(v) => v.toString
       case v => v.toString
     }.map(_.trim).filter(_.nonEmpty).nextOption()
+
+  private def _mime_type(record: Record, names: String*): Consequence[Option[MimeType]] =
+    names.iterator.flatMap(record.getAny).map {
+      case Some(v) => v
+      case v => v
+    }.nextOption() match {
+      case Some(m: MimeType) => Consequence.success(Some(m))
+      case Some(s) => Consequence.success(Some(MimeType(s.toString.trim)))
+      case None => Consequence.success(None)
+    }
+
+  private def _charset(record: Record, names: String*): Consequence[Option[Charset]] =
+    names.iterator.flatMap(record.getAny).map {
+      case Some(v) => v
+      case v => v
+    }.nextOption() match {
+      case Some(m: Charset) => Consequence.success(Some(m))
+      case Some(s) =>
+        Try(Charset.forName(s.toString.trim)).toOption match {
+          case Some(cs) => Consequence.success(Some(cs))
+          case None => Consequence.failValueInvalid(s, XString)
+        }
+      case None => Consequence.success(None)
+    }
+
+  private def _markup(record: Record, names: String*): Consequence[Option[ContentMarkup]] =
+    names.iterator.flatMap(record.getAny).map {
+      case Some(v) => v
+      case v => v
+    }.nextOption() match {
+      case Some(m: ContentMarkup) => Consequence.success(Some(m))
+      case Some(s) =>
+        ContentMarkup.parseOption(s.toString.trim) match {
+          case Some(markup) => Consequence.success(Some(markup))
+          case None => Consequence.failValueInvalid(s, XString)
+        }
+      case None => Consequence.success(None)
+    }
 }
