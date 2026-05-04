@@ -79,7 +79,7 @@ object DoxHtmlRenderer {
           .map { case (k, v) => s""" ${escapeAttribute(k)}="${escapeAttribute(v)}"""" }
           .mkString
         s"<$safeTag$attrs>${renderInlines(inlines)}</$safeTag>"
-      case Hyperlink(href, label, _) =>
+      case Hyperlink(href, label, _, _) =>
         val text = if (label.isEmpty) escape(href) else renderInlines(label)
         s"""<a href="${escapeAttribute(href)}">$text</a>"""
       case image: ImageRef =>

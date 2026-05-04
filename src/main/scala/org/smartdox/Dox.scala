@@ -19,6 +19,19 @@ sealed trait Block extends Dox
 
 sealed trait Inline extends Dox
 
+final case class SourceSpan(
+  start: Int,
+  end: Int
+) {
+  require(start >= 0, s"SourceSpan start must be non-negative: $start")
+  require(end >= start, s"SourceSpan end must be >= start: $start-$end")
+}
+
+final case class DoxReferenceSourceSpan(
+  node: SourceSpan,
+  target: SourceSpan
+)
+
 final case class Document(
   head: DocumentHead = DocumentHead.empty,
   body: Body = Body.empty
@@ -94,7 +107,8 @@ final case class TableRow(
 final case class ImageRef(
   uri: String,
   alt: Option[String] = None,
-  title: Option[String] = None
+  title: Option[String] = None,
+  sourceSpan: Option[DoxReferenceSourceSpan] = None
 ) extends Block with Inline
 
 final case class Figure(
@@ -163,7 +177,8 @@ final case class Span(
 final case class Hyperlink(
   href: String,
   label: Vector[Inline] = Vector.empty,
-  kind: LinkKind = LinkKind.Generic
+  kind: LinkKind = LinkKind.Generic,
+  sourceSpan: Option[DoxReferenceSourceSpan] = None
 ) extends Inline
 
 final case class InlineMacro(
@@ -197,7 +212,8 @@ final case class DoxReference(
   alt: Option[String] = None,
   title: Option[String] = None,
   occurrenceIndex: Int,
-  referenceKind: String
+  referenceKind: String,
+  sourceSpan: Option[DoxReferenceSourceSpan] = None
 )
 
 object DoxReferenceExtractor {
@@ -262,14 +278,15 @@ object DoxReferenceExtractor {
         _extract_inlines(inlines)
       case Span(_, inlines, _) =>
         _extract_inlines(inlines)
-      case Hyperlink(href, label, kind) =>
+      case Hyperlink(href, label, kind, sourceSpan) =>
         Vector(DoxReference(
           elementKind = "a",
           attributeName = "href",
           ref = href,
           label = _plain_text_option(label),
           occurrenceIndex = 0,
-          referenceKind = _link_kind(kind, href)
+          referenceKind = _link_kind(kind, href),
+          sourceSpan = sourceSpan
         )) ++ _extract_inlines(label)
       case image: ImageRef =>
         Vector(_image_reference(image, 0))
@@ -294,7 +311,8 @@ object DoxReferenceExtractor {
       alt = image.alt,
       title = image.title,
       occurrenceIndex = index,
-      referenceKind = "image"
+      referenceKind = "image",
+      sourceSpan = image.sourceSpan
     )
 
   private def _plain_text_option(inlines: Vector[Inline]): Option[String] = {
@@ -327,8 +345,8 @@ object DoxText {
       case Pre(value) => value
       case Delete(xs) => plainText(xs)
       case Span(_, xs, _) => plainText(xs)
-      case Hyperlink(_, label, _) => plainText(label)
-      case ImageRef(_, alt, _) => alt.getOrElse("")
+      case Hyperlink(_, label, _, _) => plainText(label)
+      case ImageRef(_, alt, _, _) => alt.getOrElse("")
       case InlineMacro(_, value) => value
       case StructuredToken(_, raw) => raw
       case I18NFragment(values) => values.values.headOption.map(plainText).getOrElse("")

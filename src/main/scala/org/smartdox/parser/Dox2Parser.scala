@@ -32,6 +32,14 @@ object Dox2Parser {
     Consequence.success(parse(text))
 }
 
+private final case class MappedText(
+  text: String,
+  offsets: Vector[Int]
+) {
+  def sourceOffset(index: Int): Option[Int] =
+    offsets.lift(index)
+}
+
 object SmartDoxParser {
   private sealed trait Item
   private final case class Heading(level: Int, title: String, style: SectionStyle) extends Item
@@ -194,10 +202,33 @@ object SmartDoxParser {
     lines: Vector[String],
     state: State
   ): State = {
-    val trim = lines(state.index).trim
-    val target = ImageLinePattern.findFirstMatchIn(trim).map(_.group(1).trim).getOrElse(trim)
+    val line = lines(state.index)
+    val trimStart = _trim_start(line)
+    val trim = line.trim
+    val matched = ImageLinePattern.findFirstMatchIn(trim)
+    val target = matched.map(_.group(1).trim).getOrElse(trim)
+    val sourceSpan = matched.flatMap { m =>
+      val nodeStart = _line_start(lines, state.index) + trimStart + m.start
+      val nodeEnd = _line_start(lines, state.index) + trimStart + m.end
+      val rawTarget = m.group(1)
+      val targetLeading = rawTarget.indexWhere(!_.isWhitespace) match {
+        case -1 => 0
+        case n => n
+      }
+      val targetTrailing = rawTarget.reverse.indexWhere(!_.isWhitespace) match {
+        case -1 => rawTarget.length
+        case n => rawTarget.length - n
+      }
+      Some(DoxReferenceSourceSpan(
+        SourceSpan(nodeStart, nodeEnd),
+        SourceSpan(
+          _line_start(lines, state.index) + trimStart + m.start(1) + targetLeading,
+          _line_start(lines, state.index) + trimStart + m.start(1) + targetTrailing
+        )
+      ))
+    }
     val alt = state.annotation.caption
-    val image = ImageRef(target, alt)
+    val image = ImageRef(target, alt, sourceSpan = sourceSpan)
     val block = if (state.annotation.caption.isDefined || state.annotation.label.isDefined)
       Figure(image, state.annotation.caption.map(InlineParser.parse), state.annotation.label)
     else
@@ -284,7 +315,7 @@ object SmartDoxParser {
     state: State
   ): State =
     _parse_structured_token(lines, state).getOrElse {
-    val buf = Vector.newBuilder[String]
+    val buf = Vector.newBuilder[MappedText]
     var i = state.index
     var done = false
     while (i < lines.length && !done) {
@@ -293,11 +324,11 @@ object SmartDoxParser {
         done = true
       else {
         if (!_is_line_comment(trim))
-          buf += trim
+          buf += _mapped_trimmed_line(lines, i)
         i += 1
       }
     }
-    state.addBlock(Paragraph(InlineParser.parse(buf.result().mkString(" ")))).copy(index = i)
+    state.addBlock(Paragraph(InlineParser.parseMapped(_join_mapped_text(buf.result(), " ")))).copy(index = i)
   }
 
   private def _parse_structured_token(
@@ -441,6 +472,56 @@ object SmartDoxParser {
     while (i < lines.length && !lines(i).trim.equalsIgnoreCase(end))
       i += 1
     if (i < lines.length) i + 1 else i
+  }
+
+  private def _line_start(lines: Vector[String], index: Int): Int =
+    lines.take(index).foldLeft(0)((z, line) => z + line.length + 1)
+
+  private def _trim_start(line: String): Int =
+    line.indexWhere(!_.isWhitespace) match {
+      case -1 => line.length
+      case n => n
+    }
+
+  private def _trim_end(line: String): Int =
+    line.lastIndexWhere(!_.isWhitespace) match {
+      case -1 => 0
+      case n => n + 1
+    }
+
+  private def _mapped_trimmed_line(
+    lines: Vector[String],
+    index: Int
+  ): MappedText = {
+    val line = lines(index)
+    val start = _trim_start(line)
+    val end = _trim_end(line)
+    val text = if (end >= start) line.substring(start, end) else ""
+    MappedText(
+      text,
+      (start until end).toVector.map(_line_start(lines, index) + _)
+    )
+  }
+
+  private def _join_mapped_text(
+    values: Vector[MappedText],
+    separator: String
+  ): MappedText = {
+    val text = new StringBuilder
+    val offsets = Vector.newBuilder[Int]
+    values.zipWithIndex.foreach {
+      case (value, index) =>
+        if (index > 0) {
+          val previousEnd = values(index - 1).offsets.lastOption.map(_ + 1).getOrElse(0)
+          separator.foreach { ch =>
+            text.append(ch)
+            offsets += previousEnd
+          }
+        }
+        text.append(value.text)
+        offsets ++= value.offsets
+    }
+    MappedText(text.toString, offsets.result())
   }
 
   private def _caption(line: String): Option[String] =
@@ -606,17 +687,25 @@ private object InlineParser {
   private val AutoUrlPattern: Regex = """https?://[^\s<>\]\)]+""".r
 
   def parse(text: String): Vector[Inline] =
-    _parse_links(Option(text).getOrElse(""))
+    _parse_links(Option(text).getOrElse(""), _ => None)
 
-  private def _parse_links(text: String): Vector[Inline] = {
+  def parseMapped(text: MappedText): Vector[Inline] =
+    _parse_links(text.text, index => text.sourceOffset(index))
+
+  private def _parse_links(
+    text: String,
+    offsetAt: Int => Option[Int]
+  ): Vector[Inline] = {
     val out = Vector.newBuilder[Inline]
+    var consumed = 0
     var rest = text
     while (rest.nonEmpty) {
-      _first_match(rest) match {
+      _first_match(rest, index => offsetAt(consumed + index)) match {
         case Some(found) =>
           if (found.start > 0)
             out ++= _parse_marks(rest.substring(0, found.start))
           out += found.inline
+          consumed += found.end
           rest = rest.substring(found.end)
         case None =>
           out ++= _parse_marks(rest)
@@ -629,34 +718,63 @@ private object InlineParser {
     }
   }
 
-  private def _first_match(text: String): Option[Found] = {
+  private def _first_match(
+    text: String,
+    offsetAt: Int => Option[Int]
+  ): Option[Found] = {
     val matches = Vector(
       OrgLinkPattern.findFirstMatchIn(text).map { m =>
         val uri = m.group(1)
         val label = Option(m.group(2)).map(parse).getOrElse(Vector.empty)
+        val sourceSpan = _reference_span(m.start, m.end, m.start(1), m.end(1), offsetAt)
         val inline =
           if (label.isEmpty && _is_image_path(uri))
-            ImageRef(uri)
+            ImageRef(uri, sourceSpan = sourceSpan)
           else
-            Hyperlink(uri, if (label.isEmpty) Vector(Text(uri)) else label, LinkKind.Org)
+            Hyperlink(uri, if (label.isEmpty) Vector(Text(uri)) else label, LinkKind.Org, sourceSpan)
         Found(m.start, m.end, inline)
       },
       MarkdownLinkPattern.findFirstMatchIn(text).map { m =>
-        Found(m.start, m.end, Hyperlink(m.group(2), parse(m.group(1)), LinkKind.Markdown))
+        Found(m.start, m.end, Hyperlink(m.group(2), parse(m.group(1)), LinkKind.Markdown, _reference_span(m.start, m.end, m.start(2), m.end(2), offsetAt)))
       },
       SitePattern.findFirstMatchIn(text).map { m =>
-        Found(m.start, m.end, Hyperlink(m.group(1), Vector(Text(m.group(1))), LinkKind.Site))
+        Found(m.start, m.end, Hyperlink(m.group(1), Vector(Text(m.group(1))), LinkKind.Site, _reference_span(m.start, m.end, m.start(1), m.end(1), offsetAt)))
       },
       LegacySitePattern.findFirstMatchIn(text).map { m =>
-        Found(m.start, m.end, Hyperlink(m.group(1), Vector(Text(m.group(1))), LinkKind.LegacySite))
+        Found(m.start, m.end, Hyperlink(m.group(1), Vector(Text(m.group(1))), LinkKind.LegacySite, _reference_span(m.start, m.end, m.start(1), m.end(1), offsetAt)))
       },
       AutoUrlPattern.findFirstMatchIn(text).map { m =>
         val url = m.matched
-        Found(m.start, m.end, Hyperlink(url, Vector(Text(url)), LinkKind.AutoUrl))
+        Found(m.start, m.end, Hyperlink(url, Vector(Text(url)), LinkKind.AutoUrl, _reference_span(m.start, m.end, m.start, m.end, offsetAt)))
       }
     ).flatten
     matches.sortBy(_.start).headOption
   }
+
+  private def _reference_span(
+    nodeStart: Int,
+    nodeEnd: Int,
+    targetStart: Int,
+    targetEnd: Int,
+    offsetAt: Int => Option[Int]
+  ): Option[DoxReferenceSourceSpan] =
+    for {
+      ns <- _source_span(nodeStart, nodeEnd, offsetAt)
+      ts <- _source_span(targetStart, targetEnd, offsetAt)
+    } yield DoxReferenceSourceSpan(ns, ts)
+
+  private def _source_span(
+    start: Int,
+    end: Int,
+    offsetAt: Int => Option[Int]
+  ): Option[SourceSpan] =
+    if (end <= start)
+      None
+    else
+      for {
+        s <- offsetAt(start)
+        last <- offsetAt(end - 1)
+      } yield SourceSpan(s, last + 1)
 
   private def _parse_marks(text: String): Vector[Inline] =
     if (text.isEmpty)

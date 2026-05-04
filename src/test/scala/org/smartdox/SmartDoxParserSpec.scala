@@ -39,18 +39,42 @@ class SmartDoxParserSpec extends AnyWordSpec with Matchers {
     }
 
     "extract SmartDox image and link references" in {
-      val doc = Dox2Parser.parse(
+      val source =
         """Intro [[images/a.png]] and [[https://example.com][external]].
           |
           |See [local.dox] and site:[guide/index.dox].
           |""".stripMargin
-      )
+      val doc = Dox2Parser.parse(source)
 
       val refs = DoxReferenceExtractor.extract(doc)
       refs.map(x => x.elementKind -> x.ref) should contain("img" -> "images/a.png")
       refs.map(x => x.elementKind -> x.ref) should contain("a" -> "https://example.com")
       refs.map(x => x.referenceKind -> x.ref) should contain("site" -> "local.dox")
       refs.map(x => x.referenceKind -> x.ref) should contain("site" -> "guide/index.dox")
+      val imageSpan = refs.find(_.ref == "images/a.png").flatMap(_.sourceSpan).get
+      source.substring(imageSpan.node.start, imageSpan.node.end) shouldBe "[[images/a.png]]"
+      source.substring(imageSpan.target.start, imageSpan.target.end) shouldBe "images/a.png"
+      val linkSpan = refs.find(_.ref == "https://example.com").flatMap(_.sourceSpan).get
+      source.substring(linkSpan.node.start, linkSpan.node.end) shouldBe "[[https://example.com][external]]"
+      source.substring(linkSpan.target.start, linkSpan.target.end) shouldBe "https://example.com"
+    }
+
+    "keep source spans for block and multiline paragraph image references" in {
+      val source =
+        """[[images/block.png]]
+          |
+          |aaa
+          |bbb [[images/inline.png]]
+          |""".stripMargin
+      val doc = Dox2Parser.parse(source)
+      val refs = DoxReferenceExtractor.extract(doc)
+
+      val block = refs.find(_.ref == "images/block.png").flatMap(_.sourceSpan).get
+      val inline = refs.find(_.ref == "images/inline.png").flatMap(_.sourceSpan).get
+      source.substring(block.node.start, block.node.end) shouldBe "[[images/block.png]]"
+      source.substring(block.target.start, block.target.end) shouldBe "images/block.png"
+      source.substring(inline.node.start, inline.node.end) shouldBe "[[images/inline.png]]"
+      source.substring(inline.target.start, inline.target.end) shouldBe "images/inline.png"
     }
 
     "keep multiline XML and JSON as structured logical tokens" in {
@@ -76,6 +100,40 @@ class SmartDoxParserSpec extends AnyWordSpec with Matchers {
       paragraphs(0).inlines shouldBe Vector(StructuredToken("xml", "<a>\n\n  <b/>\n</a>"))
       paragraphs(1).inlines shouldBe Vector(StructuredToken("json", "{\n  \"a\": [\n\n    {\"b\": 1}\n  ]\n}"))
       DoxText.plainText(paragraphs(2).inlines) shouldBe "aaa bbb"
+    }
+
+    "not extract references from source blocks or structured tokens" in {
+      val doc = Dox2Parser.parse(
+        """#+begin_src text
+          |[[images/source.png]]
+          |#+end_src
+          |
+          |<a>
+          |  [[images/xml.png]]
+          |</a>
+          |
+          |{
+          |  "image": "[[images/json.png]]"
+          |}
+          |""".stripMargin
+      )
+
+      DoxReferenceExtractor.extract(doc).map(_.ref) shouldBe Vector.empty
+    }
+
+    "suppress source spans for snippet-parsed structures until they are source mapped" in {
+      val doc = Dox2Parser.parse(
+        """# [[images/title.png]]
+          |
+          |- [[images/list.png]]
+          |
+          || [[images/table.png]] |
+          |""".stripMargin
+      )
+
+      val refs = DoxReferenceExtractor.extract(doc)
+      refs.map(_.ref) should contain allOf ("images/title.png", "images/list.png", "images/table.png")
+      refs.filter(ref => Set("images/title.png", "images/list.png", "images/table.png").contains(ref.ref)).flatMap(_.sourceSpan) shouldBe Vector.empty
     }
 
     "keep leading Markdown and legacy site links out of JSON token parsing" in {
