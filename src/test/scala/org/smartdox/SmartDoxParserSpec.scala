@@ -115,25 +115,67 @@ class SmartDoxParserSpec extends AnyWordSpec with Matchers {
           |{
           |  "image": "[[images/json.png]]"
           |}
+          |
+          |> #+begin_src text
+          |> [[images/quoted-source.png]]
+          |> #+end_src
+          |
+          |> <a>
+          |>   [[images/quoted-xml.png]]
+          |> </a>
+          |
+          |> {
+          |>   "image": "[[images/quoted-json.png]]"
+          |> }
+          |
+          |> #+begin_comment
+          |> [[images/quoted-comment.png]]
+          |> #+end_comment
           |""".stripMargin
       )
 
       DoxReferenceExtractor.extract(doc).map(_.ref) shouldBe Vector.empty
     }
 
-    "suppress source spans for snippet-parsed structures until they are source mapped" in {
-      val doc = Dox2Parser.parse(
+    "keep original source spans for structured prose references" in {
+      val source =
         """# [[images/title.png]]
           |
           |- [[images/list.png]]
+          |1. [[images/ordered.png]]
+          |- [[images/term.png]] :: [[images/definition.png]]
           |
           || [[images/table.png]] |
+          |#+CAPTION: [[images/caption.png]]
+          |[[images/figure.png]]
+          |
+          |> [[images/quote.png]]
+          |
+          |Marked *[[images/marked.png]]* but =[[images/code.png]]= and ~[[images/pre.png]]~ stay inert.
           |""".stripMargin
-      )
+      val doc = Dox2Parser.parse(source)
 
       val refs = DoxReferenceExtractor.extract(doc)
-      refs.map(_.ref) should contain allOf ("images/title.png", "images/list.png", "images/table.png")
-      refs.filter(ref => Set("images/title.png", "images/list.png", "images/table.png").contains(ref.ref)).flatMap(_.sourceSpan) shouldBe Vector.empty
+      val expected = Vector(
+        "images/title.png",
+        "images/list.png",
+        "images/ordered.png",
+        "images/term.png",
+        "images/definition.png",
+        "images/table.png",
+        "images/figure.png",
+        "images/caption.png",
+        "images/quote.png",
+        "images/marked.png"
+      )
+      refs.map(_.ref) should contain allElementsOf expected
+      refs.map(_.ref) should not contain "images/code.png"
+      refs.map(_.ref) should not contain "images/pre.png"
+      expected.foreach { ref =>
+        val span = refs.find(_.ref == ref).flatMap(_.sourceSpan).get
+        source.substring(span.node.start, span.node.end) should include (ref)
+        source.substring(span.target.start, span.target.end) shouldBe ref
+      }
     }
 
     "keep leading Markdown and legacy site links out of JSON token parsing" in {

@@ -38,13 +38,31 @@ private final case class MappedText(
 ) {
   def sourceOffset(index: Int): Option[Int] =
     offsets.lift(index)
+
+  def slice(
+    start: Int,
+    end: Int
+  ): MappedText =
+    MappedText(text.substring(start, end), offsets.slice(start, end))
+
+  def trim: MappedText = {
+    val start = text.indexWhere(!_.isWhitespace) match {
+      case -1 => text.length
+      case n => n
+    }
+    val end = text.lastIndexWhere(!_.isWhitespace) match {
+      case -1 => start
+      case n => n + 1
+    }
+    slice(start, end)
+  }
 }
 
 object SmartDoxParser {
   private sealed trait Item
-  private final case class Heading(level: Int, title: String, style: SectionStyle) extends Item
+  private final case class Heading(level: Int, title: MappedText, style: SectionStyle) extends Item
   private final case class BlockItem(block: Block) extends Item
-  private final case class Annotation(caption: Option[String] = None, label: Option[String] = None) {
+  private final case class Annotation(caption: Option[MappedText] = None, label: Option[String] = None) {
     def clear: Annotation =
       Annotation()
   }
@@ -63,7 +81,7 @@ object SmartDoxParser {
     def addBlock(block: Block): State =
       add(BlockItem(block))
 
-    def addHeading(level: Int, title: String, style: SectionStyle): State =
+    def addHeading(level: Int, title: MappedText, style: SectionStyle): State =
       add(Heading(level, title, style))
   }
 
@@ -96,7 +114,7 @@ object SmartDoxParser {
       } else if (_is_line_comment(trim)) {
         state = state.next
       } else {
-        _caption(trim) match {
+        _caption(lines, state.index) match {
           case Some(caption) =>
             state = state.copy(index = state.index + 1, annotation = state.annotation.copy(caption = Some(caption)))
           case None =>
@@ -118,11 +136,11 @@ object SmartDoxParser {
   ): State = {
     val line = lines(state.index)
     val trim = line.trim
-    _org_heading(trim) match {
+    _org_heading(lines, state.index) match {
       case Some((level, title)) =>
         state.addHeading(level, title, SectionStyle.Org).copy(index = state.index + 1)
       case None =>
-        _atx_heading(trim) match {
+        _atx_heading(lines, state.index) match {
           case Some((level, title)) =>
             state.addHeading(level, title, SectionStyle.Markdown).copy(index = state.index + 1)
           case None =>
@@ -190,10 +208,10 @@ object SmartDoxParser {
     var i = state.index
     while (i < lines.length && _is_pipe_table(lines(i).trim)) {
       val trim = lines(i).trim
-      rows += TableRow(_table_cells(trim).map(InlineParser.parse), _is_table_separator(trim))
+      rows += TableRow(_table_cells_mapped(lines, i).map(InlineParser.parseMapped), _is_table_separator(trim))
       i += 1
     }
-    val caption = state.annotation.caption.map(InlineParser.parse)
+    val caption = state.annotation.caption.map(InlineParser.parseMapped)
     val label = state.annotation.label
     state.addBlock(Table(caption, label, rows.result())).copy(index = i)
   }
@@ -227,10 +245,10 @@ object SmartDoxParser {
         )
       ))
     }
-    val alt = state.annotation.caption
+    val alt = state.annotation.caption.map(_.text)
     val image = ImageRef(target, alt, sourceSpan = sourceSpan)
     val block = if (state.annotation.caption.isDefined || state.annotation.label.isDefined)
-      Figure(image, state.annotation.caption.map(InlineParser.parse), state.annotation.label)
+      Figure(image, state.annotation.caption.map(InlineParser.parseMapped), state.annotation.label)
     else
       image
     state.addBlock(block).copy(index = state.index + 1)
@@ -254,16 +272,156 @@ object SmartDoxParser {
     lines: Vector[String],
     state: State
   ): State = {
-    val buf = Vector.newBuilder[String]
+    val mapped = Vector.newBuilder[MappedText]
     var i = state.index
     while (i < lines.length && _is_quote_line(lines(i).trim)) {
-      val trim = lines(i).trim
-      buf += trim.dropWhile(_ == '>').trim
+      mapped += _mapped_quote_line(lines, i)
       i += 1
     }
-    val nested = parse(buf.result().mkString("\n")).body.blocks
-    state.addBlock(Quote(nested)).copy(index = i)
+    state.addBlock(Quote(_parse_quote_blocks(mapped.result()))).copy(index = i)
   }
+
+  private def _parse_quote_blocks(lines: Vector[MappedText]): Vector[Block] = {
+    val blocks = Vector.newBuilder[Block]
+    var i = 0
+    while (i < lines.length) {
+      val trim = lines(i).text.trim
+      if (trim.isEmpty || _is_line_comment(trim)) {
+        i += 1
+      } else if (_is_comment_block_start(trim)) {
+        i = _skip_quote_until(lines, i + 1, "#+end_comment")
+      } else if (_is_program_start(trim)) {
+        val (block, next) = _parse_quote_program(lines, i)
+        blocks += block
+        i = next
+      } else if (_looks_like_xml_start(trim)) {
+        val (block, next) = _parse_quote_xml_token(lines, i)
+        blocks += block
+        i = next
+      } else if (_looks_like_json_start(trim)) {
+        val (block, next) = _parse_quote_json_token(lines, i)
+        blocks += block
+        i = next
+      } else {
+        val buf = Vector.newBuilder[MappedText]
+        var done = false
+        while (i < lines.length && !done) {
+          val t = lines(i).text.trim
+          if (t.isEmpty || _is_quote_inert_start(t))
+            done = true
+          else {
+            if (!_is_line_comment(t))
+              buf += lines(i).trim
+            i += 1
+          }
+        }
+        val joined = _join_mapped_text(buf.result(), " ")
+        if (joined.text.nonEmpty)
+          blocks += Paragraph(InlineParser.parseMapped(joined))
+      }
+    }
+    blocks.result()
+  }
+
+  private def _parse_quote_program(
+    lines: Vector[MappedText],
+    start: Int
+  ): (Block, Int) = {
+    val trim = lines(start).text.trim
+    val ProgramStart(kind, language) = trim match {
+      case BeginSrcPattern(lang) => ProgramStart("src", Option(lang).map(_.trim).filter(_.nonEmpty))
+      case BeginExamplePattern() => ProgramStart("example", None)
+      case BeginAnyPattern(name) => ProgramStart(name.toLowerCase, None)
+      case _ => ProgramStart("verbatim", None)
+    }
+    val end = s"#+end_$kind"
+    val buf = Vector.newBuilder[String]
+    var i = start + 1
+    var done = false
+    while (i < lines.length && !done) {
+      if (lines(i).text.trim.equalsIgnoreCase(end))
+        done = true
+      else {
+        buf += lines(i).text
+        i += 1
+      }
+    }
+    Program(language, buf.result().mkString("\n"), kind) -> (if (done) i + 1 else i)
+  }
+
+  private def _parse_quote_xml_token(
+    lines: Vector[MappedText],
+    start: Int
+  ): (Block, Int) = {
+    val buf = Vector.newBuilder[String]
+    var i = start
+    var stack = Vector.empty[String]
+    var seenTag = false
+    var done = false
+    while (i < lines.length && !done) {
+      val line = lines(i).text
+      buf += line
+      val parsed = _xml_stack(line, stack)
+      stack = parsed._1
+      seenTag = seenTag || parsed._2
+      i += 1
+      done = seenTag && stack.isEmpty
+    }
+    Paragraph(Vector(StructuredToken("xml", buf.result().mkString("\n")))) -> i
+  }
+
+  private def _parse_quote_json_token(
+    lines: Vector[MappedText],
+    start: Int
+  ): (Block, Int) = {
+    val buf = Vector.newBuilder[String]
+    var i = start
+    var balance = 0
+    var inString = false
+    var escaped = false
+    var done = false
+    while (i < lines.length && !done) {
+      val line = lines(i).text
+      buf += line
+      line.foreach { ch =>
+        if (escaped) {
+          escaped = false
+        } else if (inString) {
+          if (ch == '\\')
+            escaped = true
+          else if (ch == '"')
+            inString = false
+        } else {
+          ch match {
+            case '"' => inString = true
+            case '{' | '[' => balance += 1
+            case '}' | ']' => balance = math.max(0, balance - 1)
+            case _ =>
+          }
+        }
+      }
+      i += 1
+      done = balance == 0 && !inString
+    }
+    Paragraph(Vector(StructuredToken("json", buf.result().mkString("\n")))) -> i
+  }
+
+  private def _skip_quote_until(
+    lines: Vector[MappedText],
+    start: Int,
+    end: String
+  ): Int = {
+    var i = start
+    while (i < lines.length && !lines(i).text.trim.equalsIgnoreCase(end))
+      i += 1
+    if (i < lines.length) i + 1 else i
+  }
+
+  private def _is_quote_inert_start(line: String): Boolean =
+    _is_comment_block_start(line) ||
+      _is_program_start(line) ||
+      _looks_like_xml_start(line) ||
+      _looks_like_json_start(line)
 
   private def _parse_definition_list(
     lines: Vector[String],
@@ -274,8 +432,8 @@ object SmartDoxParser {
     while (i < lines.length && _is_definition_list(lines(i).trim)) {
       val DefinitionListPattern(term, desc) = lines(i).trim: @unchecked
       items += DefinitionItem(
-        InlineParser.parse(term.trim),
-        Vector(Paragraph(InlineParser.parse(desc.trim)))
+        InlineParser.parseMapped(_mapped_definition_term(lines, i)),
+        Vector(Paragraph(InlineParser.parseMapped(_mapped_definition_description(lines, i))))
       )
       i += 1
     }
@@ -289,8 +447,7 @@ object SmartDoxParser {
     val items = Vector.newBuilder[ListItem]
     var i = state.index
     while (i < lines.length && _is_unordered_list(lines(i).trim) && !_is_definition_list(lines(i).trim)) {
-      val UnorderedListPattern(text) = lines(i).trim: @unchecked
-      items += ListItem(Vector(Paragraph(InlineParser.parse(text.trim))))
+      items += ListItem(Vector(Paragraph(InlineParser.parseMapped(_mapped_unordered_list_text(lines, i)))))
       i += 1
     }
     state.addBlock(UnorderedList(items.result())).copy(index = i)
@@ -303,8 +460,7 @@ object SmartDoxParser {
     val items = Vector.newBuilder[ListItem]
     var i = state.index
     while (i < lines.length && _is_ordered_list(lines(i).trim)) {
-      val OrderedListPattern(text) = lines(i).trim: @unchecked
-      items += ListItem(Vector(Paragraph(InlineParser.parse(text.trim))))
+      items += ListItem(Vector(Paragraph(InlineParser.parseMapped(_mapped_ordered_list_text(lines, i)))))
       i += 1
     }
     state.addBlock(OrderedList(items.result())).copy(index = i)
@@ -415,7 +571,7 @@ object SmartDoxParser {
           return (blocks.result(), i)
         case Heading(l, title, style) =>
           val (children, next) = _build_blocks(items, l, i + 1)
-          blocks += Section(l, InlineParser.parse(title), children, style)
+          blocks += Section(l, InlineParser.parseMapped(title), children, style)
           i = next
         case BlockItem(block) =>
           blocks += block
@@ -503,6 +659,113 @@ object SmartDoxParser {
     )
   }
 
+  private def _mapped_line_slice(
+    lines: Vector[String],
+    index: Int,
+    start: Int,
+    end: Int
+  ): MappedText = {
+    val line = lines(index)
+    MappedText(
+      line.substring(start, end),
+      (start until end).toVector.map(_line_start(lines, index) + _)
+    )
+  }
+
+  private def _mapped_trimmed_match_group(
+    lines: Vector[String],
+    index: Int,
+    m: Regex.Match,
+    group: Int,
+    trimStart: Int
+  ): MappedText =
+    _mapped_line_slice(lines, index, trimStart + m.start(group), trimStart + m.end(group)).trim
+
+  private def _mapped_unordered_list_text(
+    lines: Vector[String],
+    index: Int
+  ): MappedText = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    val m = UnorderedListPattern.findFirstMatchIn(line.substring(trimStart)).get
+    _mapped_trimmed_match_group(lines, index, m, 1, trimStart)
+  }
+
+  private def _mapped_ordered_list_text(
+    lines: Vector[String],
+    index: Int
+  ): MappedText = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    val m = OrderedListPattern.findFirstMatchIn(line.substring(trimStart)).get
+    _mapped_trimmed_match_group(lines, index, m, 1, trimStart)
+  }
+
+  private def _mapped_definition_term(
+    lines: Vector[String],
+    index: Int
+  ): MappedText = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    val m = DefinitionListPattern.findFirstMatchIn(line.substring(trimStart)).get
+    _mapped_trimmed_match_group(lines, index, m, 1, trimStart)
+  }
+
+  private def _mapped_definition_description(
+    lines: Vector[String],
+    index: Int
+  ): MappedText = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    val m = DefinitionListPattern.findFirstMatchIn(line.substring(trimStart)).get
+    _mapped_trimmed_match_group(lines, index, m, 2, trimStart)
+  }
+
+  private def _mapped_quote_line(
+    lines: Vector[String],
+    index: Int
+  ): MappedText = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    val trim = line.substring(trimStart)
+    val afterMarkers = trim.indexWhere(_ != '>') match {
+      case -1 => trim.length
+      case n => n
+    }
+    _mapped_line_slice(lines, index, trimStart + afterMarkers, line.length).trim
+  }
+
+  private def _table_cells_mapped(
+    lines: Vector[String],
+    index: Int
+  ): Vector[MappedText] = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    val trimEnd = _trim_end(line)
+    val trim = line.substring(trimStart, trimEnd)
+    val bodyStart = if (trim.startsWith("|")) 1 else 0
+    val bodyEnd = if (trim.endsWith("|")) trim.length - 1 else trim.length
+    val bodyOffset = trimStart + bodyStart
+    val body = trim.substring(bodyStart, bodyEnd)
+    val cells = Vector.newBuilder[MappedText]
+    var start = 0
+    var i = 0
+    while (i <= body.length) {
+      if (i == body.length || body.charAt(i) == '|') {
+        cells += _mapped_line_slice(lines, index, bodyOffset + start, bodyOffset + i).trim
+        start = i + 1
+      }
+      i += 1
+    }
+    cells.result()
+  }
+
+  private def _strip_atx_closing(title: MappedText): MappedText =
+    """\s+#+\s*$""".r.findFirstMatchIn(title.text) match {
+      case Some(m) => title.slice(0, m.start).trim
+      case None => title.trim
+    }
+
   private def _join_mapped_text(
     values: Vector[MappedText],
     separator: String
@@ -524,11 +787,21 @@ object SmartDoxParser {
     MappedText(text.toString, offsets.result())
   }
 
-  private def _caption(line: String): Option[String] =
-    line match {
-      case CaptionPattern(value) => Some(value.trim)
-      case _ => None
+  private def _caption(line: String): Option[MappedText] =
+    CaptionPattern.findFirstMatchIn(line).map { m =>
+      MappedText(m.group(1), Vector.empty).trim
     }
+
+  private def _caption(
+    lines: Vector[String],
+    index: Int
+  ): Option[MappedText] = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    CaptionPattern.findFirstMatchIn(line.substring(trimStart)).map { m =>
+      _mapped_trimmed_match_group(lines, index, m, 1, trimStart)
+    }
+  }
 
   private def _label(line: String): Option[String] =
     line match {
@@ -536,27 +809,47 @@ object SmartDoxParser {
       case _ => None
     }
 
-  private def _org_heading(line: String): Option[(Int, String)] =
-    line match {
-      case OrgHeadingPattern(stars, title) => Some(stars.length -> title.trim)
-      case _ => None
+  private def _org_heading(line: String): Option[(Int, MappedText)] =
+    OrgHeadingPattern.findFirstMatchIn(line).map { m =>
+      m.group(1).length -> MappedText(m.group(2), Vector.empty).trim
     }
 
-  private def _atx_heading(line: String): Option[(Int, String)] =
-    line match {
-      case AtxHeadingPattern(sharps, title) => Some(sharps.length -> title.replaceAll("\\s+#+\\s*$", "").trim)
-      case _ => None
+  private def _org_heading(
+    lines: Vector[String],
+    index: Int
+  ): Option[(Int, MappedText)] = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    OrgHeadingPattern.findFirstMatchIn(line.substring(trimStart)).map { m =>
+      m.group(1).length -> _mapped_trimmed_match_group(lines, index, m, 2, trimStart)
+    }
+  }
+
+  private def _atx_heading(line: String): Option[(Int, MappedText)] =
+    AtxHeadingPattern.findFirstMatchIn(line).map { m =>
+      m.group(1).length -> _strip_atx_closing(MappedText(m.group(2), Vector.empty))
     }
 
-  private def _setext_heading(lines: Vector[String], index: Int): Option[(Int, String)] =
+  private def _atx_heading(
+    lines: Vector[String],
+    index: Int
+  ): Option[(Int, MappedText)] = {
+    val line = lines(index)
+    val trimStart = _trim_start(line)
+    AtxHeadingPattern.findFirstMatchIn(line.substring(trimStart)).map { m =>
+      m.group(1).length -> _strip_atx_closing(_mapped_line_slice(lines, index, trimStart + m.start(2), trimStart + m.end(2)))
+    }
+  }
+
+  private def _setext_heading(lines: Vector[String], index: Int): Option[(Int, MappedText)] =
     if (index + 1 >= lines.length)
       None
     else {
-      val title = lines(index).trim
+      val title = _mapped_trimmed_line(lines, index)
       val underline = lines(index + 1).trim
-      if (title.nonEmpty && underline.matches("=+"))
+      if (title.text.nonEmpty && underline.matches("=+"))
         Some(1 -> title)
-      else if (title.nonEmpty && underline.matches("-{3,}"))
+      else if (title.text.nonEmpty && underline.matches("-{3,}"))
         Some(2 -> title)
       else
         None
@@ -700,15 +993,23 @@ private object InlineParser {
     var consumed = 0
     var rest = text
     while (rest.nonEmpty) {
-      _first_match(rest, index => offsetAt(consumed + index)) match {
-        case Some(found) =>
+      val link = _first_match(rest, index => offsetAt(consumed + index))
+      val mark = _first_mark(rest)
+      (link, mark) match {
+        case (_, Some((start, end, marker))) if link.forall(start < _.start) =>
+          if (start > 0)
+            out ++= _parse_links(rest.substring(0, start), index => offsetAt(consumed + index))
+          out += _marked(marker, rest.substring(start + 1, end), index => offsetAt(consumed + start + 1 + index))
+          consumed += end + 1
+          rest = rest.substring(end + 1)
+        case (Some(found), _) =>
           if (found.start > 0)
-            out ++= _parse_marks(rest.substring(0, found.start))
+            out ++= _parse_links(rest.substring(0, found.start), index => offsetAt(consumed + index))
           out += found.inline
           consumed += found.end
           rest = rest.substring(found.end)
-        case None =>
-          out ++= _parse_marks(rest)
+        case (None, _) =>
+          out += Text(rest)
           rest = ""
       }
     }
@@ -725,7 +1026,9 @@ private object InlineParser {
     val matches = Vector(
       OrgLinkPattern.findFirstMatchIn(text).map { m =>
         val uri = m.group(1)
-        val label = Option(m.group(2)).map(parse).getOrElse(Vector.empty)
+        val label = Option(m.group(2)).map { _ =>
+          _parse_mapped_group(m.group(2), m.start(2), m.end(2), offsetAt).map(parseMapped).getOrElse(parse(m.group(2)))
+        }.getOrElse(Vector.empty)
         val sourceSpan = _reference_span(m.start, m.end, m.start(1), m.end(1), offsetAt)
         val inline =
           if (label.isEmpty && _is_image_path(uri))
@@ -735,7 +1038,8 @@ private object InlineParser {
         Found(m.start, m.end, inline)
       },
       MarkdownLinkPattern.findFirstMatchIn(text).map { m =>
-        Found(m.start, m.end, Hyperlink(m.group(2), parse(m.group(1)), LinkKind.Markdown, _reference_span(m.start, m.end, m.start(2), m.end(2), offsetAt)))
+        val label = _parse_mapped_group(m.group(1), m.start(1), m.end(1), offsetAt).map(parseMapped).getOrElse(parse(m.group(1)))
+        Found(m.start, m.end, Hyperlink(m.group(2), label, LinkKind.Markdown, _reference_span(m.start, m.end, m.start(2), m.end(2), offsetAt)))
       },
       SitePattern.findFirstMatchIn(text).map { m =>
         Found(m.start, m.end, Hyperlink(m.group(1), Vector(Text(m.group(1))), LinkKind.Site, _reference_span(m.start, m.end, m.start(1), m.end(1), offsetAt)))
@@ -776,19 +1080,18 @@ private object InlineParser {
         last <- offsetAt(end - 1)
       } yield SourceSpan(s, last + 1)
 
-  private def _parse_marks(text: String): Vector[Inline] =
-    if (text.isEmpty)
-      Vector.empty
+  private def _parse_mapped_group(
+    value: String,
+    start: Int,
+    end: Int,
+    offsetAt: Int => Option[Int]
+  ): Option[MappedText] = {
+    val offsets = (start until end).toVector.map(offsetAt)
+    if (offsets.forall(_.isDefined))
+      Some(MappedText(value, offsets.flatten))
     else
-      _first_mark(text) match {
-        case Some((start, end, marker)) =>
-          val before = text.substring(0, start)
-          val inner = text.substring(start + 1, end)
-          val after = text.substring(end + 1)
-          _text(before) ++ Vector(_marked(marker, inner)) ++ _parse_marks(after)
-        case None =>
-          _text(text)
-      }
+      None
+  }
 
   private def _first_mark(text: String): Option[(Int, Int, Char)] =
     Vector('*', '/', '_', '=', '~', '+').flatMap { marker =>
@@ -801,19 +1104,31 @@ private object InlineParser {
       }
     }.sortBy(_._1).headOption
 
-  private def _marked(marker: Char, text: String): Inline =
+  private def _marked(
+    marker: Char,
+    text: String,
+    offsetAt: Int => Option[Int]
+  ): Inline =
     marker match {
-      case '*' => Bold(parse(text))
-      case '/' => Italic(parse(text))
-      case '_' => Underline(parse(text))
+      case '*' => Bold(_mapped_text(text, offsetAt).map(parseMapped).getOrElse(parse(text)))
+      case '/' => Italic(_mapped_text(text, offsetAt).map(parseMapped).getOrElse(parse(text)))
+      case '_' => Underline(_mapped_text(text, offsetAt).map(parseMapped).getOrElse(parse(text)))
       case '=' => Code(text)
       case '~' => Pre(text)
-      case '+' => Delete(parse(text))
+      case '+' => Delete(_mapped_text(text, offsetAt).map(parseMapped).getOrElse(parse(text)))
       case _ => Text(text)
     }
 
-  private def _text(text: String): Vector[Inline] =
-    if (text.isEmpty) Vector.empty else Vector(Text(text))
+  private def _mapped_text(
+    text: String,
+    offsetAt: Int => Option[Int]
+  ): Option[MappedText] = {
+    val offsets = text.indices.toVector.map(offsetAt)
+    if (offsets.forall(_.isDefined))
+      Some(MappedText(text, offsets.flatten))
+    else
+      None
+  }
 
   private def _is_image_path(value: String): Boolean = {
     val lower = value.toLowerCase(java.util.Locale.ROOT)
