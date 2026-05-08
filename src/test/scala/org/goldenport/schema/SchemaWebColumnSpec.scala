@@ -6,7 +6,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Apr. 16, 2026
- * @version Apr. 16, 2026
+ * @version May.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final class SchemaWebColumnSpec extends AnyWordSpec with Matchers {
@@ -55,6 +55,15 @@ final class SchemaWebColumnSpec extends AnyWordSpec with Matchers {
       Column(BaseContent.simple("title"), ValueDomain()).web.isEmpty shouldBe true
       WebColumn(controlType = Some("text")).isEmpty shouldBe false
       WebColumn(validation = WebValidationHints(min = Some(BigDecimal(0)))).isEmpty shouldBe false
+    }
+
+    "reject invalid explicit confidentiality values" in {
+      DataConfidentiality.getOrPublic(None) shouldBe DataConfidentiality.Public
+      DataConfidentiality.getOrPublic(Some("secret")) shouldBe DataConfidentiality.Secret
+
+      an [IllegalArgumentException] should be thrownBy {
+        DataConfidentiality.getOrPublic(Some("secreet"))
+      }
     }
   }
 }

@@ -11,7 +11,8 @@ import org.goldenport.tree.Tree
  *
  * @since   Feb.  7, 2026
  *  version Mar.  3, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version May.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CallTree(
@@ -27,7 +28,7 @@ final case class CallTree(
         )
       case CallTreeNode.Exit(label, attributes) =>
         Record.data(
-          "kind" -> "exit",
+          "kind" -> "leave",
           "label" -> label,
           "attributes" -> Record.create(attributes)
         )

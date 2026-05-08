@@ -47,7 +47,8 @@ import org.goldenport.value.BaseContent
  *  version Oct. 31, 2021 restart
  *  version Dec. 24, 2025 Scala3
  *  version Mar. 29, 2026
- * @version Apr. 17, 2026
+ *  version Apr. 17, 2026
+ * @version May.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -59,7 +60,8 @@ case class Column(
   baseContent: BaseContent,
   domain: ValueDomain,
   override val label: Option[I18nLabel] = None,
-  web: WebColumn = WebColumn.empty
+  web: WebColumn = WebColumn.empty,
+  confidentiality: DataConfidentiality = DataConfidentiality.Public
 ) extends BaseContent.Holder {
 }
 
@@ -73,7 +75,8 @@ case class WebColumn(
   multiple: Boolean = false,
   placeholder: Option[String] = None,
   help: Option[String] = None,
-  validation: WebValidationHints = WebValidationHints.empty
+  validation: WebValidationHints = WebValidationHints.empty,
+  confidentiality: DataConfidentiality = DataConfidentiality.Public
 ) {
   def isEmpty: Boolean =
     this == WebColumn.empty
@@ -97,6 +100,43 @@ case class WebValidationHints(
 
 object WebValidationHints {
   val empty: WebValidationHints = WebValidationHints()
+}
+
+enum DataConfidentiality {
+  case Public
+  case Internal
+  case Personal
+  case Sensitive
+  case Secret
+
+  def label: String =
+    productPrefix.toLowerCase(java.util.Locale.ROOT)
+
+  def shouldRedactByDefault: Boolean =
+    this match {
+      case Public | Internal => false
+      case Personal | Sensitive | Secret => true
+    }
+}
+
+object DataConfidentiality {
+  def parse(p: String): Option[DataConfidentiality] =
+    Option(p).map(_.trim.toLowerCase(java.util.Locale.ROOT)).filter(_.nonEmpty).flatMap {
+      case "public" => Some(Public)
+      case "internal" => Some(Internal)
+      case "personal" | "pii" => Some(Personal)
+      case "sensitive" => Some(Sensitive)
+      case "secret" => Some(Secret)
+      case _ => None
+    }
+
+  def get(p: String): DataConfidentiality =
+    parse(p).getOrElse {
+      throw new IllegalArgumentException(s"Invalid confidentiality: ${p}")
+    }
+
+  def getOrPublic(p: Option[String]): DataConfidentiality =
+    p.map(_.trim).filter(_.nonEmpty).map(get).getOrElse(Public)
 }
 
 case class ValueDomain(

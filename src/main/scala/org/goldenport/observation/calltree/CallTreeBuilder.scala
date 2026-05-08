@@ -7,14 +7,14 @@ import scala.collection.mutable
 /*
  * CallTreeBuilder is a mutable collector for CallTree.
  *
- * - Recording phase: mutable enter/exit/failure
+ * - Recording phase: mutable enter/leave/failure
  * - Finalization: build immutable CallTree(Tree[CallTreeNode])
  *
  * This is a draft scaffold; it is intentionally minimal and side-effect only.
  *
  * @since   Feb.  7, 2026
- *  version Feb.  7, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version May.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CallTreeBuilder {
@@ -27,7 +27,7 @@ final class CallTreeBuilder {
   ): Unit =
     _push(label, CallTreeNode.Enter(label, attributes + ("started_at_nanos" -> _now_nanos.toString)))
 
-  def exit(
+  def leave(
     label: String,
     attributes: Map[String, String] = Map.empty
   ): Unit = {
@@ -42,6 +42,12 @@ final class CallTreeBuilder {
     if (_stack.nonEmpty)
       _stack.pop()
   }
+
+  def exit(
+    label: String,
+    attributes: Map[String, String] = Map.empty
+  ): Unit =
+    leave(label, attributes)
 
   def failure(
     label: String,

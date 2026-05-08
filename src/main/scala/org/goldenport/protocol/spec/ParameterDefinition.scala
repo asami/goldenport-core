@@ -16,7 +16,8 @@ import org.goldenport.util.{SmEnum, SmEnumClass}
  *  version Dec. 30, 2025
  *  version Feb.  6, 2026
  *  version Mar. 29, 2026
- * @version Apr. 16, 2026
+ *  version Apr. 16, 2026
+ * @version May.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 case class ParameterDefinition(
@@ -26,7 +27,8 @@ case class ParameterDefinition(
   web: WebColumn = WebColumn.empty,
   default: ParameterDefinition.Default = ParameterDefinition.Default.Undefined,
   isMagicSequence: Boolean = true,
-  isEagerSequence: Boolean = false
+  isEagerSequence: Boolean = false,
+  confidentiality: DataConfidentiality = DataConfidentiality.Public
 ) extends BaseContent.BareHolder {
   protected def baseContent: BaseContent = content
   def datatype: DataType = domain.datatype
