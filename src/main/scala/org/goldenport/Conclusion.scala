@@ -150,7 +150,8 @@ object Conclusion {
     val detailCode: Option[DetailCode]
   ) {
     def toRecord: Record = Record.data(
-      "webCode" -> webCode.code
+      "webCode" -> webCode.code,
+      "statusText" -> webCode.statusText
     ) ++ Record.dataOption(
       "appCode" -> appCode,
       "appStatus" -> appStatus,
@@ -242,7 +243,25 @@ object Conclusion {
         webCodeOf(conclusion.observation.taxonomy)
   }
 
-  case class WebCode(code: Int)
+  case class WebCode(code: Int) {
+    def statusText: String =
+      code match {
+        case 200 => "OK"
+        case 201 => "Created"
+        case 204 => "No Content"
+        case 303 => "See Other"
+        case 307 => "Temporary Redirect"
+        case 400 => "Bad Request"
+        case 401 => "Unauthorized"
+        case 403 => "Forbidden"
+        case 404 => "Not Found"
+        case 409 => "Conflict"
+        case 500 => "Internal Server Error"
+        case 501 => "Not Implemented"
+        case 503 => "Service Unavailable"
+        case _ => ""
+      }
+  }
   object WebCode {
     val Ok: WebCode = WebCode(200)
     val Created: WebCode = WebCode(201)

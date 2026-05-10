@@ -92,6 +92,7 @@ class DetailCodeSpec extends AnyWordSpec with Matchers {
       conclusion.observation.taxonomy shouldBe Taxonomy.stateInvalid
       conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Inconsistency)
       conclusion.status.webCode shouldBe Conclusion.WebCode.InternalServerError
+      conclusion.status.toRecord.getString("statusText") shouldBe Some("Internal Server Error")
       conclusion.previous shouldBe Some(previous)
     }
 

@@ -32,7 +32,12 @@ class SimpleConclusionPresenter extends ConclusionPresenter {
       summary = summary,
       severity = severity,
       responsibility = responsibility,
-      userAction = conclusion.disposition.userAction
+      userAction = conclusion.disposition.userAction,
+      status = conclusion.status.webCode.code,
+      statusText = conclusion.status.webCode.statusText,
+      detailCode = conclusion.status.detailCode,
+      appCode = conclusion.status.appCode,
+      appStatus = conclusion.status.appStatus
     )
   }
 }

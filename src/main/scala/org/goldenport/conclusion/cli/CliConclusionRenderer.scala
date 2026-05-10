@@ -19,7 +19,10 @@ object CliConclusionRenderer {
       case Severity.Debug => 0
       case Severity.Trace => 0
     }
-    val message = s"[${conclusion.severity}]${conclusion.title.key}-${conclusion.summary.key}"
+    val detail = conclusion.detailCode.map(x => s" detailCode=${x.code}").getOrElse("")
+    val app = conclusion.appCode.map(x => s" appCode=${x}").getOrElse("") +
+      conclusion.appStatus.map(x => s" appStatus=${x}").getOrElse("")
+    val message = s"[${conclusion.severity}] status=${conclusion.status} statusText=${conclusion.statusText}${detail}${app} ${conclusion.title.key}-${conclusion.summary.key}"
     (exitCode, message)
   }
 }

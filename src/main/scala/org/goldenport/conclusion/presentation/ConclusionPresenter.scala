@@ -4,6 +4,7 @@ import org.goldenport.Conclusion
 import org.goldenport.observation.Severity
 import org.goldenport.conclusion.Disposition.UserAction
 import org.goldenport.conclusion.Disposition.Responsibility
+import org.goldenport.error.DetailCode
 
 /*
  * @since   Jan. 25, 2026
@@ -27,5 +28,10 @@ case class ConclusionPresentation(
   summary: MessageRef,
   severity: Severity,
   responsibility: Responsibility,
-  userAction: Option[UserAction]
+  userAction: Option[UserAction],
+  status: Int,
+  statusText: String,
+  detailCode: Option[DetailCode],
+  appCode: Option[Long],
+  appStatus: Option[String]
 )

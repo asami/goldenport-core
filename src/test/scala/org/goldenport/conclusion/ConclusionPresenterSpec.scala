@@ -55,12 +55,18 @@ class ConclusionPresenterSpec extends AnyWordSpec with Matchers {
       val presented = presenter.present(conclusion, PresentationContext("en"))
       presented.severity shouldBe Severity.Warn
       presented.userAction should contain(Disposition.UserAction.FixInput)
+      presented.status shouldBe 404
+      presented.statusText shouldBe "Not Found"
+      presented.detailCode shouldBe conclusion.status.detailCode
 
       val (code, message) = CliConclusionRenderer.render(presented)
       code shouldBe 1
       val expectedSummaryKey = presented.summary.key
       message should include("resource.not-found")
-      message shouldBe s"[${presented.severity}]resource.not-found-${expectedSummaryKey}"
+      message should include("status=404")
+      message should include("statusText=Not Found")
+      message should include(s"detailCode=${conclusion.status.detailCode.map(_.code).get}")
+      message should endWith(s"resource.not-found-${expectedSummaryKey}")
     }
   }
 }
