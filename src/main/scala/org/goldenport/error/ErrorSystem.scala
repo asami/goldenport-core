@@ -1,9 +1,10 @@
 package org.goldenport.error
 
 import org.goldenport.Conclusion
-import org.goldenport.provisional.observation.Observation
+import org.goldenport.observation.Observation
 
 /**
+ * @version May. 11, 2026
  * ErrorSystem is responsible for interpreting Observations
  * and producing Conclusions.
  *

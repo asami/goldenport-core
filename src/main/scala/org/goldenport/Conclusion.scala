@@ -4,12 +4,10 @@ import cats.data.NonEmptyVector
 import java.time.Instant
 import org.goldenport.datatype.Identifier
 import org.goldenport.record.Record
-import org.goldenport.record.Record
 import org.goldenport.error.{ErrorCode, ErrorStrategy}
-import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
-import org.goldenport.provisional.observation.{Observation, Taxonomy, Cause, Source, Channel, Substrate, Origin}
-import org.goldenport.provisional.observation.Occurrence
-import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
+import org.goldenport.conclusion.{Interpretation, Disposition}
+import org.goldenport.observation.{Observation, Taxonomy, Cause, Source, Channel, Substrate, Origin}
+import org.goldenport.observation.Occurrence
 import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.{Subject, Agent, Resource, Severity}
 import org.goldenport.observation.SourcePosition
@@ -26,7 +24,8 @@ import org.goldenport.http.HttpRequest
  *  version Jan. 31, 2026
  *  version Feb. 28, 2026
  *  version Apr. 11, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(

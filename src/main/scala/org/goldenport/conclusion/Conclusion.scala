@@ -1,25 +1,15 @@
-package org.goldenport.provisional.conclusion
+package org.goldenport.conclusion
 
 import org.goldenport.record.Record
-import org.goldenport.provisional.observation.Observation
-import org.goldenport.provisional.observation.Cause
 
 /*
  * @since   Jan. 25, 2026
  *  version Jan. 31, 2026
  *  version Feb.  7, 2026
- * @version Mar. 13, 2026
+ *  version Mar. 13, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
-case class Conclusion(
-  observation: Observation,
-  interpretation: Interpretation,
-  disposition: Disposition,
-  previous: Option[Conclusion] = None
-) {
-  def withPrevious(p: Conclusion) = copy(previous = Some(p))
-}
-
 case class Interpretation(
   kind: Interpretation.Kind,
   responsibility: Option[Disposition.Responsibility] = None // TODO unused
@@ -31,13 +21,13 @@ case class Interpretation(
 }
 object Interpretation {
   enum Kind(val name: String, val value: Int) {
-    case Success extends Kind("success", 3)
-    case DomainFailure extends Kind("domain-failure", 1)
-    case SystemFailure extends Kind("system-failure", 4)
-    case NetworkFailure extends Kind("network-failure", 5)
-    case ExternalServiceFailure extends Kind("external-service-failure", 6)
-    case Defect extends Kind("defect", 2)
-    case ConfigurationFailure extends Kind("configuration-failure", 7)
+    case Success extends Kind("success", 1)
+    case DomainFailure extends Kind("domain-failure", 2)
+    case Defect extends Kind("defect", 3)
+    case ConfigurationFailure extends Kind("configuration-failure", 4)
+    case SystemFailure extends Kind("system-failure", 5)
+    case NetworkFailure extends Kind("network-failure", 6)
+    case ExternalServiceFailure extends Kind("external-service-failure", 7)
   }
 
   val success = Interpretation(Kind.Success)

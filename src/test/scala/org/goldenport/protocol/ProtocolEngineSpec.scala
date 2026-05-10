@@ -6,12 +6,11 @@ import org.scalatest.matchers.should.Matchers
 import org.goldenport.test.matchers.ConsequenceMatchers
 import org.goldenport.Consequence
 import org.goldenport.protocol.operation.OperationRequest
-import org.goldenport.observation.Cause
-import org.goldenport.observation.Cause.Reason
 
 /*
  * @since   Dec. 28, 2025
- * @version Jan. 29, 2026
+ *  version Jan. 29, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProtocolEngineSpec

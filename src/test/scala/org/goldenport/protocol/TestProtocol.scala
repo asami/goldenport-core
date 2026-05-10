@@ -3,7 +3,6 @@ package org.goldenport.protocol
 import cats.data.NonEmptyVector
 import org.goldenport.Conclusion
 import org.goldenport.Consequence
-import org.goldenport.observation.Cause
 import org.goldenport.observation.Descriptor
 import org.goldenport.protocol.handler.ProtocolHandler
 import org.goldenport.protocol.handler.egress.EgressCollection
@@ -14,7 +13,8 @@ import org.goldenport.protocol.spec._
 /*
  * @since   Dec. 28, 2025
  *  version Apr. 11, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 object TestProtocol {

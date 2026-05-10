@@ -2,13 +2,13 @@ package org.goldenport.test.matchers
 
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.goldenport.Conclusion
-import org.goldenport.provisional.observation.Taxonomy
-import org.goldenport.provisional.observation.Taxonomy.Symptom
+import org.goldenport.observation.Taxonomy
+import org.goldenport.observation.Taxonomy.Symptom
 import org.goldenport.test.matchers.MatcherSupport
 
 /*
  * @since   Jan. 28, 2026
- * @version Jan. 28, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ConclusionMatchers {

@@ -1,14 +1,14 @@
-package org.goldenport.provisional.presentation
+package org.goldenport.conclusion.presentation
 
 import org.goldenport.Conclusion
-// import org.goldenport.provisional.conclusion.Conclusion
 import org.goldenport.observation.Severity
-import org.goldenport.provisional.conclusion.Disposition.UserAction
-import org.goldenport.provisional.conclusion.Disposition.Responsibility
+import org.goldenport.conclusion.Disposition.UserAction
+import org.goldenport.conclusion.Disposition.Responsibility
 
 /*
  * @since   Jan. 25, 2026
- * @version Jan. 29, 2026
+ *  version Jan. 29, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class ConclusionPresenter {

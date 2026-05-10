@@ -8,8 +8,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import cats.data.NonEmptyVector
 import org.goldenport.datatype.I18nMessage
 import org.goldenport.observation.Descriptor
-import org.goldenport.provisional.observation.Observation
-import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.observation.Observation
+import org.goldenport.observation.Taxonomy
 // import org.goldenport.observation.Agent
 // import org.goldenport.observation.Cause
 // import org.goldenport.observation.CauseKind
@@ -27,7 +27,8 @@ import org.goldenport.provisional.observation.Taxonomy
  * @since   Dec. 22, 2025
  *  version Dec. 30, 2025
  *  version Jan. 27, 2026
- * @version Apr. 25, 2026
+ *  version Apr. 25, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec

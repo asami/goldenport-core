@@ -2,7 +2,7 @@ package org.goldenport.protocol
 
 import org.goldenport.Consequence
 // import org.goldenport.observation.Cause
-import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.observation.Taxonomy
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
@@ -19,7 +19,8 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
  * @since   Dec. 29, 2025
  *  version Jan. 29, 2026
  *  version Apr. 11, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec

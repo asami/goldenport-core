@@ -2,9 +2,9 @@ package org.goldenport.consequence
 
 import org.goldenport.Consequence
 import org.goldenport.Conclusion
-import org.goldenport.provisional.observation.Observation
-import org.goldenport.provisional.observation.Taxonomy
-import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Observation
+import org.goldenport.observation.Taxonomy
+import org.goldenport.observation.Cause
 import org.goldenport.observation.Descriptor
 import org.goldenport.observation.SourcePosition
 import org.goldenport.record.Record
@@ -14,7 +14,8 @@ import org.goldenport.record.Record
  *  version Feb. 28, 2026
  *  version Mar. 10, 2026
  *  version Apr.  8, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 object Failures {

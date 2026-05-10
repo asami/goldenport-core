@@ -1,7 +1,7 @@
 package org.goldenport.schema
 
 import org.goldenport.Consequence
-import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.observation.Taxonomy
 import org.goldenport.test.matchers.ConclusionMatchers
 import org.scalacheck.Gen
 import org.scalatest.GivenWhenThen
@@ -11,7 +11,8 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 29, 2025
- * @version Jan. 28, 2026
+ *  version Jan. 28, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class BigIntNormalizerSpec

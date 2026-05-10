@@ -6,15 +6,16 @@ import org.goldenport.Conclusion
 // import org.goldenport.observation.Cause
 // import org.goldenport.observation.Cause.Reason
 // import org.goldenport.observation.Descriptor
-import org.goldenport.provisional.observation.Taxonomy
-import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Taxonomy
+import org.goldenport.observation.Cause
 
 /*
  * @since   May. 11, 2025
  *  version Jul.  1, 2025
  *  version Dec. 28, 2025
  *  version Jan.  3, 2026
- * @version Jan. 29, 2026
+ *  version Jan. 29, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ConsequenceMatchers {

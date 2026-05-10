@@ -4,13 +4,14 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 import org.goldenport.Conclusion
 import org.goldenport.observation.Phenomenon
-import org.goldenport.observation.{CauseKind, Severity}
+import org.goldenport.observation.Severity
 import org.goldenport.test.matchers.ConclusionMatchers
 
 /*
  * @since   Dec. 30, 2025
  *  version Jan. 29, 2026
- * @version Feb.  1, 2026
+ *  version Feb.  1, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConclusionFromThrowableSpec extends AnyWordSpec with Matchers

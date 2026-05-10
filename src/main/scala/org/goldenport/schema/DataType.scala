@@ -5,11 +5,12 @@ import java.time.{LocalDateTime, OffsetDateTime, YearMonth, ZonedDateTime}
 import scala.util.Try
 import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.{I18nMessage, MimeType}
-import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Cause
 import org.goldenport.text.Presentable
 import org.goldenport.value.{ContentBody, ContentMarkup}
 
 /*
+ * @version May. 11, 2026
  * Datatype reference used by schema definitions.
  *
  * This is intentionally a lightweight, declarative identifier.

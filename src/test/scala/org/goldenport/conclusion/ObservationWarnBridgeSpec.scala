@@ -1,16 +1,16 @@
-package org.goldenport.provisional
+package org.goldenport.conclusion
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import org.scalacheck.Gen
 import org.goldenport.observation.Descriptor
-import org.goldenport.provisional.observation.{Observation, Taxonomy, Cause}
-import org.goldenport.provisional.observation.{ObservationRender, ObservationProject}
+import org.goldenport.observation.{Observation, Taxonomy, Cause}
+import org.goldenport.observation.{ObservationRender, ObservationProject}
 
 /*
  * @since   Mar.  4, 2026
- * @version Mar.  4, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ObservationWarnBridgeSpec extends AnyWordSpec

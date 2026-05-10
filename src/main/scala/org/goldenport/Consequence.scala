@@ -12,9 +12,9 @@ import org.goldenport.record.Record
 import org.goldenport.schema.DataType
 import org.goldenport.schema.Constraint
 import org.goldenport.convert.ValueReader
-import org.goldenport.provisional.observation.Observation
-import org.goldenport.provisional.observation.Taxonomy
-import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Observation
+import org.goldenport.observation.Taxonomy
+import org.goldenport.observation.Cause
 import org.goldenport.observation.Descriptor
 import org.goldenport.observation.SourcePosition
 import org.goldenport.http.HttpRequest
@@ -54,7 +54,8 @@ import org.goldenport.id.UniversalId
  *  version Feb. 28, 2026
  *  version Mar. 13, 2026
  *  version Apr. 25, 2026
- * @version Apr. 29, 2026
+ *  version Apr. 29, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {

@@ -6,7 +6,7 @@ import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.I18nMessage
 import org.goldenport.value.BaseContent
 import org.goldenport.http.HttpRequest
-import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Cause
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Multiplicity, ValueDomain}
@@ -23,7 +23,8 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Feb.  7, 2026
  *  version Mar. 29, 2026
  *  version Apr. 11, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition

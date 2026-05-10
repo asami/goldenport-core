@@ -1,10 +1,11 @@
 package org.goldenport.error
 
 import org.goldenport.Conclusion
-import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
-import org.goldenport.provisional.observation.Observation
+import org.goldenport.conclusion.{Interpretation, Disposition}
+import org.goldenport.observation.Observation
 
 /**
+ * @version May. 11, 2026
  * DefaultErrorSystem is the minimal core implementation.
  *
  * Design intent:

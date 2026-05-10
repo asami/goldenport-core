@@ -3,12 +3,12 @@ package org.goldenport
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 import org.goldenport.observation.Descriptor
-import org.goldenport.provisional.observation.Taxonomy
-import org.goldenport.provisional.observation.Cause
+import org.goldenport.observation.Taxonomy
+import org.goldenport.observation.Cause
 
 /*
  * @since   Apr. 29, 2026
- * @version Apr. 29, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceValidationSpec extends AnyWordSpec with Matchers {
@@ -71,19 +71,19 @@ class ConsequenceValidationSpec extends AnyWordSpec with Matchers {
 
 
 
-    "preserve public Cause.Kind numeric values while appending diagnostics kinds" in {
-      Cause.Kind.Limit.value shouldBe 1
-      Cause.Kind.Exhaustion.value shouldBe 2
-      Cause.Kind.Timeout.value shouldBe 3
-      Cause.Kind.Conflict.value shouldBe 4
-      Cause.Kind.Inconsistency.value shouldBe 5
-      Cause.Kind.Corruption.value shouldBe 6
-      Cause.Kind.Format.value shouldBe 7
-      Cause.Kind.Policy.value shouldBe 8
-      Cause.Kind.Capability.value shouldBe 9
-      Cause.Kind.Permission.value shouldBe 10
-      Cause.Kind.Guard.value shouldBe 11
-      Cause.Kind.Relation.value shouldBe 12
+    "use Phase 23 canonical Cause.Kind numeric values" in {
+      Cause.Kind.Format.value shouldBe 1
+      Cause.Kind.Limit.value shouldBe 2
+      Cause.Kind.Policy.value shouldBe 3
+      Cause.Kind.Capability.value shouldBe 4
+      Cause.Kind.Permission.value shouldBe 5
+      Cause.Kind.Guard.value shouldBe 6
+      Cause.Kind.Relation.value shouldBe 7
+      Cause.Kind.Conflict.value shouldBe 8
+      Cause.Kind.Inconsistency.value shouldBe 9
+      Cause.Kind.Exhaustion.value shouldBe 10
+      Cause.Kind.Timeout.value shouldBe 11
+      Cause.Kind.Corruption.value shouldBe 12
       Cause.Kind.Unknown.value shouldBe 99
     }
 

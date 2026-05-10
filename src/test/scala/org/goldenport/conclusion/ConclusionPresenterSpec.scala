@@ -1,4 +1,4 @@
-package org.goldenport.provisional
+package org.goldenport.conclusion
 
 import java.time.Instant
 import org.scalatest.matchers.should.Matchers
@@ -6,20 +6,21 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.goldenport.Conclusion
 import org.goldenport.observation.Phenomenon
 import org.goldenport.observation.Severity
-import org.goldenport.provisional.observation.Taxonomy
-import org.goldenport.provisional.observation.{Observation, Origin}
-import org.goldenport.provisional.observation.Cause
-import org.goldenport.provisional.observation.Occurrence
-import org.goldenport.provisional.observation.{Source, Channel, Substrate}
-import org.goldenport.provisional.conclusion.{Interpretation, Disposition}
-import org.goldenport.provisional.conclusion.Disposition.Responsibility
-import org.goldenport.provisional.presentation.{PresentationContext, SimpleConclusionPresenter}
-import org.goldenport.provisional.cli.CliConclusionRenderer
+import org.goldenport.observation.Taxonomy
+import org.goldenport.observation.{Observation, Origin}
+import org.goldenport.observation.Cause
+import org.goldenport.observation.Occurrence
+import org.goldenport.observation.{Source, Channel, Substrate}
+import org.goldenport.conclusion.{Interpretation, Disposition}
+import org.goldenport.conclusion.Disposition.Responsibility
+import org.goldenport.conclusion.presentation.{PresentationContext, SimpleConclusionPresenter}
+import org.goldenport.conclusion.cli.CliConclusionRenderer
 
 /*
  * @since   Jan. 25, 2026
  *  version Feb.  5, 2026
- * @version Mar.  4, 2026
+ *  version Mar.  4, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConclusionPresenterSpec extends AnyWordSpec with Matchers {
@@ -58,8 +59,8 @@ class ConclusionPresenterSpec extends AnyWordSpec with Matchers {
       val (code, message) = CliConclusionRenderer.render(presented)
       code shouldBe 1
       val expectedSummaryKey = presented.summary.key
-      message should include("Resource.NotFound")
-      message shouldBe s"[${presented.severity}]Resource.NotFound-${expectedSummaryKey}"
+      message should include("resource.not-found")
+      message shouldBe s"[${presented.severity}]resource.not-found-${expectedSummaryKey}"
     }
   }
 }

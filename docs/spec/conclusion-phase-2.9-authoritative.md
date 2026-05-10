@@ -11,7 +11,7 @@ source of truth; every statement below is derived directly from that code.
 - `status` carries declarative metadata (`WebCode`, `detailCodes`, `strategies`) but MUST NOT
   trigger execution or handling logic; it is descriptive only.
 - `observation` is the Phase 2.9 factual record defined in
-  `org.goldenport.provisional.observation.Observation`; Conclusion contains no other core facts.
+  `org.goldenport.observation.Observation`; Conclusion contains no other core facts.
 - `interpretation` and `disposition` represent semantic judgment and handling guidance, but MUST
   remain separate values that can be refined independently of `Observation`.
 - `previous` MAY link to another Conclusion to express causal propagation; Conclusions without a

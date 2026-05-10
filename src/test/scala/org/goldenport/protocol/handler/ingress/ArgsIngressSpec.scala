@@ -8,7 +8,7 @@ import org.goldenport.Consequence
 import org.goldenport.observation.Descriptor
 import org.goldenport.protocol.{Argument, Property, Switch}
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ParameterDefinition, RequestDefinition, ResponseDefinition, ServiceDefinition, ServiceDefinitionGroup}
-import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.observation.Taxonomy
 import org.goldenport.value.BaseContent
 import cats.data.NonEmptyVector
 
@@ -19,7 +19,8 @@ import cats.data.NonEmptyVector
  * - Fix the canonical behavior of ArgsIngress
  * - args:Array[String] -> Request
  * - Service/operation identification is syntactic and uses ServiceDefinitionGroup
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version May. 11, 2026
  */
 /*
  * Canonical Parsing Contract (Normative)

@@ -10,11 +10,11 @@ import org.goldenport.protocol.Response
 import org.goldenport.protocol.handler.egress.{Egress, EgressCollection}
 import org.goldenport.protocol.handler.projection.ProjectionCollection
 import org.goldenport.protocol.spec.ServiceDefinitionGroup
-import org.goldenport.provisional.observation.Taxonomy
+import org.goldenport.observation.Taxonomy
 
 /*
  * @since   Apr. 14, 2026
- * @version Apr. 14, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 class ProjectionEgressCollectionSpec
