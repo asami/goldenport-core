@@ -4,7 +4,7 @@ import cats.data.NonEmptyVector
 import java.time.Instant
 import org.goldenport.datatype.Identifier
 import org.goldenport.record.Record
-import org.goldenport.error.{ErrorCode, ErrorStrategy}
+import org.goldenport.error.DetailCode
 import org.goldenport.conclusion.{Interpretation, Disposition}
 import org.goldenport.observation.{Observation, Taxonomy, Cause, Source, Channel, Substrate, Origin}
 import org.goldenport.observation.Occurrence
@@ -28,13 +28,25 @@ import org.goldenport.http.HttpRequest
  * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
-case class Conclusion(
-  status: Conclusion.Status,
-  observation: Observation,
-  interpretation: Interpretation,
-  disposition: Disposition,
-  previous: Option[Conclusion] = None
+final class Conclusion private (
+  initialStatus: Conclusion.Status,
+  val observation: Observation,
+  val interpretation: Interpretation,
+  val disposition: Disposition,
+  val previous: Option[Conclusion] = None
 ) extends Presentable {
+  val status: Conclusion.Status =
+    initialStatus.materialize(this)
+
+  def copy(
+    status: Conclusion.Status = this.status,
+    observation: Observation = this.observation,
+    interpretation: Interpretation = this.interpretation,
+    disposition: Disposition = this.disposition,
+    previous: Option[Conclusion] = this.previous
+  ): Conclusion =
+    Conclusion(status, observation, interpretation, disposition, previous)
+
   def withSourcePosition(p: SourcePosition): Conclusion =
     copy(observation = observation.withSourcePosition(p))
 
@@ -101,56 +113,133 @@ case class Conclusion(
   def toJsonString: String = toRecord.toJsonString
 
   def toYamlString: String = toRecord.toYamlString
+
+  override def equals(rhs: Any): Boolean = rhs match {
+    case that: Conclusion =>
+      status == that.status &&
+        observation == that.observation &&
+        interpretation == that.interpretation &&
+        disposition == that.disposition &&
+        previous == that.previous
+    case _ => false
+  }
+
+  override def hashCode: Int =
+    (status, observation, interpretation, disposition, previous).hashCode
 }
 
 object Conclusion {
-  // Status represents semantic classification of an error.
-  // It may carry declarative strategies and error codes,
-  // but does not select concrete handlers or perform actions.
-  case class Status(
-    webCode: WebCode,
-    detailCodes: List[ErrorCode] = Nil,
-    strategies: List[ErrorStrategy] = Nil
+  def apply(
+    status: Conclusion.Status,
+    observation: Observation,
+    interpretation: Interpretation,
+    disposition: Disposition,
+    previous: Option[Conclusion] = None
+  ): Conclusion =
+    new Conclusion(status, observation, interpretation, disposition, previous)
+
+  def unapply(p: Conclusion): Option[(Conclusion.Status, Observation, Interpretation, Disposition, Option[Conclusion])] =
+    Some((p.status, p.observation, p.interpretation, p.disposition, p.previous))
+
+  // Status carries protocol-facing status, optional application status, and
+  // the generated numeric semantic detail code derived from Conclusion.
+  final class Status private (
+    val webCode: WebCode,
+    val appCode: Option[Long],
+    val appStatus: Option[String],
+    val detailCode: Option[DetailCode]
   ) {
     def toRecord: Record = Record.data(
-      "code" -> webCode.code
+      "webCode" -> webCode.code
+    ) ++ Record.dataOption(
+      "appCode" -> appCode,
+      "appStatus" -> appStatus,
+      "detailCode" -> detailCode.map(_.code)
     )
+
+    def materialize(conclusion: Conclusion): Status =
+      Status.materialized(
+        webCode = Status.webCodeOf(conclusion),
+        appCode = appCode,
+        appStatus = appStatus,
+        detailCode = Some(DetailCode.generated(conclusion))
+      )
+
+    def copy(
+      appCode: Option[Long] = this.appCode,
+      appStatus: Option[String] = this.appStatus
+    ): Status =
+      Status(appCode, appStatus)
+
+    override def equals(rhs: Any): Boolean = rhs match {
+      case that: Status =>
+        webCode == that.webCode &&
+          appCode == that.appCode &&
+          appStatus == that.appStatus &&
+          detailCode == that.detailCode
+      case _ => false
+    }
+
+    override def hashCode: Int =
+      (webCode, appCode, appStatus, detailCode).hashCode
+
+    override def toString: String =
+      s"Status($webCode,$appCode,$appStatus,$detailCode)"
   }
   object Status {
-    val badRequest = Status(WebCode.BadRequest)
-    val unauthorized = Status(WebCode.Unauthorized)
-    val forbidden = Status(WebCode.Forbidden)
-    val notFound = Status(WebCode.NotFound)
-    val conflict = Status(WebCode.Conflict)
-    val internalServerError = Status(WebCode.InternalServerError)
-    val notImplemented = Status(WebCode.NotImplemented)
-    val serviceUnavailable = Status(WebCode.ServiceUnavailable)
+    def apply(
+      appCode: Option[Long] = None,
+      appStatus: Option[String] = None
+    ): Status =
+      new Status(WebCode.InternalServerError, appCode, appStatus, None)
 
-    // Hint
-    def from(taxonomy: Taxonomy): Status = taxonomy.category match {
-      case Taxonomy.Category.Argument => badRequest
-      case Taxonomy.Category.Property => badRequest
-      case Taxonomy.Category.Configuration => internalServerError
-      case Taxonomy.Category.Resource => internalServerError
-      case Taxonomy.Category.Reference => serviceUnavailable
-      case Taxonomy.Category.State => internalServerError
-      case Taxonomy.Category.Value => badRequest
-      case Taxonomy.Category.Entity => badRequest
-      case Taxonomy.Category.Security => taxonomy.symptom match {
-        case Taxonomy.Symptom.AuthenticationRequired => unauthorized
-        case _ => forbidden
+    private def materialized(
+      webCode: WebCode,
+      appCode: Option[Long],
+      appStatus: Option[String],
+      detailCode: Option[DetailCode]
+    ): Status =
+      new Status(webCode, appCode, appStatus, detailCode)
+
+    def unapply(p: Status): Option[(WebCode, Option[Long], Option[String], Option[DetailCode])] =
+      Some((p.webCode, p.appCode, p.appStatus, p.detailCode))
+
+    def webCodeOf(taxonomy: Taxonomy): WebCode =
+      taxonomy.symptom match {
+        case Taxonomy.Symptom.NotFound => WebCode.NotFound
+        case Taxonomy.Symptom.AuthenticationRequired => WebCode.Unauthorized
+        case Taxonomy.Symptom.PermissionDenied => WebCode.Forbidden
+        case _ => _web_code_by_category(taxonomy)
       }
-      case Taxonomy.Category.Record => badRequest
-      case Taxonomy.Category.Operation => badRequest
-      case Taxonomy.Category.Service => serviceUnavailable
-      case Taxonomy.Category.Component => internalServerError
-      case Taxonomy.Category.SubSystem => internalServerError
-      case Taxonomy.Category.ServiceProvider => serviceUnavailable
-      case Taxonomy.Category.System => internalServerError
-      case Taxonomy.Category.DataStore => internalServerError // Hint
-      case Taxonomy.Category.Network => serviceUnavailable
-      case Taxonomy.Category.OutOfControl => internalServerError
-    }
+
+    private def _web_code_by_category(taxonomy: Taxonomy): WebCode =
+      taxonomy.category match {
+        case Taxonomy.Category.Argument => WebCode.BadRequest
+        case Taxonomy.Category.Property => WebCode.BadRequest
+        case Taxonomy.Category.Configuration => WebCode.InternalServerError
+        case Taxonomy.Category.Resource => WebCode.InternalServerError
+        case Taxonomy.Category.Reference => WebCode.ServiceUnavailable
+        case Taxonomy.Category.State => WebCode.InternalServerError
+        case Taxonomy.Category.Value => WebCode.BadRequest
+        case Taxonomy.Category.Entity => WebCode.BadRequest
+        case Taxonomy.Category.Security => WebCode.Forbidden
+        case Taxonomy.Category.Record => WebCode.BadRequest
+        case Taxonomy.Category.Operation => WebCode.BadRequest
+        case Taxonomy.Category.Service => WebCode.ServiceUnavailable
+        case Taxonomy.Category.Component => WebCode.InternalServerError
+        case Taxonomy.Category.SubSystem => WebCode.InternalServerError
+        case Taxonomy.Category.ServiceProvider => WebCode.ServiceUnavailable
+        case Taxonomy.Category.System => WebCode.InternalServerError
+        case Taxonomy.Category.DataStore => WebCode.InternalServerError
+        case Taxonomy.Category.Network => WebCode.ServiceUnavailable
+        case Taxonomy.Category.OutOfControl => WebCode.InternalServerError
+      }
+
+    def webCodeOf(conclusion: Conclusion): WebCode =
+      if (conclusion.interpretation.kind == Interpretation.Kind.Success)
+        WebCode.Ok
+      else
+        webCodeOf(conclusion.observation.taxonomy)
   }
 
   case class WebCode(code: Int)
@@ -193,7 +282,7 @@ object Conclusion {
       case None => Observation.ofcNullPointer
     }
     Conclusion(
-      status = Status(webCode = WebCode.InternalServerError),
+      status = Status(),
       observation = observation,
       interpretation = Interpretation.from(p),
       disposition = Disposition.from(p),
@@ -215,7 +304,7 @@ object Conclusion {
       severity = None
     )
     Conclusion(
-      status = Status(webCode = WebCode.BadRequest),
+      status = Status(),
       observation = observation,
       interpretation = Interpretation.domainFailure,
       disposition = Disposition.none,
@@ -259,7 +348,7 @@ object Conclusion {
 
   def failure(pos: SourcePosition, o: Observation): Conclusion = {
     val x = o.withSourcePosition(pos)
-    Status.from(o.taxonomy).webCode match {
+    Status.webCodeOf(o.taxonomy) match {
       case WebCode.BadRequest => badRequest(x)
       case WebCode.Unauthorized => unauthorized(x)
       case WebCode.Forbidden => forbidden(x)
@@ -273,7 +362,7 @@ object Conclusion {
 
   def badRequest(o: Observation): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       o,
       Interpretation.domainFailure,
       Disposition.fix
@@ -281,7 +370,7 @@ object Conclusion {
 
   def unauthorized(o: Observation): Conclusion =
     Conclusion(
-      Status.unauthorized,
+      Status(),
       o,
       Interpretation.domainFailure,
       Disposition.fix
@@ -289,7 +378,7 @@ object Conclusion {
 
   def forbidden(o: Observation): Conclusion =
     Conclusion(
-      Status.forbidden,
+      Status(),
       o,
       Interpretation.domainFailure,
       Disposition.fix
@@ -297,7 +386,7 @@ object Conclusion {
 
   def notFound(o: Observation): Conclusion =
     Conclusion(
-      Status.notFound,
+      Status(),
       o,
       Interpretation.domainFailure,
       Disposition.fix
@@ -305,7 +394,7 @@ object Conclusion {
 
   def conflict(o: Observation): Conclusion =
     Conclusion(
-      Status.conflict,
+      Status(),
       o,
       Interpretation.domainFailure,
       Disposition.fix
@@ -313,7 +402,7 @@ object Conclusion {
 
   def internalServerError(o: Observation): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       o,
       Interpretation.systemFailure,
       Disposition.fix
@@ -321,7 +410,7 @@ object Conclusion {
 
   def notImplemented(o: Observation): Conclusion =
     Conclusion(
-      Status.notImplemented,
+      Status(),
       o,
       Interpretation.defect,
       Disposition.defect
@@ -329,7 +418,7 @@ object Conclusion {
 
   def serviceUnavailable(o: Observation): Conclusion =
     Conclusion(
-      Status.serviceUnavailable,
+      Status(),
       o,
       Interpretation.systemFailure,
       Disposition.serviceUnavailable
@@ -339,7 +428,7 @@ object Conclusion {
     failure(pos, taxonomy, Cause.create(facets))
 
   def failure(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
-    Status.from(taxonomy).webCode match {
+    Status.webCodeOf(taxonomy) match {
       case WebCode.BadRequest => badRequest(pos, taxonomy, cause)
       case WebCode.Unauthorized => unauthorized(pos, taxonomy, cause)
       case WebCode.Forbidden => forbidden(pos, taxonomy, cause)
@@ -399,7 +488,7 @@ object Conclusion {
   // fail
   def notImplemented(pos: SourcePosition, msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.notImplemented(pos, msg),
       Interpretation.notImplemented,
       Disposition.notImplemented
@@ -410,7 +499,7 @@ object Conclusion {
     facets: Seq[Descriptor.Facet]
   ): Conclusion =
     Conclusion(
-      Status.notFound,
+      Status(),
       Observation.resourceNotFound(resource, facets),
       Interpretation.resourceNotFound,
       Disposition.fix
@@ -418,7 +507,7 @@ object Conclusion {
 
   def serviceProviderNotFound(name: String, facets: Seq[Descriptor.Facet]): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.serviceProviderNotFound(name, facets),
       Interpretation.configurationFailure,
       Disposition.serviceUnavailable
@@ -426,7 +515,7 @@ object Conclusion {
 
   def securityAuthenticationRequired(message: String): Conclusion =
     Conclusion(
-      Status.unauthorized,
+      Status(),
       Observation.securityAuthenticationRequired(message),
       Interpretation.domainFailure,
       Disposition.fix
@@ -434,7 +523,7 @@ object Conclusion {
 
   def securityPermissionDenied(message: String): Conclusion =
     Conclusion(
-      Status.forbidden,
+      Status(),
       Observation.securityPermissionDenied(message),
       Interpretation.domainFailure,
       Disposition.fix
@@ -442,7 +531,7 @@ object Conclusion {
 
   def securityPermissionDenied(message: String, facets: Seq[Descriptor.Facet]): Conclusion =
     Conclusion(
-      Status.forbidden,
+      Status(),
       Observation.securityPermissionDenied(message, facets),
       Interpretation.domainFailure,
       Disposition.fix
@@ -450,7 +539,7 @@ object Conclusion {
 
   def entityNotFound(id: Identifier): Conclusion =
     Conclusion(
-      Status.notFound,
+      Status(),
       Observation.entityNotFound(id),
       Interpretation.notFound,
       Disposition.fix
@@ -458,7 +547,7 @@ object Conclusion {
 
   def argumentMissing: Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentMissing,
       Interpretation.argumentMissing,
       Disposition.argumentMissing
@@ -466,7 +555,7 @@ object Conclusion {
 
   def argumentMissing(name: String): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentMissing(name),
       Interpretation.argumentMissing,
       Disposition.argumentMissing
@@ -474,7 +563,7 @@ object Conclusion {
 
   def argumentMissingInput(name: String): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentMissingInput(name),
       Interpretation.argumentMissing,
       Disposition.argumentMissing
@@ -482,7 +571,7 @@ object Conclusion {
 
   def argumentMissingInput(args: Seq[String]): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentMissingInput(args),
       Interpretation.argumentMissing,
       Disposition.argumentMissing
@@ -490,7 +579,7 @@ object Conclusion {
 
   def argumentMissingInput(req: HttpRequest): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentMissingInput(req),
       Interpretation.argumentMissing,
       Disposition.argumentMissing
@@ -498,7 +587,7 @@ object Conclusion {
 
   def argumentMissingOperation(name: String, operation: String): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentMissingOperation(name, operation),
       Interpretation.argumentMissing,
       Disposition.argumentMissing
@@ -506,7 +595,7 @@ object Conclusion {
 
   def argumentRedundantOperation(name: String, operation: String): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentRedundantOperation(name, operation),
       Interpretation.argumentRedundant,
       Disposition.argumentRedundant
@@ -514,7 +603,7 @@ object Conclusion {
 
   def argumentRedundantOperationInput(operation: String, args: Seq[String]): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentRedundantOperationInput(operation, args),
       Interpretation.argumentRedundant,
       Disposition.argumentRedundant
@@ -522,7 +611,7 @@ object Conclusion {
 
   def argumentDataType(name: String, value: Any, dt: DataType): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentDataType(name, value, dt),
       Interpretation.argumentDataType,
       Disposition.argumentDataType
@@ -530,7 +619,7 @@ object Conclusion {
 
   def argumentConstraint(name: String, value: Any, cs: NonEmptyVector[Constraint]): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.argumentConstraint(name, value, cs),
       Interpretation.argumentConstraint,
       Disposition.argumentConstraint
@@ -538,7 +627,7 @@ object Conclusion {
 
   def operationInvalid(name: String): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.operationInvalid(name),
       Interpretation.operationInvalid,
       Disposition.operationInvalid
@@ -546,15 +635,28 @@ object Conclusion {
 
   def resourceInconsistency(pos: SourcePosition): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.resourceInconsistency(pos),
       Interpretation.resourceInconsistency,
       Disposition.resourceInconsistency
     )
 
+  def stateInvalid(
+    message: String,
+    facets: Seq[Descriptor.Facet] = Nil,
+    previous: Option[Conclusion] = None
+  ): Conclusion =
+    Conclusion(
+      Status(),
+      Observation.stateInvalid(message, facets),
+      Interpretation.stateInvalid,
+      Disposition.stateInvalid,
+      previous
+    )
+
   def recordNotFound(pos: SourcePosition, key: String, rec: Record): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.recordNotFound(pos, key, rec),
       Interpretation.recordNotFound,
       Disposition.recordNotFound
@@ -562,7 +664,7 @@ object Conclusion {
 
   def operationNotFound(pos: SourcePosition, name: String): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.operationNotFound(pos, name),
       Interpretation.operationNotFound,
       Disposition.operationNotFound
@@ -570,7 +672,7 @@ object Conclusion {
 
   def valueInvalid(value: Any, dt: DataType): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.valueInvalid(value, dt),
       Interpretation.valueInvalid,
       Disposition.valueInvalid
@@ -578,7 +680,7 @@ object Conclusion {
 
   def valueFormatError(value: Any, dt: DataType): Conclusion =
     Conclusion(
-      Status.badRequest,
+      Status(),
       Observation.valueFormatError(value, dt),
       Interpretation.valueFormatError,
       Disposition.valueFormatError
@@ -586,7 +688,7 @@ object Conclusion {
 
   def unreachableReached(pos: SourcePosition): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.unreachableReached(pos),
       Interpretation.unreachableReached,
       Disposition.unreachableReached
@@ -594,7 +696,7 @@ object Conclusion {
 
   def unreachableReached(msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.unreachableReached(msg),
       Interpretation.unreachableReached,
       Disposition.unreachableReached
@@ -602,7 +704,7 @@ object Conclusion {
 
   def uninitializedState(pos: SourcePosition): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.uninitializedState(pos),
       Interpretation.uninitializedState,
       Disposition.uninitializedState
@@ -610,7 +712,7 @@ object Conclusion {
 
   def impossibleState(msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.impossibleState(msg),
       Interpretation.impossibleState,
       Disposition.impossibleState
@@ -618,7 +720,7 @@ object Conclusion {
 
   def unsupported(msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.unsupported(msg),
       Interpretation.unsupported,
       Disposition.unsupported
@@ -626,7 +728,7 @@ object Conclusion {
 
   def notImplemented(pos: SourcePosition): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.notImplemented(pos),
       Interpretation.notImplemented,
       Disposition.notImplemented
@@ -634,7 +736,7 @@ object Conclusion {
 
   def notImplemented(msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.notImplemented(msg),
       Interpretation.notImplemented,
       Disposition.notImplemented
@@ -642,7 +744,7 @@ object Conclusion {
 
   def invariantViolation(msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.invariantViolation(msg),
       Interpretation.invariantViolation,
       Disposition.invariantViolation
@@ -650,7 +752,7 @@ object Conclusion {
 
   def preconditionViolation(msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.preconditionViolation(msg),
       Interpretation.preconditionViolation,
       Disposition.preconditionViolation
@@ -658,7 +760,7 @@ object Conclusion {
 
   def postconditionViolation(msg: String): Conclusion =
     Conclusion(
-      Status.internalServerError,
+      Status(),
       Observation.postconditionViolation(msg),
       Interpretation.postconditionViolation,
       Disposition.postconditionViolation

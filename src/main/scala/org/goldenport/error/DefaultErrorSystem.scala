@@ -5,7 +5,6 @@ import org.goldenport.conclusion.{Interpretation, Disposition}
 import org.goldenport.observation.Observation
 
 /**
- * @version May. 11, 2026
  * DefaultErrorSystem is the minimal core implementation.
  *
  * Design intent:
@@ -13,7 +12,7 @@ import org.goldenport.observation.Observation
  * - Provide a safe, deterministic default mapping
  * - Never throw exceptions
  * - Never inspect framework-specific semantics
- * - Never infer retry / escalation / handling strategies
+ * - Never infer retry / escalation runtime policy
  *
  * This implementation is intentionally conservative.
  *
@@ -26,7 +25,8 @@ import org.goldenport.observation.Observation
  */
 /*
  * @since   Dec. 18, 2025
- * @version Jan. 28, 2026
+ *  version Jan. 28, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 object DefaultErrorSystem extends ErrorSystem {
@@ -40,15 +40,13 @@ object DefaultErrorSystem extends ErrorSystem {
    * No use of:
    * - Observation.strategy
    * - Observation.handler
-   * - Observation.code / DetailCode
+   * - Observation.code
    */
   override def conclude(observation: Observation): Conclusion = {
     observation.exception match {
       case Some(_) =>
         Conclusion(
-          status = Conclusion.Status(
-            webCode = Conclusion.WebCode(500)
-          ),
+          status = Conclusion.Status(),
           observation = observation,
           interpretation = Interpretation.defect,
           disposition = Disposition.defect,
@@ -56,9 +54,7 @@ object DefaultErrorSystem extends ErrorSystem {
         )
       case None =>
         Conclusion(
-          status = Conclusion.Status(
-            webCode = Conclusion.WebCode(200)
-          ),
+          status = Conclusion.Status(),
           observation = observation,
           interpretation = Interpretation.success,
           disposition = Disposition.none,

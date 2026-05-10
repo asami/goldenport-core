@@ -45,6 +45,7 @@ object Interpretation {
   def operationInvalid = domainFailure
   def notFound = domainFailure
   def resourceInconsistency = domainFailure
+  def stateInvalid = systemFailure
   def recordNotFound = domainFailure
   def operationNotFound = domainFailure
   def valueInvalid = domainFailure
@@ -99,6 +100,7 @@ object Disposition {
   def argumentConstraint = fix
   def operationInvalid = fix
   def resourceInconsistency = fix
+  def stateInvalid = serviceUnavailable
   def recordNotFound = fix
   def operationNotFound = fix
   def valueInvalid = fix

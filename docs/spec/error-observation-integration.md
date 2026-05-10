@@ -75,9 +75,9 @@ Conclusion consists of:
     - Optional causal chain (previous)
 
 Conclusion.Status is a declarative structure composed of:
-    - WebCode       (classification, not transport)
-    - ErrorCode     (SimpleModeling / application-specific)
-    - ErrorStrategy (hint only, no execution semantics)
+    - WebCode       (generated classification, not transport)
+    - DetailCode    (generated numeric semantic classification)
+    - AppCode/AppStatus (optional application-defined metadata)
 
 Conclusion does NOT execute behavior.
 It represents interpretation, not action.
@@ -126,7 +126,7 @@ Core library responsibilities:
 
 Framework responsibilities (e.g. CNCF):
     - Interpret Conclusion.Status
-    - Map ErrorStrategy to actual behavior
+    - Map Disposition to policy-visible behavior
     - Decide retry / escalation / abort
     - Integrate with logging, metrics, and observability
 
@@ -149,46 +149,46 @@ and must NOT rely on DefaultErrorSystem for production behavior.
 
 
 ----------------------------------------------------------------------
-4. ErrorStrategy (Declarative Hint)
+4. Disposition (Declarative Guidance)
 ----------------------------------------------------------------------
 
-ErrorStrategy is defined as a *declarative hint*.
+Disposition is defined as *declarative reaction guidance*.
 
 Examples (non-exhaustive):
-    - Input
-    - Retry
-    - Escalate
-    - None
+    - Fix input
+    - Retry now
+    - Retry later
+    - Escalation
 
 Rules:
-    - Core never executes strategies
-    - Strategy has no side effects
-    - Strategy is NOT a command
+    - Core never executes disposition guidance
+    - Disposition has no side effects
+    - Disposition is NOT a command
 
 Framework interpretation examples:
-    Retry     -> retry job or operation
-    Escalate -> fail fast and emit alert
-    Input    -> client-side correction required
+    Retry now   -> retry job or operation immediately if policy allows
+    Escalation  -> fail fast and emit alert
+    Fix input   -> client-side correction required
 
 
 ----------------------------------------------------------------------
-5. ErrorCode (Classification)
+5. DetailCode (Numeric Classification)
 ----------------------------------------------------------------------
 
-ErrorCode resides under:
+DetailCode resides under:
 
-    org.simplemodeling.error
+    org.goldenport.error
 
 Core provides:
-    - Namespace
-    - Minimal default codes (e.g. SmErrorCode)
+    - Numeric `DetailCode`
+    - Deterministic generation from `Conclusion`
 
 Framework responsibilities:
-    - Define framework-specific ErrorCodes
-    - Optionally map them to metrics or alerts
+    - Project numeric DetailCode beside protocol status
+    - Optionally map DetailCode to metrics or alerts
 
 Rules:
-    - ErrorCode is classification, not message
+    - DetailCode is classification, not message
     - Do NOT embed UI or HTTP semantics
     - Do NOT encode retry logic
 
@@ -218,11 +218,10 @@ Step 1:
     Implement a framework-specific ErrorSystem
 
 Step 2:
-    Define framework-specific ErrorCodes
-        (e.g. JobExecutionFailure, DependencyUnavailable)
+    Project numeric DetailCode for framework-facing diagnostics
 
 Step 3:
-    Map ErrorStrategy to execution behavior
+    Map Disposition to execution behavior
         - retry policy
         - escalation policy
         - state transitions

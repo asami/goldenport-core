@@ -8,8 +8,9 @@ source of truth; every statement below is derived directly from that code.
 
 - Conclusion is an immutable value object comprising five fields: `status`, `observation`,
   `interpretation`, `disposition`, and an optional `previous` reference.
-- `status` carries declarative metadata (`WebCode`, `detailCodes`, `strategies`) but MUST NOT
-  trigger execution or handling logic; it is descriptive only.
+- `status` carries declarative metadata (`WebCode` and numeric
+  `DetailCode`) but MUST NOT trigger execution or handling logic; it is
+  descriptive only.
 - `observation` is the Phase 2.9 factual record defined in
   `org.goldenport.observation.Observation`; Conclusion contains no other core facts.
 - `interpretation` and `disposition` represent semantic judgment and handling guidance, but MUST
@@ -19,12 +20,17 @@ source of truth; every statement below is derived directly from that code.
 
 ## Status and WebCode
 
-- `Status` is composed of a `WebCode` (HTTP-style code), optional `detailCodes`, and optional
-  `ErrorStrategy` entries.
-- `WebCode` lists fixed HTTP-equivalent constants (e.g. 200, 400, 500) that summarize high-level
-  response intent but must not perform or imply handling decisions.
-- `Status` MAY accumulate `ErrorStrategy` entries for downstream evaluators but MUST NOT apply them
-  within the Conclusion model itself.
+- `Status` is composed of a generated `WebCode` (HTTP-style code), optional
+  application code/status metadata, and a generated numeric `DetailCode`.
+- `WebCode` lists fixed HTTP-equivalent constants (e.g. 200, 400, 500) that
+  summarize high-level response intent but must not perform or imply handling
+  decisions.
+- `Conclusion` materialization generates and stores deterministic `WebCode` and
+  numeric `DetailCode` values from the full `Conclusion`.
+- Explicit `WebCode` or `DetailCode` overrides are not allowed in the
+  materialized status. Applications that need local identifiers use `appCode`
+  and `appStatus`.
+- Reaction and handling guidance belongs to `Disposition`, not to `Status`.
 
 ## Causal Chain Semantics
 
@@ -39,10 +45,12 @@ source of truth; every statement below is derived directly from that code.
 ## Boundary Helpers
 
 - `from(Throwable)` and `fromThrowable` build Conclusions at boundaries by invoking `Taxonomy.from`
-  and `Cause.from`, wrapping the result in a `Status` whose `WebCode` is `InternalError`, and
-  carrying `Interpretation.from` / `Disposition.from` derived from the throwable.
-- `simple(message)` constructs a minimal Conclusion with `Status.badRequest`, `Taxonomy.Argument/DomainValue`,
-  `Cause.message`, and fixed interpretation/disposition helpers; it intentionally omits runtime metadata.
+  and `Cause.from`, carrying `Interpretation.from` / `Disposition.from` derived
+  from the throwable, and letting status materialization generate `WebCode` and
+  `DetailCode`.
+- `simple(message)` constructs a minimal Conclusion with
+  `Taxonomy.Argument/DomainValue`, `Cause.message`, and fixed
+  interpretation/disposition helpers; it intentionally omits runtime metadata.
 - `RAISE` throws a `ConsequenceException` that wraps `Consequence.Failure(this)` using the observation’s
   exception when available; `RAISEC` always throws the failure-wrapped `ConsequenceException` without
   relying on an exception instance.

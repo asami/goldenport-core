@@ -94,7 +94,7 @@ Deliverables:
     - No framework assumptions
 
 ----------------------------------------------------------------------  
-1.3 ErrorSystem / ErrorStrategy / ErrorCode (Core)
+1.3 ErrorSystem / DetailCode (Core)
 ----------------------------------------------------------------------
 
 Status: BASIC STRUCTURE IMPLEMENTED (2025-12-18)
@@ -102,22 +102,16 @@ Status: BASIC STRUCTURE IMPLEMENTED (2025-12-18)
 Notes:
     - ErrorSystem trait is defined as a minimal abstraction point
     - DefaultErrorSystem (core, ultra-thin) exists as a placeholder
-    - ErrorStrategy is defined as a declarative hint only
-        - No execution semantics
-        - No handler selection
-        - No side effects
-    - ErrorCode namespace is reserved under org.simplemodeling.error
-        - SimpleModeling default codes are treated as a default implementation
-        - Application-specific codes are expected to extend/override in upper layers
+    - Numeric DetailCode is defined as semantic classification
+    - Disposition carries reaction guidance
 
 Rules:
-    - Core must not interpret ErrorStrategy
+    - Core must not execute Disposition guidance
     - Core must not execute retries, escalation, or handling
     - ErrorSystem exists only to *materialize* Conclusion from Observation + context
 
 Deferred:
-    - Semantic meaning of each ErrorStrategy
-    - Mapping rules between ErrorCode and WebCode
+    - Mapping rules between DetailCode and WebCode
     - CNCF / SIE specific ErrorSystem overrides
 
 ----------------------------------------------------------------------  
@@ -132,19 +126,18 @@ Status: EXPLICITLY DEFERRED
 
 Notes:
     - In the current Config / CLI development phase:
-        - `strategy` is NOT used
         - `handler` is NOT used
-        - `code` / `DetailCode` is NOT used
+        - Observation-local `code` is NOT used as a control key
+        - `DetailCode` is generated on `Conclusion.Status`
     - Observation represents factual events only.
     - Interpretation (reaction, handling, classification) is delegated to:
         - ErrorSystem
         - Higher layers (CNCF, SIE, CLI)
-    - strategy / handler fields are retained for future phases but intentionally unused in Config phase
+    - handler fields are retained for future phases but intentionally unused in Config phase
 
 Tasks (Deferred):
-    - Decide whether `strategy` and `handler` should:
-        - Remain in Observation as optional metadata, or
-        - Be moved entirely to Conclusion / ErrorSystem
+    - Decide whether `handler` should remain in Observation as optional metadata
+      or move entirely to Conclusion / ErrorSystem
     - Define semantics of Observation.Code / DetailCode:
         - Stable classification identifier only
         - No transport (HTTP/CLI) meaning
@@ -222,7 +215,7 @@ Scope:
 
 Key Questions:
     - Is severity a total order (e.g. Info < Warning < Error < Fatal)?
-    - Is severity represented directly, or inferred from Status / ErrorCode?
+    - Is severity represented directly, or inferred from Status / DetailCode?
     - Should aggregation always select the maximum severity?
     - Are there contexts where severity escalation or suppression is allowed?
 
@@ -241,9 +234,9 @@ Notes:
 
 Notes:
     - Conclusion.Status is treated as a declarative structure composed of:
-        - WebCode
-        - ErrorCode
-        - ErrorStrategy
+        - WebCode generated from Conclusion structure
+        - numeric DetailCode generated from Conclusion structure
+        - optional application code/status metadata
     - Status does not imply execution or handling behavior in core
 
 ----------------------------------------------------------------------  

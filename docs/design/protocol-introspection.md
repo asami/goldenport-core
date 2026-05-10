@@ -234,11 +234,13 @@ The canonical error representation is `Conclusion.Status`.
 `Conclusion.Status` consists of:
 
 - HTTP-level classification (`webCode`)
-- Optional detail codes (`detailCodes`)
-- Optional strategies (`strategies`)
+- Numeric semantic detail code (`detailCode`)
+- Optional application error code/status metadata (`appCode`, `appStatus`)
 
-Only the HTTP status code is considered stable and externally visible.
-All other elements are opaque and application-specific.
+The HTTP status code is protocol-facing. The numeric `DetailCode` is semantic
+and is stored on `Conclusion.Status`. Both `webCode` and `detailCode` are
+generated deterministically from the full `Conclusion`; applications may add
+`appCode` and `appStatus` metadata without overriding them.
 
 ----------------------------------------------------------------------
 Field Semantics
@@ -247,17 +249,13 @@ Field Semantics
 webCode
 - Represents a high-level HTTP/Web classification.
 - Used directly as HTTP status code in REST projections.
-- Semantically stable, but implementation-specific.
+- Generated from the `Conclusion` structure.
 
-detailCodes
-- Represents internal or application-specific error classifications.
-- Treated as opaque by all projections.
-- Projections MUST NOT interpret or constrain their meaning.
-
-strategies
-- Represents declarative error handling or recovery hints.
-- Treated as opaque and non-normative.
-- Projections MUST NOT rely on or interpret these values.
+detailCode
+- Represents numeric semantic error classification.
+- Must not be used as a CLI exit code.
+- Must not be derived from messages or free-form labels.
+- Generated from the `Conclusion` structure.
 
 ----------------------------------------------------------------------
 Projection Policy for Errors

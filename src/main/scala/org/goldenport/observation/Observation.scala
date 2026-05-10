@@ -48,7 +48,7 @@ import org.goldenport.util.SmEnum
  *  version Feb. 25, 2026
  *  version Mar. 13, 2026
  *  version Apr. 14, 2026
- * @version Apr. 29, 2026
+ * @version May. 11, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -300,6 +300,14 @@ object Observation {
   def stateConflict(state: String): Observation = failure(
     Taxonomy.stateConflict,
     Descriptor.Facet.State(state)
+  )
+
+  def stateInvalid(message: String, facets: Seq[Descriptor.Facet] = Nil): Observation = failure(
+    Taxonomy.stateInvalid,
+    Cause(
+      Some(Cause.Kind.Inconsistency),
+      Descriptor(Descriptor.Facet.Message(message), facets)
+    )
   )
 
   // ServiceProvider
@@ -654,6 +662,11 @@ object Taxonomy {
   val stateConflict: Taxonomy = Taxonomy(
     Category.State,
     Symptom.Conflict
+  )
+
+  val stateInvalid: Taxonomy = Taxonomy(
+    Category.State,
+    Symptom.Invalid
   )
 
   // ServiceProvider

@@ -48,7 +48,7 @@ class ConclusionPresenterSpec extends AnyWordSpec with Matchers {
         userAction = Some(Disposition.UserAction.FixInput),
         responsibility = Some(Responsibility.User)
       )
-      val status = Conclusion.Status.badRequest
+      val status = Conclusion.Status()
       val conclusion = Conclusion(status, observation, interpretation, disposition)
 
       val presenter = new SimpleConclusionPresenter

@@ -25,7 +25,7 @@ class ConsequenceValidationSpec extends AnyWordSpec with Matchers {
 
       conclusion.observation.taxonomy shouldBe Taxonomy.argumentInvalid
       conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Policy)
-      conclusion.status.detailCodes shouldBe Nil
+      conclusion.status.detailCode.map(_.code) shouldBe Some(10803020100L)
       facets should contain (Descriptor.Facet.Parameter.argument("contentType"))
       facets should contain (Descriptor.Facet.Policy("blob.mime-kind"))
       facets should contain (Descriptor.Facet.Expected("image/*"))
@@ -43,7 +43,7 @@ class ConsequenceValidationSpec extends AnyWordSpec with Matchers {
 
       conclusion.observation.taxonomy shouldBe Taxonomy.argumentFormatError
       conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Format)
-      conclusion.status.detailCodes shouldBe Nil
+      conclusion.status.detailCode.map(_.code) shouldBe Some(10201020100L)
       facets should contain (Descriptor.Facet.Parameter.argument("contentType"))
       facets should contain (Descriptor.Facet.Expected("MIME type"))
       facets should contain (Descriptor.Facet.Actual("not-a-mime"))
@@ -61,7 +61,7 @@ class ConsequenceValidationSpec extends AnyWordSpec with Matchers {
 
       conclusion.observation.taxonomy shouldBe Taxonomy.argumentInvalid
       conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Limit)
-      conclusion.status.detailCodes shouldBe Nil
+      conclusion.status.detailCode.map(_.code) shouldBe Some(10802020100L)
       facets should contain (Descriptor.Facet.FieldPath("payload.byteSize"))
       facets should contain (Descriptor.Facet.Policy("blob.upload.max-byte-size"))
       facets should contain (Descriptor.Facet.Limit(10L))
@@ -99,7 +99,7 @@ class ConsequenceValidationSpec extends AnyWordSpec with Matchers {
 
       conclusion.observation.taxonomy shouldBe Taxonomy.argumentInvalid
       conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Inconsistency)
-      conclusion.status.detailCodes shouldBe Nil
+      conclusion.status.detailCode.map(_.code) shouldBe Some(10809020100L)
       facets should contain (Descriptor.Facet.Parameter.argument("expectedDigest"))
       facets should contain (Descriptor.Facet.Algorithm("sha-256"))
       facets should contain (Descriptor.Facet.Expected("abc"))

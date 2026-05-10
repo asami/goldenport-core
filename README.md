@@ -112,7 +112,7 @@ framework-level integrator of simplemodeling-lib.
 
 CNCF is responsible for:
 
-    - interpreting Conclusion and ErrorStrategy
+    - interpreting Conclusion and Disposition
     - deciding retry, escalation, or abort behavior
     - projecting Observation into logs, traces, and metrics
     - providing execution and lifecycle semantics
