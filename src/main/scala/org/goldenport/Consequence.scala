@@ -988,6 +988,47 @@ object Consequence {
   ): Consequence.Failure[A] =
     Failures.operationInvalid(name, facets, pos)
 
+  inline def operationInvalid[A](
+    name: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    operationInvalid(name, kind, facets, SourcePositionMacro.position())
+
+  def operationInvalid[A](
+    name: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy.operationInvalid,
+      Cause(Some(kind), Descriptor((Descriptor.Facet.Operation(name) +: facets).toVector)),
+      pos
+    )
+
+  inline def operationInvalid[A](
+    name: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    previous: Option[Conclusion]
+  ): Consequence.Failure[A] =
+    operationInvalid(name, kind, facets, previous, SourcePositionMacro.position())
+
+  def operationInvalid[A](
+    name: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    previous: Option[Conclusion],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy.operationInvalid,
+      Cause(Some(kind), Descriptor((Descriptor.Facet.Operation(name) +: facets).toVector)),
+      pos,
+      previous
+    )
+
   inline def valueInvalid[A](message: String): Consequence.Failure[A] =
     valueInvalid(message, SourcePositionMacro.position())
 
@@ -1011,6 +1052,25 @@ object Consequence {
 
   def configurationInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.configurationInvalid(message, pos)
+
+  inline def configurationInvalid[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    configurationInvalid(message, kind, facets, SourcePositionMacro.position())
+
+  def configurationInvalid[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy(Taxonomy.Category.Configuration, Taxonomy.Symptom.Invalid),
+      Cause(Some(kind), Descriptor((Descriptor.Facet.Message(message) +: facets).toVector)),
+      pos
+    )
 
   inline def resourceUnsupported[A](message: String): Consequence.Failure[A] =
     resourceUnsupported(message, SourcePositionMacro.position())
@@ -1045,6 +1105,23 @@ object Consequence {
   ): Consequence.Failure[A] =
     Failures.componentInvalid(facets, pos)
 
+  inline def componentInvalid[A](
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    componentInvalid(kind, facets, SourcePositionMacro.position())
+
+  def componentInvalid[A](
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy.componentInvalid,
+      Cause(Some(kind), Descriptor(facets.toVector)),
+      pos
+    )
+
   inline def componentNotFound[A](name: String): Consequence.Failure[A] =
     componentNotFound(name, SourcePositionMacro.position())
 
@@ -1075,17 +1152,110 @@ object Consequence {
   def serviceUnavailable[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.serviceUnavailable(pos, Taxonomy.serviceUnavailable, Cause.message(message)))
 
+  inline def serviceUnavailable[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    serviceUnavailable(message, kind, facets, SourcePositionMacro.position())
+
+  def serviceUnavailable[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy.serviceUnavailable,
+      Cause(Some(kind), Descriptor((Descriptor.Facet.Message(message) +: facets).toVector)),
+      pos
+    )
+
   inline def resourceNotFound[A](message: String): Consequence.Failure[A] =
     resourceNotFound(message, SourcePositionMacro.position())
 
   def resourceNotFound[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.fail(Taxonomy.resourceNotFound, Cause.message(message), pos)
 
+  inline def resourceNotFound[A](
+    message: String,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    resourceNotFound(message, facets, SourcePositionMacro.position())
+
+  def resourceNotFound[A](
+    message: String,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy.resourceNotFound,
+      Cause(Descriptor((Descriptor.Facet.Message(message) +: facets).toVector)),
+      pos
+    )
+
   inline def resourceInvalid[A](message: String): Consequence.Failure[A] =
     resourceInvalid(message, SourcePositionMacro.position())
 
   def resourceInvalid[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.fail(Taxonomy.resourceInvalid, Cause.message(message), pos)
+
+  inline def resourceInvalid[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    resourceInvalid(message, kind, facets, SourcePositionMacro.position())
+
+  def resourceInvalid[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy.resourceInvalid,
+      Cause(Some(kind), Descriptor((Descriptor.Facet.Message(message) +: facets).toVector)),
+      pos
+    )
+
+  inline def stateInvalid[A](
+    message: String,
+    facets: Seq[Descriptor.Facet] = Nil,
+    previous: Option[Conclusion] = None
+  ): Consequence.Failure[A] =
+    stateInvalid(message, facets, previous, SourcePositionMacro.position())
+
+  inline def stateInvalid[A](
+    message: String,
+    previous: Conclusion
+  ): Consequence.Failure[A] =
+    stateInvalid(message, Nil, previous, SourcePositionMacro.position())
+
+  inline def stateInvalid[A](
+    message: String,
+    facets: Seq[Descriptor.Facet],
+    previous: Conclusion
+  ): Consequence.Failure[A] =
+    stateInvalid(message, facets, previous, SourcePositionMacro.position())
+
+  def stateInvalid[A](
+    message: String,
+    facets: Seq[Descriptor.Facet],
+    previous: Option[Conclusion],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    Consequence.Failure(
+      Conclusion.stateInvalid(message, facets, previous).withSourcePosition(pos)
+    )
+
+  def stateInvalid[A](
+    message: String,
+    facets: Seq[Descriptor.Facet],
+    previous: Conclusion,
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    stateInvalid(message, facets, Some(previous), pos)
 
   inline def dataStoreUnavailable[A](message: String): Consequence.Failure[A] =
     dataStoreUnavailable(message, SourcePositionMacro.position())
@@ -1098,6 +1268,21 @@ object Consequence {
 
   def entityNotFound[A](message: String, pos: SourcePosition): Consequence.Failure[A] =
     Failures.fail(Taxonomy.entityNotFound, Cause.message(message), pos)
+
+  private def _semantic_failure[A](
+    taxonomy: Taxonomy,
+    cause: Cause,
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(taxonomy, cause, pos, None)
+
+  private def _semantic_failure[A](
+    taxonomy: Taxonomy,
+    cause: Cause,
+    pos: SourcePosition,
+    previous: Option[Conclusion]
+  ): Consequence.Failure[A] =
+    Consequence.Failure(Conclusion.failure(pos, taxonomy, cause).copy(previous = previous))
 
   inline def recordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
     Failures.recordNotFound(key, rec)

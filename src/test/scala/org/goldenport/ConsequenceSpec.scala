@@ -10,6 +10,7 @@ import org.goldenport.datatype.I18nMessage
 import org.goldenport.observation.Descriptor
 import org.goldenport.observation.Observation
 import org.goldenport.observation.Taxonomy
+import org.goldenport.observation.Cause
 // import org.goldenport.observation.Agent
 // import org.goldenport.observation.Cause
 // import org.goldenport.observation.CauseKind
@@ -273,6 +274,95 @@ class ConsequenceSpec extends AnyWordSpec
           Descriptor.Facet.Args(args)
         ))
       }
+    }
+
+    "build semantic state invalid failures with a previous conclusion link" in {
+      val previous = Conclusion.resourceNotFound(
+        Descriptor.Facet.Resource(
+          Descriptor.Facet.Resource.Kind.File,
+          java.net.URI.create("file:/tmp/missing-payload")
+        ),
+        Seq(Descriptor.Facet.Key("blob-storage-key"))
+      )
+
+      val result = Consequence.stateInvalid[Unit](
+        "managed metadata points at missing payload",
+        Seq(
+          Descriptor.Facet.Id("blob-1"),
+          Descriptor.Facet.State("managed-payload-missing")
+        ),
+        previous
+      )
+
+      val conclusion = result match {
+        case Consequence.Failure(c) => c
+        case _ => fail("expected Failure")
+      }
+      conclusion.observation.taxonomy shouldBe Taxonomy.stateInvalid
+      conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Inconsistency)
+      conclusion.previous shouldBe Some(previous)
+      conclusion.toRecord.getAny("previous") should not be empty
+    }
+
+    "build semantic resource failures with cause kind and facets" in {
+      val result = Consequence.resourceInvalid[Unit](
+        "Static Form layout lacks content slot",
+        Cause.Kind.Inconsistency,
+        Seq(
+          Descriptor.Facet.Resource(
+            Descriptor.Facet.Resource.Kind.File,
+            java.net.URI.create("file:/web/WEB-INF/layouts/default.html")
+          ),
+          Descriptor.Facet.Name("default")
+        )
+      )
+
+      val conclusion = result match {
+        case Consequence.Failure(c) => c
+        case _ => fail("expected Failure")
+      }
+      conclusion.observation.taxonomy shouldBe Taxonomy.resourceInvalid
+      conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Inconsistency)
+      conclusion.observation.cause.descriptor.getMessage shouldBe Some("Static Form layout lacks content slot")
+      conclusion.observation.cause.descriptor.facets.exists {
+        case Descriptor.Facet.Name("default") => true
+        case _ => false
+      } shouldBe true
+    }
+
+    "build semantic not-found failures with facets without overriding not-found taxonomy" in {
+      val result = Consequence.resourceNotFound[Unit](
+        "blob not found: missing",
+        Seq(
+          Descriptor.Facet.Name("blob"),
+          Descriptor.Facet.Id("missing")
+        )
+      )
+
+      val conclusion = _failure_conclusion(result)
+      conclusion.observation.taxonomy shouldBe Taxonomy.resourceNotFound
+      conclusion.observation.cause.kind shouldBe None
+      conclusion.observation.cause.descriptor.getMessage shouldBe Some("blob not found: missing")
+      conclusion.observation.cause.descriptor.facets should contain (Descriptor.Facet.Name("blob"))
+      conclusion.observation.cause.descriptor.facets should contain (Descriptor.Facet.Id("missing"))
+    }
+
+    "build semantic operation failures with previous conclusion links" in {
+      val previous = Conclusion.serviceProviderNotFound(
+        "job-service",
+        Seq(Descriptor.Facet.Service("job"))
+      )
+      val result = Consequence.operationInvalid[Unit](
+        "job.control",
+        Cause.Kind.Guard,
+        Seq(Descriptor.Facet.State("cancelled")),
+        Some(previous)
+      )
+
+      val conclusion = _failure_conclusion(result)
+      conclusion.observation.taxonomy shouldBe Taxonomy.operationInvalid
+      conclusion.observation.cause.kind shouldBe Some(Cause.Kind.Guard)
+      conclusion.previous shouldBe Some(previous)
     }
   }
 
