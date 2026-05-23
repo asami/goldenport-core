@@ -1,10 +1,12 @@
 package org.goldenport.record.io
 
+import java.io.ByteArrayOutputStream
 import org.scalacheck.Gen
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 
 import org.goldenport.Consequence
 import org.goldenport.record.Record
@@ -703,6 +705,135 @@ class RecordDecoderSpec
         case Consequence.Failure(err) =>
           fail(err.toString)
       }
+    }
+
+    "decode Excel with a header row" in {
+      Given("an Excel workbook with a header row")
+      val bytes = _excel_bytes(Vector(
+        Vector("id", "name"),
+        Vector("p1", "taro"),
+        Vector("p2", "hanako")
+      ))
+
+      When("decoding Excel bytes")
+      val result = _import_decoder.decodeBytes(bytes, RecordImportFormat.Excel)
+
+      Then("worksheet rows become records")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.metadata.getString("sheetName") shouldBe Some("records")
+          importresult.records shouldEqual Vector(
+            Record.create(Seq("id" -> "p1", "name" -> "taro")),
+            Record.create(Seq("id" -> "p2", "name" -> "hanako"))
+          )
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "decode headerless Excel by schema column order" in {
+      Given("an Excel workbook without a header row")
+      val bytes = _excel_bytes(Vector(
+        Vector("p1", "taro"),
+        Vector("p2", "hanako")
+      ))
+      val options = RecordImportOptions(schema = Some(_person_schema), headerMode = HeaderMode.Absent)
+
+      When("decoding Excel bytes")
+      val result = _import_decoder.decodeBytes(bytes, RecordImportFormat.Excel, options)
+
+      Then("schema column order provides field names")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.records.map(_.getString("name")) shouldEqual Vector(Some("taro"), Some("hanako"))
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "decode Excel by explicit sheet name" in {
+      Given("an Excel workbook with a named sheet")
+      val bytes = _excel_bytes(Vector(
+        Vector("id", "name"),
+        Vector("p1", "taro")
+      ), "people")
+      val options = RecordImportOptions(sheetName = Some("people"))
+
+      When("decoding Excel bytes")
+      val result = _import_decoder.decodeBytes(bytes, RecordImportFormat.Excel, options)
+
+      Then("the selected worksheet is used")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.metadata.getString("sheetName") shouldBe Some("people")
+          importresult.records.head.getString("name") shouldBe Some("taro")
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "reject Excel import when explicit sheet name is missing" in {
+      Given("an Excel workbook without the requested sheet")
+      val bytes = _excel_bytes(Vector(
+        Vector("id", "name"),
+        Vector("p1", "taro")
+      ), "people")
+      val options = RecordImportOptions(sheetName = Some("missing"))
+
+      When("decoding Excel bytes")
+      val result = _import_decoder.decodeBytes(bytes, RecordImportFormat.Excel, options)
+
+      Then("the import fails instead of falling back to the first sheet")
+      result match {
+        case _: Consequence.Failure[?] => succeed
+        case Consequence.Success(importresult) =>
+          fail(s"unexpected import success: ${importresult}")
+      }
+    }
+  }
+
+  "RecordExportEncoder" should {
+    "export records to Excel bytes" in {
+      Given("records to export")
+      val encoder = RecordExportEncoder()
+      val records = Vector(
+        Record.create(Seq("id" -> "p1", "name" -> "taro")),
+        Record.create(Seq("id" -> "p2", "name" -> "hanako"))
+      )
+
+      When("encoding as Excel")
+      val result = encoder.encodeBytes(records, org.goldenport.record.RecordFormat.Excel)
+
+      Then("the workbook can be read back")
+      result match {
+        case Consequence.Success(exportresult) =>
+          exportresult.extension shouldBe "xlsx"
+          val decoded = _import_decoder.decodeBytes(exportresult.bytes, RecordImportFormat.Excel)
+          decoded.toOption.map(_.records.map(_.getString("name"))) shouldBe Some(Vector(Some("taro"), Some("hanako")))
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+  }
+
+  private def _excel_bytes(
+    rows: Vector[Vector[String]],
+    sheetname: String = "records"
+  ): Array[Byte] = {
+    val workbook = XSSFWorkbook()
+    try {
+      val sheet = workbook.createSheet(sheetname)
+      rows.zipWithIndex.foreach { case (values, rowindex) =>
+        val row = sheet.createRow(rowindex)
+        values.zipWithIndex.foreach { case (value, colindex) =>
+          row.createCell(colindex).setCellValue(value)
+        }
+      }
+      val out = ByteArrayOutputStream()
+      workbook.write(out)
+      out.toByteArray
+    } finally {
+      workbook.close()
     }
   }
 

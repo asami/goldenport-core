@@ -1,7 +1,11 @@
 package org.goldenport.record.io
 
+import java.io.ByteArrayInputStream
+import java.nio.file.{Files, Path}
 import com.typesafe.config.{Config as HoconConfig, ConfigFactory, ConfigObject, ConfigValue}
 import scala.jdk.CollectionConverters.*
+import scala.util.Using
+import org.apache.poi.ss.usermodel.{DataFormatter, WorkbookFactory}
 
 import org.goldenport.Consequence
 import org.goldenport.record.{Record, RecordFormat}
@@ -35,6 +39,7 @@ final class RecordImportDecoder(
       case RecordImportFormat.Xml => _decoder.xmlAutoRecords(text).map(_shape(_, RecordImportFormat.Xml, options, Vector.empty, Record.empty))
       case RecordImportFormat.Hocon => _decode_hocon_records(text).map(_shape(_, RecordImportFormat.Hocon, options, Vector.empty, Record.empty))
       case RecordImportFormat.Tsl => _decoder.tslRecords(text).map(_shape(_, RecordImportFormat.Tsl, options, Vector.empty, Record.empty))
+      case RecordImportFormat.Excel => Consequence.argumentInvalid("Excel import requires decodeBytes or decodePath.")
     }
 
   def decode(
@@ -49,6 +54,84 @@ final class RecordImportDecoder(
     options: RecordImportOptions = RecordImportOptions.default
   ): Consequence[RecordImportResult] =
     decode(text, _detect_format(text), options)
+
+  def decodeBytes(
+    bytes: Array[Byte],
+    format: RecordImportFormat,
+    options: RecordImportOptions = RecordImportOptions.default
+  ): Consequence[RecordImportResult] =
+    format match {
+      case RecordImportFormat.Auto | RecordImportFormat.Excel => _decode_excel(bytes, options)
+      case _ => decode(new String(bytes, java.nio.charset.StandardCharsets.UTF_8), format, options)
+    }
+
+  def decodeBytes(
+    bytes: Array[Byte],
+    format: RecordFormat,
+    options: RecordImportOptions
+  ): Consequence[RecordImportResult] =
+    decodeBytes(bytes, RecordImportFormat.fromRecordFormat(format), options)
+
+  def decodePath(
+    path: Path,
+    format: RecordImportFormat,
+    options: RecordImportOptions = RecordImportOptions.default
+  ): Consequence[RecordImportResult] =
+    Consequence(Files.readAllBytes(path)).flatMap(decodeBytes(_, format, options))
+
+  def decodePath(
+    path: Path,
+    format: RecordFormat,
+    options: RecordImportOptions
+  ): Consequence[RecordImportResult] =
+    decodePath(path, RecordImportFormat.fromRecordFormat(format), options)
+
+  private def _decode_excel(
+    bytes: Array[Byte],
+    options: RecordImportOptions
+  ): Consequence[RecordImportResult] =
+    Consequence {
+      Using.resource(WorkbookFactory.create(ByteArrayInputStream(bytes))) { workbook =>
+        val sheet = options.sheetName match {
+          case Some(name) =>
+            Option(workbook.getSheet(name)).getOrElse {
+              throw new IllegalArgumentException(s"Excel sheet is not found: ${name}")
+            }
+          case None =>
+            workbook.getSheetAt(0)
+        }
+        val formatter = DataFormatter()
+        val rows = sheet.iterator().asScala.toVector.map { row =>
+          val last = math.max(row.getLastCellNum.toInt, 0)
+          (0 until last).toVector.map { index =>
+            Option(row.getCell(index)).map(formatter.formatCellValue).getOrElse("").trim
+          }
+        }.filter(_.exists(_.nonEmpty))
+        if (rows.isEmpty)
+          throw new IllegalArgumentException("Excel input is empty")
+        val schema = options.schema
+        val headerdecision = _header_decision(rows.headOption.getOrElse(Vector.empty), schema, options)
+        val columns =
+          if (headerdecision.hasHeader)
+            _columns_from_header(rows.headOption.getOrElse(Vector.empty), schema)
+          else
+            _columns_from_schema(schema).getOrElse {
+              throw new IllegalArgumentException("Excel requires a header row or schema column order")
+            }
+        val datarows = if (headerdecision.hasHeader) rows.drop(1) else rows
+        val records = datarows.map { values =>
+          Record.create(columns.zipAll(values, ImportColumn.empty, "").flatMap {
+            case (column, value) if column.name.nonEmpty && value.trim.nonEmpty => Some(column.name -> value.trim)
+            case _ => None
+          })
+        }
+        val metadata = Record.create(Vector(
+          "sheetName" -> sheet.getSheetName,
+          "sheetIndex" -> workbook.getSheetIndex(sheet)
+        ))
+        _shape(records, RecordImportFormat.Excel, options, columns.flatMap(_.issue), metadata)
+      }
+    }
 
   private def _decode_delimited(
     text: String,
@@ -450,7 +533,7 @@ object RecordImportDecoder {
     line.contains('\t') && line.split('\t').toVector.exists(_.contains(":"))
 
   enum RecordImportFormat {
-    case Auto, Csv, Tsv, Ltsv, Lines, Json, Yaml, Xml, Hocon, Tsl
+    case Auto, Csv, Tsv, Ltsv, Lines, Json, Yaml, Xml, Hocon, Tsl, Excel
 
     def label: String =
       productPrefix.toUpperCase(java.util.Locale.ROOT)
@@ -468,6 +551,7 @@ object RecordImportDecoder {
         case RecordFormat.Ltsv => Ltsv
         case RecordFormat.Lines => Lines
         case RecordFormat.Tsl => Tsl
+        case RecordFormat.Excel => Excel
       }
 
     def parse(value: String): Option[RecordImportFormat] =
@@ -482,6 +566,7 @@ object RecordImportDecoder {
         case "xml" => Some(Xml)
         case "hocon" | "conf" => Some(Hocon)
         case "tsl" => Some(Tsl)
+        case "excel" | "xlsx" | "xls" => Some(Excel)
         case _ => None
       }
   }
@@ -492,7 +577,8 @@ object RecordImportDecoder {
     commentPrefix: String = "#",
     headerMode: HeaderMode = HeaderMode.Auto,
     coerceBySchema: Boolean = false,
-    unknownFieldPolicy: UnknownFieldPolicy = UnknownFieldPolicy.Keep
+    unknownFieldPolicy: UnknownFieldPolicy = UnknownFieldPolicy.Keep,
+    sheetName: Option[String] = None
   )
 
   object RecordImportOptions {

@@ -8,7 +8,7 @@ import java.nio.file.Path
  * @author  ASAMI, Tomoharu
  */
 enum RecordFormat:
-  case Json, Yaml, Xml, Hocon, Csv, Tsv, Ltsv, Lines, Tsl
+  case Json, Yaml, Xml, Hocon, Csv, Tsv, Ltsv, Lines, Tsl, Excel
 
 object RecordFormat:
   def fromSuffix(name: String): Option[RecordFormat] =
@@ -25,6 +25,8 @@ object RecordFormat:
       case s if s.endsWith(".lines") => Some(Lines)
       case s if s.endsWith(".txt") => Some(Lines)
       case s if s.endsWith(".tsl") => Some(Tsl)
+      case s if s.endsWith(".xlsx") => Some(Excel)
+      case s if s.endsWith(".xls") => Some(Excel)
       case _ => None
 
   def fromPath(path: Path): Option[RecordFormat] =

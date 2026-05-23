@@ -29,7 +29,7 @@ object RecordSourceLoader:
       case RecordFormat.Yaml => _decoder.yaml(content)
       case RecordFormat.Xml => _decoder.xml(content)
       case RecordFormat.Hocon => _decode_hocon(content)
-      case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl =>
+      case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl | RecordFormat.Excel =>
         loadRecords(content, format).map(_.headOption.getOrElse(Record.empty))
 
   def loadRecords(path: Path): Consequence[Vector[Record]] =
@@ -38,7 +38,11 @@ object RecordSourceLoader:
       .getOrElse(Consequence.resourceUnsupported(s"unsupported record format: ${path}"))
 
   def loadRecords(path: Path, format: RecordFormat): Consequence[Vector[Record]] =
-    _read(path).flatMap(loadRecords(_, format))
+    format match
+      case RecordFormat.Excel =>
+        _import_decoder.decodePath(path, format, RecordImportDecoder.RecordImportOptions.default).map(_.records)
+      case _ =>
+        _read(path).flatMap(loadRecords(_, format))
 
   def loadRecords(content: String, format: RecordFormat): Consequence[Vector[Record]] =
     format match
@@ -48,6 +52,8 @@ object RecordSourceLoader:
       case RecordFormat.Hocon => _decode_hocon_records(content)
       case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl =>
         _import_decoder.decode(content, format, RecordImportDecoder.RecordImportOptions.default).map(_.records)
+      case RecordFormat.Excel =>
+        Consequence.argumentInvalid("Excel records must be loaded from bytes or a path.")
 
   def decode[T](path: Path)(using dec: TypedRecordDecoder[T]): Consequence[T] =
     load(path).flatMap(dec.fromRecord)
