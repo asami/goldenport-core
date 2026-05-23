@@ -8,10 +8,13 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 import org.goldenport.Consequence
 import org.goldenport.record.Record
+import org.goldenport.record.io.RecordImportDecoder.*
+import org.goldenport.schema.{Column, Schema, ValueDomain, XInt, XString}
+import org.goldenport.value.BaseContent
 
 /*
  * @since   May. 27, 2025
- * @version Mar. 27, 2026
+ * @version May. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordDecoderSpec
@@ -20,7 +23,8 @@ class RecordDecoderSpec
     with Matchers
     with ScalaCheckDrivenPropertyChecks {
 
-  private val decoder = RecordDecoder()
+  private val _decoder = RecordDecoder()
+  private val _import_decoder = RecordImportDecoder()
 
   "RecordDecoder.json" should {
     "decode a top-level object into one Record" in {
@@ -28,7 +32,7 @@ class RecordDecoderSpec
       val json = """{"id":"p1","name":"taro"}"""
 
       When("decoding the JSON document")
-      val result = decoder.json(json)
+      val result = _decoder.json(json)
 
       Then("one record is returned")
       result match {
@@ -46,7 +50,7 @@ class RecordDecoderSpec
       val json = """[{"id":"p1"},{"id":"p2"}]"""
 
       When("decoding the JSON document")
-      val result = decoder.jsonRecords(json)
+      val result = _decoder.jsonRecords(json)
 
       Then("two records are returned")
       result match {
@@ -65,7 +69,7 @@ class RecordDecoderSpec
       val json = """[{"id":"p1"},1]"""
 
       When("decoding the JSON document")
-      val result = decoder.jsonRecords(json)
+      val result = _decoder.jsonRecords(json)
 
       Then("the decode fails")
       result match {
@@ -81,7 +85,7 @@ class RecordDecoderSpec
       val json = """{"id":"p1","name":"taro"}"""
 
       When("decoding the JSON document")
-      val result = decoder.jsonAutoRecords(json)
+      val result = _decoder.jsonAutoRecords(json)
 
       Then("one record is returned in a vector")
       result match {
@@ -97,7 +101,7 @@ class RecordDecoderSpec
       val json = """[{"id":"p1"},{"id":"p2"}]"""
 
       When("decoding the JSON document")
-      val result = decoder.jsonAutoRecords(json)
+      val result = _decoder.jsonAutoRecords(json)
 
       Then("two records are returned")
       result match {
@@ -121,7 +125,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the YAML document")
-      val result = decoder.yaml(yaml)
+      val result = _decoder.yaml(yaml)
 
       Then("one record is returned")
       result match {
@@ -144,7 +148,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the YAML document")
-      val result = decoder.yamlRecords(yaml)
+      val result = _decoder.yamlRecords(yaml)
 
       Then("two records are returned")
       result match {
@@ -166,7 +170,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the YAML document")
-      val result = decoder.yamlRecords(yaml)
+      val result = _decoder.yamlRecords(yaml)
 
       Then("the decode fails")
       result match {
@@ -185,7 +189,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the YAML document")
-      val result = decoder.yamlAutoRecords(yaml)
+      val result = _decoder.yamlAutoRecords(yaml)
 
       Then("one record is returned in a vector")
       result match {
@@ -206,7 +210,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the YAML document")
-      val result = decoder.yamlAutoRecords(yaml)
+      val result = _decoder.yamlAutoRecords(yaml)
 
       Then("two records are returned")
       result match {
@@ -233,7 +237,7 @@ class RecordDecoderSpec
           |</person>""".stripMargin
 
       When("decoding the XML document")
-      val result = decoder.xml(xml)
+      val result = _decoder.xml(xml)
 
       Then("one record is returned")
       result match {
@@ -254,7 +258,7 @@ class RecordDecoderSpec
       val xml = """<person id="p1" role="admin"><name>taro</name></person>"""
 
       When("decoding the XML document")
-      val result = decoder.xml(xml)
+      val result = _decoder.xml(xml)
 
       Then("attributes are prefixed with @")
       result match {
@@ -270,7 +274,7 @@ class RecordDecoderSpec
       val xml = """<person><tag>a</tag><tag>b</tag></person>"""
 
       When("decoding the XML document")
-      val result = decoder.xml(xml)
+      val result = _decoder.xml(xml)
 
       Then("the repeated field becomes a vector")
       result match {
@@ -286,7 +290,7 @@ class RecordDecoderSpec
       val xml = """<person>taro<name>ignored</name></person>"""
 
       When("decoding the XML document")
-      val result = decoder.xml(xml)
+      val result = _decoder.xml(xml)
 
       Then("the decode fails")
       result match {
@@ -306,7 +310,7 @@ class RecordDecoderSpec
           |</list>""".stripMargin
 
       When("decoding the XML document")
-      val result = decoder.xmlRecords(xml)
+      val result = _decoder.xmlRecords(xml)
 
       Then("two records are returned")
       result match {
@@ -329,7 +333,7 @@ class RecordDecoderSpec
           |</list>""".stripMargin
 
       When("decoding the XML document")
-      val result = decoder.xmlRecords(xml)
+      val result = _decoder.xmlRecords(xml)
 
       Then("the decode fails")
       result match {
@@ -349,7 +353,7 @@ class RecordDecoderSpec
         val xml = s"<list>\n  $items\n</list>"
 
         When("decoding the XML document")
-        val result = decoder.xmlRecords(xml)
+        val result = _decoder.xmlRecords(xml)
 
         Then("the number of records matches the number of direct child elements")
         result match {
@@ -368,7 +372,7 @@ class RecordDecoderSpec
       val xml = """<person id="p1"><name>taro</name></person>"""
 
       When("decoding the XML document")
-      val result = decoder.xmlAutoRecords(xml)
+      val result = _decoder.xmlAutoRecords(xml)
 
       Then("one record is returned in a vector")
       result match {
@@ -390,7 +394,7 @@ class RecordDecoderSpec
           |</list>""".stripMargin
 
       When("decoding the XML document")
-      val result = decoder.xmlAutoRecords(xml)
+      val result = _decoder.xmlAutoRecords(xml)
 
       Then("two records are returned")
       result match {
@@ -415,7 +419,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the CSV document")
-      val result = decoder.csvRecords(csv)
+      val result = _decoder.csvRecords(csv)
 
       Then("two records are returned")
       result match {
@@ -434,7 +438,7 @@ class RecordDecoderSpec
       val csv = "id,name,age"
 
       When("decoding the CSV document")
-      val result = decoder.csvRecords(csv)
+      val result = _decoder.csvRecords(csv)
 
       Then("an empty vector is returned")
       result match {
@@ -450,7 +454,7 @@ class RecordDecoderSpec
       val csv = ""
 
       When("decoding the CSV document")
-      val result = decoder.csvRecords(csv)
+      val result = _decoder.csvRecords(csv)
 
       Then("the decode fails")
       result match {
@@ -474,7 +478,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the TSL document")
-      val result = decoder.tslRecords(tsl)
+      val result = _decoder.tslRecords(tsl)
 
       Then("two records are returned")
       result match {
@@ -496,7 +500,7 @@ class RecordDecoderSpec
           |""".stripMargin
 
       When("decoding the TSL document")
-      val result = decoder.tslRecords(tsl)
+      val result = _decoder.tslRecords(tsl)
 
       Then("the decode fails")
       result match {
@@ -505,4 +509,207 @@ class RecordDecoderSpec
       }
     }
   }
+
+  "RecordImportDecoder" should {
+    "decode CSV with header metadata and header row" in {
+      Given("a CSV document with metadata preamble")
+      val csv =
+        """# source: test-fixture
+          |id,name
+          |p1,taro
+          |p2,hanako
+          |""".stripMargin
+
+      When("decoding the CSV document")
+      val result = _import_decoder.decode(csv, RecordImportFormat.Csv)
+
+      Then("records and metadata are returned")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.metadata.getString("source") shouldBe Some("test-fixture")
+          importresult.records shouldEqual Vector(
+            Record.create(Seq("id" -> "p1", "name" -> "taro")),
+            Record.create(Seq("id" -> "p2", "name" -> "hanako"))
+          )
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "decode TSV without header by schema column order" in {
+      Given("a TSV document with schema but no header")
+      val tsv =
+        """p1	taro
+          |p2	hanako
+          |""".stripMargin
+      val options = RecordImportOptions(schema = Some(_person_schema), headerMode = HeaderMode.Absent)
+
+      When("decoding the TSV document")
+      val result = _import_decoder.decode(tsv, RecordImportFormat.Tsv, options)
+
+      Then("schema column order provides field names")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.records shouldEqual Vector(
+            Record.create(Seq("id" -> "p1", "name" -> "taro")),
+            Record.create(Seq("id" -> "p2", "name" -> "hanako"))
+          )
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "reject CSV without header or schema" in {
+      Given("a headerless CSV document")
+      val csv = "p1,taro"
+
+      When("decoding the CSV document")
+      val result = _import_decoder.decode(csv, RecordImportFormat.Csv, RecordImportOptions(headerMode = HeaderMode.Absent))
+
+      Then("the decode fails")
+      result match {
+        case _: Consequence.Failure[?] => succeed
+        case _ => fail("expected failure for headerless CSV without schema")
+      }
+    }
+
+    "decode line-delimited input using configured field name" in {
+      Given("line-delimited values with comments")
+      val lines =
+        """# sample ISBNs
+          |9780134685991
+          |9784774184111
+          |""".stripMargin
+
+      When("decoding lines")
+      val result = _import_decoder.decode(lines, RecordImportFormat.Lines, RecordImportOptions(lineFieldName = Some("isbn")))
+
+      Then("each value becomes one record")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.records shouldEqual Vector(
+            Record.create(Seq("isbn" -> "9780134685991")),
+            Record.create(Seq("isbn" -> "9784774184111"))
+          )
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "decode LTSV rows into records" in {
+      Given("LTSV values with metadata")
+      val ltsv =
+        """# source: ltsv-fixture
+          |id:p1	name:taro
+          |id:p2	name:hanako
+          |""".stripMargin
+
+      When("decoding LTSV")
+      val result = _import_decoder.decode(ltsv, RecordImportFormat.Ltsv)
+
+      Then("each row becomes one record")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.metadata.getString("source") shouldBe Some("ltsv-fixture")
+          importresult.records shouldEqual Vector(
+            Record.create(Seq("id" -> "p1", "name" -> "taro")),
+            Record.create(Seq("id" -> "p2", "name" -> "hanako"))
+          )
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "decode self-describing formats without schema" in {
+      Given("JSON, YAML, XML, and HOCON documents")
+      val json = """[{"id":"p1","name":"taro"}]"""
+      val yaml =
+        """- id: p1
+          |  name: taro
+          |""".stripMargin
+      val xml = """<list><person><id>p1</id><name>taro</name></person></list>"""
+      val hocon = """id = p1
+                    |name = taro""".stripMargin
+
+      Then("all formats decode into records without schema")
+      _import_decoder.decode(json, RecordImportFormat.Json).toOption.map(_.records.head.getString("name")) shouldBe Some(Some("taro"))
+      _import_decoder.decode(yaml, RecordImportFormat.Yaml).toOption.map(_.records.head.getString("name")) shouldBe Some(Some("taro"))
+      _import_decoder.decode(xml, RecordImportFormat.Xml).toOption.map(_.records.head.getString("name")) shouldBe Some(Some("taro"))
+      _import_decoder.decode(hocon, RecordImportFormat.Hocon).toOption.map(_.records.head.getString("name")) shouldBe Some(Some("taro"))
+    }
+
+    "decode HOCON container records without schema" in {
+      Given("a HOCON document with records container")
+      val hocon =
+        """records = [
+          |  { id = p1, name = taro }
+          |  { id = p2, name = hanako }
+          |]
+          |""".stripMargin
+
+      When("decoding the HOCON document")
+      val result = _import_decoder.decode(hocon, RecordImportFormat.Hocon)
+
+      Then("container entries become records")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.records.map(_.getString("id")) shouldEqual Vector(Some("p1"), Some("p2"))
+          importresult.records.map(_.getString("name")) shouldEqual Vector(Some("taro"), Some("hanako"))
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "auto-detect JSON XML CSV TSV LTSV YAML HOCON and lines" in {
+      Given("documents with recognizable import shapes")
+      val values = Vector(
+        """[{"id":"p1"}]""" -> RecordImportFormat.Json,
+        """<list><person><id>p1</id></person></list>""" -> RecordImportFormat.Xml,
+        "id,name\np1,taro" -> RecordImportFormat.Csv,
+        "id\tname\np1\ttaro" -> RecordImportFormat.Tsv,
+        "id:p1\tname:taro" -> RecordImportFormat.Ltsv,
+        "- id: p1" -> RecordImportFormat.Yaml,
+        "id = p1" -> RecordImportFormat.Hocon,
+        "p1" -> RecordImportFormat.Lines
+      )
+
+      Then("the detected format is stable")
+      values.foreach { case (text, expected) =>
+        _import_decoder.decodeAuto(text).toOption.map(_.detectedFormat) shouldBe Some(expected)
+      }
+    }
+
+    "apply schema field resolution and type coercion as an optional shaping step" in {
+      Given("a CSV document with aliases and numeric strings")
+      val csv =
+        """Person ID:id,Name:name,Age:age:int,extra
+          |p1,taro,20,ignored
+          |""".stripMargin
+      val options = RecordImportOptions(
+        schema = Some(_person_schema),
+        coerceBySchema = true,
+        unknownFieldPolicy = UnknownFieldPolicy.Issue
+      )
+
+      When("decoding with schema shaping")
+      val result = _import_decoder.decode(csv, RecordImportFormat.Csv, options)
+
+      Then("field names are normalized and typed values are coerced")
+      result match {
+        case Consequence.Success(importresult) =>
+          importresult.records.head.getAny("age") shouldBe Some(20)
+          importresult.records.head.getString("name") shouldBe Some("taro")
+          importresult.issues.exists(_.code == "unknown-field") shouldBe true
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+  }
+
+  private def _person_schema: Schema =
+    Schema(Vector(
+      Column(BaseContent.Builder("id").label("Person ID").build(), ValueDomain(XString)),
+      Column(BaseContent.Builder("name").label("Name").build(), ValueDomain(XString)),
+      Column(BaseContent.Builder("age").label("Age").build(), ValueDomain(XInt))
+    ))
 }

@@ -8,12 +8,12 @@ import org.goldenport.record.{Field, Record, RecordDecoder as TypedRecordDecoder
 
 /*
  * @since   Apr.  8, 2026
- *  version Apr.  8, 2026
- * @version Apr. 14, 2026
+ * @version May. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 object RecordSourceLoader:
   private val _decoder = new RecordDecoder()
+  private val _import_decoder = new RecordImportDecoder()
 
   def load(path: Path): Consequence[Record] =
     formatFrom(path)
@@ -29,6 +29,8 @@ object RecordSourceLoader:
       case RecordFormat.Yaml => _decoder.yaml(content)
       case RecordFormat.Xml => _decoder.xml(content)
       case RecordFormat.Hocon => _decode_hocon(content)
+      case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl =>
+        loadRecords(content, format).map(_.headOption.getOrElse(Record.empty))
 
   def loadRecords(path: Path): Consequence[Vector[Record]] =
     formatFrom(path)
@@ -44,6 +46,8 @@ object RecordSourceLoader:
       case RecordFormat.Yaml => _decoder.yamlAutoRecords(content)
       case RecordFormat.Xml => _decoder.xmlAutoRecords(content)
       case RecordFormat.Hocon => _decode_hocon_records(content)
+      case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl =>
+        _import_decoder.decode(content, format, RecordImportDecoder.RecordImportOptions.default).map(_.records)
 
   def decode[T](path: Path)(using dec: TypedRecordDecoder[T]): Consequence[T] =
     load(path).flatMap(dec.fromRecord)
