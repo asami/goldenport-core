@@ -6,19 +6,22 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 /*
  * @since   Dec. 22, 2025
- * @version Dec. 22, 2025
+ * @version Jun.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 class NameSpec extends AnyWordSpec
   with ScalaCheckDrivenPropertyChecks
   with Matchers {
 
-  "Name" should {  "satisfy basic properties" in {
-    pending
-  }
+  "Name" should {
+    "accept generic names longer than authentication identifiers" in {
+      val value = "n" * 128
 
-  "preserve invariants" in {
-    pending
-  }
+      Name(value).value shouldBe value
+    }
+
+    "reject values beyond the generic name limit" in {
+      an [IllegalArgumentException] should be thrownBy Name("n" * 257)
+    }
   }
 }

@@ -14,7 +14,7 @@ import org.goldenport.convert.ValueReader
  *  version Sep. 17, 2025
  *  version Nov. 19, 2025
  *  version Feb. 19, 2026
- * @version Apr. 14, 2026
+ * @version Jun.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Name() extends StringDataType() {
@@ -29,7 +29,7 @@ abstract class Name() extends StringDataType() {
 
 object Name {
   val LENGTH_MIN = 1
-  val LENGTH_MAX = 64
+  val LENGTH_MAX = 256
 
   given Codec[Name] = Codec.from(
     Decoder.decodeString.emap { s =>

@@ -6,7 +6,7 @@ import org.goldenport.Consequence
  * @since   Jul. 23, 2025
  *  version Jul. 23, 2025
  *  version Apr.  9, 2026
- * @version Apr. 14, 2026
+ * @version Jun.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Token() extends StringDataType() {
@@ -21,7 +21,7 @@ object Token {
 import org.goldenport.convert.ValueReader
 
   val LENGTH_MIN = 1
-  val LENGTH_MAX = 64
+  val LENGTH_MAX = 256
 
   case class Instance(value: String) extends Token() {
   }
