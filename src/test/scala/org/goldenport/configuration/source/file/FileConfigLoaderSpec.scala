@@ -13,7 +13,7 @@ import org.goldenport.configuration.ConfigurationValue
 
 /*
  * @since   Mar. 13, 2026
- * @version Mar. 13, 2026
+ * @version Jul.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 class FileConfigLoaderSpec
@@ -22,8 +22,8 @@ class FileConfigLoaderSpec
     with Matchers
     with ScalaCheckDrivenPropertyChecks {
 
-  private val loader = new SimpleFileConfigLoader
-  private val extensions = Vector("conf", "props", "properties", "json", "yaml")
+  private val _loader = new SimpleFileConfigLoader
+  private val _extensions = Vector("conf", "props", "properties", "json", "yaml", "xml")
 
   "SimpleFileConfigLoader" should {
     "load supported extensions by format mapping" in {
@@ -34,14 +34,14 @@ class FileConfigLoaderSpec
       forAll(keygen, valuegen) { (keyid, valueid) =>
         val key = s"key$keyid"
         val value = s"value$valueid"
-        extensions.foreach { ext =>
+        _extensions.foreach { ext =>
           val dir = Files.createTempDirectory("sm-config-loader-")
           val path = dir.resolve(s"config.$ext")
           val content = _content(ext, key, value)
           Files.writeString(path, content)
 
           When(s"loading config.$ext")
-          val result = loader.load(path)
+          val result = _loader.load(path)
 
           Then("the key is loaded as StringValue")
           result match {
@@ -54,6 +54,51 @@ class FileConfigLoaderSpec
       }
     }
 
+
+
+    "reject scalar JSON YAML and malformed XML roots" in {
+      Given("scalar and malformed config documents")
+      val cases = Vector(
+        "json" -> "\"plain-string\"",
+        "yaml" -> "plain-string\n",
+        "xml" -> "plain-string"
+      )
+
+      cases.foreach { case (ext, content) =>
+        val dir = Files.createTempDirectory("sm-config-loader-")
+        val path = dir.resolve(s"config.$ext")
+        Files.writeString(path, content)
+
+        When(s"loading scalar config.$ext")
+        val result = _loader.load(path)
+
+        Then("the config decoder rejects non-object roots or malformed XML")
+        result match {
+          case Consequence.Failure(_) => succeed
+          case Consequence.Success(cfg) => fail(s"expected failure for .$ext, got $cfg")
+        }
+      }
+    }
+
+    "reject XML documents with external entity declarations" in {
+      Given("an XML config document with an external entity declaration")
+      val dir = Files.createTempDirectory("sm-config-loader-")
+      val path = dir.resolve("config.xml")
+      val xml =
+        """<!DOCTYPE config [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+          |<config><secret>&xxe;</secret></config>""".stripMargin
+      Files.writeString(path, xml)
+
+      When("loading the XML config")
+      val result = _loader.load(path)
+
+      Then("the hardened decoder rejects the document before entity expansion")
+      result match {
+        case Consequence.Failure(_) => succeed
+        case Consequence.Success(cfg) => fail(s"expected hardened XML parse failure, got $cfg")
+      }
+    }
+
     "treat .properties as HOCON" in {
       Given("a .properties file using nested HOCON object syntax")
       val dir = Files.createTempDirectory("sm-config-loader-")
@@ -61,7 +106,7 @@ class FileConfigLoaderSpec
       Files.writeString(path, "service { enabled = true, retries = 3 }")
 
       When("loading the file")
-      val result = loader.load(path)
+      val result = _loader.load(path)
 
       Then("nested values are preserved as structured ConfigurationValue")
       result match {
@@ -85,6 +130,7 @@ class FileConfigLoaderSpec
       case "conf" | "props" | "properties" => s"$key = \"$value\""
       case "json" => s"{\"$key\":\"$value\"}"
       case "yaml" => s"$key: \"$value\""
+      case "xml" => s"<config><$key>$value</$key></config>"
       case _ => s"$key = \"$value\""
     }
 }
