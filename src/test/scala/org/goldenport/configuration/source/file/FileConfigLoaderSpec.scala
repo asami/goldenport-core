@@ -13,7 +13,7 @@ import org.goldenport.configuration.ConfigurationValue
 
 /*
  * @since   Mar. 13, 2026
- * @version Jul.  1, 2026
+ * @version Jul.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 class FileConfigLoaderSpec
@@ -99,26 +99,20 @@ class FileConfigLoaderSpec
       }
     }
 
-    "treat .properties as HOCON" in {
-      Given("a .properties file using nested HOCON object syntax")
+    "treat .properties as Java properties" in {
+      Given("a .properties file using Java properties syntax")
       val dir = Files.createTempDirectory("sm-config-loader-")
       val path = dir.resolve("config.properties")
-      Files.writeString(path, "service { enabled = true, retries = 3 }")
+      Files.writeString(path, "service.enabled=true\nservice.retries=3\n")
 
       When("loading the file")
       val result = _loader.load(path)
 
-      Then("nested values are preserved as structured ConfigurationValue")
+      Then("property values are loaded as string ConfigurationValue entries")
       result match {
         case Consequence.Success(cfg) =>
-          cfg.values.get("service") shouldBe Some(
-            ConfigurationValue.ObjectValue(
-              Map(
-                "enabled" -> ConfigurationValue.BooleanValue(true),
-                "retries" -> ConfigurationValue.NumberValue(BigDecimal(3))
-              )
-            )
-          )
+          cfg.values.get("service.enabled") shouldBe Some(ConfigurationValue.StringValue("true"))
+          cfg.values.get("service.retries") shouldBe Some(ConfigurationValue.StringValue("3"))
         case Consequence.Failure(err) =>
           fail(s"unexpected parse failure: ${err.print}")
       }
@@ -127,7 +121,8 @@ class FileConfigLoaderSpec
 
   private def _content(ext: String, key: String, value: String): String =
     ext match {
-      case "conf" | "props" | "properties" => s"$key = \"$value\""
+      case "conf" => s"$key = \"$value\""
+      case "props" | "properties" => s"$key=$value"
       case "json" => s"{\"$key\":\"$value\"}"
       case "yaml" => s"$key: \"$value\""
       case "xml" => s"<config><$key>$value</$key></config>"

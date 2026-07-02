@@ -11,7 +11,7 @@ import org.goldenport.schema.Schema
 
 /*
  * @since   May. 24, 2026
- * @version May. 24, 2026
+ * @version Jul.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 final class RecordExportEncoder(
@@ -31,7 +31,7 @@ final class RecordExportEncoder(
           bytes = text.getBytes(java.nio.charset.StandardCharsets.UTF_8),
           text = Some(text),
           contentType = _text_content_type(format),
-          extension = _extension(format),
+          extension = _extension(format, options.extensionPurpose),
           format = format
         )
       }
@@ -48,6 +48,7 @@ final class RecordExportEncoder(
         case RecordFormat.Yaml => _yaml(records)
         case RecordFormat.Xml => _xml(records)
         case RecordFormat.Hocon => _hocon(records)
+        case RecordFormat.Properties => _properties(records)
         case RecordFormat.Csv => _delimited(records, ",", options)
         case RecordFormat.Tsv => _delimited(records, "\t", options)
         case RecordFormat.Ltsv => _ltsv(records)
@@ -177,6 +178,19 @@ final class RecordExportEncoder(
     s"records = [\n  ${rows}\n]\n"
   }
 
+  private def _properties(records: Vector[Record]): String = {
+    val pairs =
+      if (records.size <= 1)
+        records.headOption.toVector.flatMap(_.fields.map(field => field.key -> _cell_text(field.value.single)))
+      else
+        records.zipWithIndex.flatMap { case (record, rowindex) =>
+          record.fields.map(field => s"records.${rowindex}.${field.key}" -> _cell_text(field.value.single))
+        }
+    pairs.map { case (key, value) =>
+      s"${_properties_escape(key, keypart = true)}=${_properties_escape(value, keypart = false)}"
+    }.mkString("\n") + "\n"
+  }
+
   private def _json(records: Vector[Record]): Json =
     Json.fromValues(records.map(_json_record))
 
@@ -217,6 +231,25 @@ final class RecordExportEncoder(
   private def _hocon_value(value: Any): String =
     _yaml_value(value)
 
+  private def _properties_escape(
+    value: String,
+    keypart: Boolean
+  ): String = {
+    val escaped = value.flatMap {
+      case '\\' => "\\\\"
+      case '\n' => "\\n"
+      case '\r' => "\\r"
+      case '\t' => "\\t"
+      case '=' => "\\="
+      case ':' => "\\:"
+      case '#' => "\\#"
+      case '!' => "\\!"
+      case ' ' if keypart => "\\ "
+      case ch => ch.toString
+    }
+    escaped
+  }
+
   private def _xml_name(value: String): String = {
     val text = value.map {
       case ch if ch.isLetterOrDigit || ch == '_' || ch == '-' || ch == '.' => ch
@@ -247,9 +280,15 @@ object RecordExportEncoder {
     val default: Config = Config()
   }
 
+  enum RecordExportExtensionPurpose {
+    case Configuration
+    case Definition
+  }
+
   final case class RecordExportOptions(
     schema: Option[Schema] = None,
-    sheetName: Option[String] = None
+    sheetName: Option[String] = None,
+    extensionPurpose: RecordExportExtensionPurpose = RecordExportExtensionPurpose.Configuration
   )
 
   object RecordExportOptions {
@@ -272,19 +311,30 @@ object RecordExportEncoder {
       case RecordFormat.Yaml => "application/yaml"
       case RecordFormat.Xml => "application/xml"
       case RecordFormat.Hocon => "application/hocon"
+      case RecordFormat.Properties => "text/x-java-properties"
       case _ => "application/json"
     }
 
-  private def _extension(format: RecordFormat): String =
+  private def _extension(
+    format: RecordFormat,
+    purpose: RecordExportExtensionPurpose
+  ): String =
     format match {
       case RecordFormat.Yaml => "yaml"
       case RecordFormat.Xml => "xml"
-      case RecordFormat.Hocon => "conf"
+      case RecordFormat.Hocon => _hocon_extension(purpose)
+      case RecordFormat.Properties => "properties"
       case RecordFormat.Csv => "csv"
       case RecordFormat.Tsv => "tsv"
       case RecordFormat.Ltsv => "ltsv"
       case RecordFormat.Lines => "txt"
       case RecordFormat.Excel => "xlsx"
       case _ => "json"
+    }
+
+  private def _hocon_extension(purpose: RecordExportExtensionPurpose): String =
+    purpose match {
+      case RecordExportExtensionPurpose.Configuration => "conf"
+      case RecordExportExtensionPurpose.Definition => "hocon"
     }
 }

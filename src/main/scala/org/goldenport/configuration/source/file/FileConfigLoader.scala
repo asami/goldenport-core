@@ -56,6 +56,7 @@ object ConfigTextDecoder {
       val values =
         _format(filename) match {
           case Format.Hocon => _decode_hocon(content)
+          case Format.Properties => _decode_properties(content)
           case Format.Json => _decode_json(content)
           case Format.Yaml => _decode_yaml(content)
           case Format.Xml => _decode_xml(content)
@@ -70,7 +71,8 @@ object ConfigTextDecoder {
   private def _format(filename: String): Format = {
     val ext = _extension(filename)
     ext match {
-      case "conf" | "props" | "properties" => Format.Hocon
+      case "conf" => Format.Hocon
+      case "props" | "properties" => Format.Properties
       case "json" => Format.Json
       case "yaml" | "yml" => Format.Yaml
       case "xml" => Format.Xml
@@ -91,6 +93,14 @@ object ConfigTextDecoder {
   private def _decode_hocon(content: String): Map[String, ConfigurationValue] = {
     val root = ConfigFactory.parseString(content).root()
     _as_map(root.unwrapped())
+  }
+
+  private def _decode_properties(content: String): Map[String, ConfigurationValue] = {
+    val props = java.util.Properties()
+    props.load(StringReader(content))
+    props.stringPropertyNames().asScala.map { key =>
+      key -> ConfigurationValue.StringValue(props.getProperty(key))
+    }.toMap
   }
 
   private def _decode_json(content: String): Map[String, ConfigurationValue] =
@@ -242,6 +252,7 @@ object ConfigTextDecoder {
 
   private enum Format {
     case Hocon
+    case Properties
     case Json
     case Yaml
     case Xml

@@ -1,5 +1,6 @@
 package org.goldenport.record.io
 
+import java.io.StringReader
 import java.nio.file.{Files, Path}
 import scala.jdk.CollectionConverters.*
 import com.typesafe.config.{Config, ConfigFactory, ConfigObject, ConfigValue}
@@ -8,7 +9,8 @@ import org.goldenport.record.{Field, Record, RecordDecoder as TypedRecordDecoder
 
 /*
  * @since   Apr.  8, 2026
- * @version May. 24, 2026
+ *  version May. 24, 2026
+ * @version Jul.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 object RecordSourceLoader:
@@ -29,6 +31,7 @@ object RecordSourceLoader:
       case RecordFormat.Yaml => _decoder.yaml(content)
       case RecordFormat.Xml => _decoder.xml(content)
       case RecordFormat.Hocon => _decode_hocon(content)
+      case RecordFormat.Properties => _decode_properties(content)
       case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl | RecordFormat.Excel =>
         loadRecords(content, format).map(_.headOption.getOrElse(Record.empty))
 
@@ -50,6 +53,7 @@ object RecordSourceLoader:
       case RecordFormat.Yaml => _decoder.yamlAutoRecords(content)
       case RecordFormat.Xml => _decoder.xmlAutoRecords(content)
       case RecordFormat.Hocon => _decode_hocon_records(content)
+      case RecordFormat.Properties => _decode_properties_records(content)
       case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl =>
         _import_decoder.decode(content, format, RecordImportDecoder.RecordImportOptions.default).map(_.records)
       case RecordFormat.Excel =>
@@ -76,6 +80,20 @@ object RecordSourceLoader:
 
   private def _decode_hocon_records(content: String): Consequence[Vector[Record]] =
     _decode_hocon(content).map(Vector(_))
+
+  private def _decode_properties(content: String): Consequence[Record] =
+    Consequence {
+      val props = java.util.Properties()
+      props.load(StringReader(content))
+      Record.create(
+        props.stringPropertyNames().asScala.toVector.sorted.map { key =>
+          key -> props.getProperty(key)
+        }
+      )
+    }
+
+  private def _decode_properties_records(content: String): Consequence[Vector[Record]] =
+    _decode_properties(content).map(Vector(_))
 
   private def _config_to_record(config: Config): Record =
     _record_from_pairs(

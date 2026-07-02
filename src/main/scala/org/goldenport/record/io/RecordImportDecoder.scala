@@ -1,6 +1,6 @@
 package org.goldenport.record.io
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, StringReader}
 import java.nio.file.{Files, Path}
 import com.typesafe.config.{Config as HoconConfig, ConfigFactory, ConfigObject, ConfigValue}
 import scala.jdk.CollectionConverters.*
@@ -13,7 +13,7 @@ import org.goldenport.schema.*
 
 /*
  * @since   May. 24, 2026
- * @version May. 24, 2026
+ * @version Jul.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 final class RecordImportDecoder(
@@ -38,6 +38,7 @@ final class RecordImportDecoder(
       case RecordImportFormat.Yaml => _decoder.yamlAutoRecords(text).map(_shape(_, RecordImportFormat.Yaml, options, Vector.empty, Record.empty))
       case RecordImportFormat.Xml => _decoder.xmlAutoRecords(text).map(_shape(_, RecordImportFormat.Xml, options, Vector.empty, Record.empty))
       case RecordImportFormat.Hocon => _decode_hocon_records(text).map(_shape(_, RecordImportFormat.Hocon, options, Vector.empty, Record.empty))
+      case RecordImportFormat.Properties => _decode_properties_records(text).map(_shape(_, RecordImportFormat.Properties, options, Vector.empty, Record.empty))
       case RecordImportFormat.Tsl => _decoder.tslRecords(text).map(_shape(_, RecordImportFormat.Tsl, options, Vector.empty, Record.empty))
       case RecordImportFormat.Excel => Consequence.argumentInvalid("Excel import requires decodeBytes or decodePath.")
     }
@@ -215,6 +216,19 @@ final class RecordImportDecoder(
   ): Consequence[Vector[Record]] =
     Consequence {
       _config_records(ConfigFactory.parseString(text).resolve())
+    }
+
+  private def _decode_properties_records(
+    text: String
+  ): Consequence[Vector[Record]] =
+    Consequence {
+      val props = java.util.Properties()
+      props.load(StringReader(text))
+      Vector(Record.create(
+        props.stringPropertyNames().asScala.toVector.sorted.map { key =>
+          key -> props.getProperty(key)
+        }
+      ))
     }
 
   private def _config_records(config: HoconConfig): Vector[Record] = {
@@ -533,7 +547,7 @@ object RecordImportDecoder {
     line.contains('\t') && line.split('\t').toVector.exists(_.contains(":"))
 
   enum RecordImportFormat {
-    case Auto, Csv, Tsv, Ltsv, Lines, Json, Yaml, Xml, Hocon, Tsl, Excel
+    case Auto, Csv, Tsv, Ltsv, Lines, Json, Yaml, Xml, Hocon, Properties, Tsl, Excel
 
     def label: String =
       productPrefix.toUpperCase(java.util.Locale.ROOT)
@@ -546,6 +560,7 @@ object RecordImportDecoder {
         case RecordFormat.Yaml => Yaml
         case RecordFormat.Xml => Xml
         case RecordFormat.Hocon => Hocon
+        case RecordFormat.Properties => Properties
         case RecordFormat.Csv => Csv
         case RecordFormat.Tsv => Tsv
         case RecordFormat.Ltsv => Ltsv
@@ -565,6 +580,7 @@ object RecordImportDecoder {
         case "yaml" | "yml" => Some(Yaml)
         case "xml" => Some(Xml)
         case "hocon" | "conf" => Some(Hocon)
+        case "props" | "properties" => Some(Properties)
         case "tsl" => Some(Tsl)
         case "excel" | "xlsx" | "xls" => Some(Excel)
         case _ => None

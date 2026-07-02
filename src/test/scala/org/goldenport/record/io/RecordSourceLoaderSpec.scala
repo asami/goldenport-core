@@ -10,7 +10,7 @@ import org.goldenport.record.{Record, RecordDecoder, RecordFormat}
 
 /*
  * @since   Apr.  8, 2026
- * @version Apr.  8, 2026
+ * @version Jul.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordSourceLoaderSpec
@@ -61,6 +61,29 @@ class RecordSourceLoaderSpec
           record.getString("age") shouldBe Some("20")
         case Consequence.Failure(err) =>
           fail(err.toString)
+    }
+
+    "load Java properties into Record" in {
+      val properties =
+        """name=alice
+          |age=20
+          |nested.city=Tokyo
+          |""".stripMargin
+
+      val result = RecordSourceLoader.load(properties, RecordFormat.Properties)
+
+      result match
+        case Consequence.Success(record) =>
+          record.getString("name") shouldBe Some("alice")
+          record.getString("age") shouldBe Some("20")
+          record.getString("nested.city") shouldBe Some("Tokyo")
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+    }
+
+    "infer Java properties format from props and properties suffixes" in {
+      RecordFormat.fromSuffix("config.props") shouldBe Some(RecordFormat.Properties)
+      RecordFormat.fromSuffix("config.properties") shouldBe Some(RecordFormat.Properties)
     }
 
     "load HOCON into Record" in {

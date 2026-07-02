@@ -16,7 +16,8 @@ import org.goldenport.value.BaseContent
 
 /*
  * @since   May. 27, 2025
- * @version May. 24, 2026
+ *  version May. 24, 2026
+ * @version Jul.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordDecoderSpec
@@ -793,6 +794,40 @@ class RecordDecoderSpec
   }
 
   "RecordExportEncoder" should {
+    "export Java properties with properties extension" in {
+      Given("a flat configuration record")
+      val encoder = RecordExportEncoder()
+      val records = Vector(Record.data("textus.web.descriptor" -> "config/web.yaml"))
+
+      When("exporting as Java properties")
+      val result = encoder.encode(records, org.goldenport.record.RecordFormat.Properties)
+
+      Then("the result uses the Java properties suffix and content type")
+      result.toOption.map(_.extension) shouldBe Some("properties")
+      result.toOption.map(_.contentType) shouldBe Some("text/x-java-properties")
+      result.toOption.flatMap(_.text).exists(_.contains("textus.web.descriptor=config/web.yaml")) shouldBe true
+    }
+
+    "choose HOCON extension by export purpose" in {
+      Given("a HOCON record export")
+      val encoder = RecordExportEncoder()
+      val records = Vector(Record.data("name" -> "job"))
+
+      When("exporting with default configuration purpose")
+      val conf = encoder.encode(records, org.goldenport.record.RecordFormat.Hocon)
+      val hocon = encoder.encode(
+        records,
+        org.goldenport.record.RecordFormat.Hocon,
+        RecordExportEncoder.RecordExportOptions(
+          extensionPurpose = RecordExportEncoder.RecordExportExtensionPurpose.Definition
+        )
+      )
+
+      Then("configuration keeps .conf while definition files can use .hocon")
+      conf.toOption.map(_.extension) shouldBe Some("conf")
+      hocon.toOption.map(_.extension) shouldBe Some("hocon")
+    }
+
     "export records to Excel bytes" in {
       Given("records to export")
       val encoder = RecordExportEncoder()
