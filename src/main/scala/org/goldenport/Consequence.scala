@@ -55,7 +55,8 @@ import org.goldenport.id.UniversalId
  *  version Mar. 13, 2026
  *  version Apr. 25, 2026
  *  version Apr. 29, 2026
- * @version May. 11, 2026
+ *  version May. 11, 2026
+ * @version Jul.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -415,6 +416,16 @@ object Consequence {
   }
 
   def toInt(p: String): Consequence[Int] = Consequence(p.toInt)
+
+  def toLong(p: String): Consequence[Long] = Consequence(p.toLong)
+
+  def toFloat(p: String): Consequence[Float] = Consequence(p.toFloat)
+
+  def toDouble(p: String): Consequence[Double] = Consequence(p.toDouble)
+
+  def toInteger(p: String): Consequence[BigInt] = Consequence(BigInt(p))
+
+  def toDecimal(p: String): Consequence[BigDecimal] = Consequence(BigDecimal(p))
 
   def toBoolean(p: String): Consequence[Boolean] = Consequence(p.toBoolean)
 

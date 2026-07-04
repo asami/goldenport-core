@@ -29,7 +29,8 @@ import org.goldenport.observation.Cause
  *  version Dec. 30, 2025
  *  version Jan. 27, 2026
  *  version Apr. 25, 2026
- * @version May. 11, 2026
+ *  version May. 11, 2026
+ * @version Jul.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 class ConsequenceSpec extends AnyWordSpec
@@ -86,6 +87,17 @@ class ConsequenceSpec extends AnyWordSpec
       ok(1).isFaillure shouldBe false
       ng("A").isSuccess shouldBe false
       ng("A").isFaillure shouldBe true
+    }
+
+    "convert primitive text values for generated CML builders" in {
+      Consequence.toBoolean("true") shouldBe Consequence.Success(true)
+      Consequence.toInt("12") shouldBe Consequence.Success(12)
+      Consequence.toLong("12345678900") shouldBe Consequence.Success(12345678900L)
+      Consequence.toFloat("1.25") shouldBe Consequence.Success(1.25f)
+      Consequence.toDouble("35.61178333") shouldBe Consequence.Success(35.61178333d)
+      Consequence.toInteger("12345678901234567890") shouldBe Consequence.Success(BigInt("12345678901234567890"))
+      Consequence.toDecimal("123.456") shouldBe Consequence.Success(BigDecimal("123.456"))
+      Consequence.toDouble("not-a-double") shouldBe a[Consequence.Failure[?]]
     }
 
     "when used in validation style (applicative composition)" should {
