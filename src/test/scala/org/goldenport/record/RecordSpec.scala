@@ -9,7 +9,7 @@ import org.goldenport.Consequence
  * @since   Dec. 22, 2025
  *  version Dec. 22, 2025
  *  version Mar.  4, 2026
- * @version May. 26, 2026
+ * @version Jul. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordSpec extends AnyWordSpec
@@ -85,6 +85,33 @@ class RecordSpec extends AnyWordSpec
     )
 
     RecordKeyNaming.normalizeKnownKeys(record, Set("loginName")) shouldBe a[Consequence.Failure[?]]
+  }
+
+  "support field-preserving structural transformation helpers" in {
+    val record = Record.data(
+      "fetch_methods" -> "official_driver",
+      "fetch_methods" -> "museum_or_jp",
+      "id" -> "old"
+    )
+
+    val updated =
+      record
+        .removeKeys(Set("id"))
+        .appendField("fetch_methods", "ai_web_tools")
+        .upsertSingle("id", "new")
+
+    updated.fields.map(_.key) shouldBe Vector(
+      "fetch_methods",
+      "fetch_methods",
+      "fetch_methods",
+      "id"
+    )
+    updated.fields.map(_.value.single) shouldBe Vector(
+      "official_driver",
+      "museum_or_jp",
+      "ai_web_tools",
+      "new"
+    )
   }
   }
 }

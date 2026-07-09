@@ -27,7 +27,7 @@ import org.goldenport.record.Record
  *  version Jan. 30, 2026
  *  version Feb. 19, 2026
  *  version Mar. 31, 2026
- * @version Apr. 10, 2026
+ * @version Jul. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -82,39 +82,48 @@ case class Request(
   private def _record_from_pairs(
     pairs: Seq[(String, Any)]
   ): Record = {
-    def merge(lhs: Map[String, Any], rhs: Map[String, Any]): Map[String, Any] =
+    def _append_value_(lhs: Any, rhs: Any): Any =
+      lhs match {
+        case xs: Vector[?] => xs :+ rhs
+        case xs: Seq[?] => xs.toVector :+ rhs
+        case _ => Vector(lhs, rhs)
+      }
+
+    def _merge_(lhs: Map[String, Any], rhs: Map[String, Any]): Map[String, Any] =
       rhs.foldLeft(lhs) { case (z, (key, value)) =>
         (z.get(key), value) match {
           case (Some(lm: Map[?, ?]), rm: Map[?, ?]) =>
             z.updated(
               key,
-              merge(
+              _merge_(
                 lm.asInstanceOf[Map[String, Any]],
                 rm.asInstanceOf[Map[String, Any]]
               )
             )
+          case (Some(current), next) =>
+            z.updated(key, _append_value_(current, next))
           case _ =>
             z.updated(key, value)
         }
       }
 
-    def nest(path: String, value: Any): Map[String, Any] =
+    def _nest_(path: String, value: Any): Map[String, Any] =
       path.split("\\.").toList.filter(_.nonEmpty) match {
         case Nil => Map.empty
         case head :: Nil => Map(head -> value)
-        case head :: tail => Map(head -> nest(tail.mkString("."), value))
+        case head :: tail => Map(head -> _nest_(tail.mkString("."), value))
       }
 
-    def to_record_value(value: Any): Any = value match {
+    def _to_record_value_(value: Any): Any = value match {
       case m: Map[?, ?] =>
-        Record.create(m.iterator.map { case (k, v) => k.toString -> to_record_value(v) }.toSeq)
+        Record.create(m.iterator.map { case (k, v) => k.toString -> _to_record_value_(v) }.toSeq)
       case other => other
     }
 
     val tree = pairs.foldLeft(Map.empty[String, Any]) { case (z, (key, value)) =>
-      merge(z, nest(key, value))
+      _merge_(z, _nest_(key, value))
     }
-    Record.create(tree.iterator.map { case (k, v) => k -> to_record_value(v) }.toSeq)
+    Record.create(tree.iterator.map { case (k, v) => k -> _to_record_value_(v) }.toSeq)
   }
 
 }

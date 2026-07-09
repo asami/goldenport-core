@@ -15,7 +15,7 @@ import org.goldenport.datatype.PathName
  *  version Mar. 31, 2026
  *  version Apr.  8, 2026
  *  version Apr. 14, 2026
- * @version May.  2, 2026
+ * @version Jul. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -84,6 +84,24 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     }
 
   def ++(rhs: Record): Record = copy(fields = fields ++ rhs.fields)
+
+  def filterFields(p: Field => Boolean): Record =
+    copy(fields = fields.filter(p))
+
+  def removeKeys(keys: Set[String]): Record =
+    filterFields(field => !keys.contains(field.key))
+
+  def appendField(key: String, value: Any): Record =
+    if (java.util.Objects.isNull(value))
+      this
+    else
+      copy(fields = fields :+ Field(key, Field.Value.Single(value)))
+
+  def upsertSingle(key: String, value: Any): Record =
+    removeKeys(Set(key)).appendField(key, value)
+
+  def concatPreservingFields(rhs: Record): Record =
+    this ++ rhs
 
   def update(p: (String, Any), ps: (String, Any)*): Record = update(Field.creates(p +: ps))
 

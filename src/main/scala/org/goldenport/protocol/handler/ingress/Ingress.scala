@@ -24,7 +24,7 @@ import org.goldenport.http.HttpRequest
  *  version Jan. 28, 2026
  *  version Apr. 11, 2026
  *  version Apr. 27, 2026
- * @version May.  2, 2026
+ * @version Jul. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -47,27 +47,37 @@ object Ingress {
     val propertynames = _name_map(definitions, ParameterDefinition.Kind.Property)
     val argumentnames = _name_map(definitions, ParameterDefinition.Kind.Argument)
     record.fields.foldLeft((List.empty[Argument], List.empty[Switch], List.empty[Property])) {
-      case ((arguments, switches, properties), field) =>
-        val key = field.key
-        val value = field.value.single
-        switchnames.get(key) match {
-          case Some(name) =>
-            (arguments, switches :+ Switch(name, _boolean_value(value), None), properties)
-          case None =>
-            argumentnames.get(key) match {
+      case (z, field) =>
+        _field_values(field.value.single).foldLeft(z) {
+          case ((arguments, switches, properties), value) =>
+            val key = field.key
+            switchnames.get(key) match {
               case Some(name) =>
-                (arguments :+ Argument(name, value, None), switches, properties)
+                (arguments, switches :+ Switch(name, _boolean_value(value), None), properties)
               case None =>
-                propertynames.get(key) match {
+                argumentnames.get(key) match {
                   case Some(name) =>
-                    (arguments, switches, properties :+ Property(name, value, None))
+                    (arguments :+ Argument(name, value, None), switches, properties)
                   case None =>
-                    (arguments :+ Argument(key, value, None), switches, properties)
+                    propertynames.get(key) match {
+                      case Some(name) =>
+                        (arguments, switches, properties :+ Property(name, value, None))
+                      case None =>
+                        (arguments :+ Argument(key, value, None), switches, properties)
+                    }
                 }
             }
         }
     }
   }
+
+  private def _field_values(value: Any): Vector[Any] =
+    value match {
+      case xs: Vector[?] => xs.asInstanceOf[Vector[Any]]
+      case xs: Seq[?] if !value.isInstanceOf[String] => xs.toVector.asInstanceOf[Vector[Any]]
+      case xs: Array[?] if !value.isInstanceOf[Array[Byte]] => xs.toVector.asInstanceOf[Vector[Any]]
+      case _ => Vector(value)
+    }
 
   def recordToStringArguments(record: org.goldenport.record.Record): List[Argument] =
     record.asNameStringVector.map {

@@ -9,13 +9,15 @@ import org.goldenport.bag.Bag
 import org.goldenport.datatype.{ContentType, MimeBody}
 import org.goldenport.protocol.{Argument, Property}
 import org.goldenport.protocol.Request
-import org.goldenport.protocol.spec.{OperationDefinition, RequestDefinition, ResponseDefinition}
+import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.http.HttpRequest
 import org.goldenport.record.Record
+import org.goldenport.schema.{Multiplicity, ValueDomain, XString}
+import org.goldenport.value.BaseContent
 
 /*
  * @since   Apr. 23, 2026
- * @version Apr. 27, 2026
+ * @version Jul. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 class RestIngressSpec
@@ -134,6 +136,61 @@ class RestIngressSpec
           req.operation shouldBe "query"
           req.arguments shouldBe List(
             Argument("name", "alice", None)
+          )
+          req.properties shouldBe Nil
+
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "encode repeated POST form parameters as repeated named Arguments" in {
+      Given("an HttpRequest with repeated form parameters")
+      val http =
+        HttpRequest.fromPath(
+          method = HttpRequest.POST,
+          path = "/facility/update",
+          query = Record.empty,
+          header = Record.empty,
+          form = Record.data(
+            "id" -> "facility-1",
+            "fetch_methods" -> Vector("official_driver", "museum_or_jp")
+          )
+        )
+
+      val opdef =
+        OperationDefinition(
+          content = BaseContent.simple("updateFacilityRecord"),
+          request = RequestDefinition(parameters = List(
+            ParameterDefinition(
+              BaseContent.simple("id"),
+              kind = ParameterDefinition.Kind.Argument,
+              domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.One)
+            ),
+            ParameterDefinition(
+              BaseContent.simple("fetch_methods"),
+              kind = ParameterDefinition.Kind.Argument,
+              domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.ZeroMore)
+            )
+          )),
+          response = ResponseDefinition.void
+        )
+
+      val ingress =
+        IngressCollection(
+          ingresses = Vector(new RestIngress {})
+        ).ingress(http).TAKE
+
+      When("encoding HttpRequest into Request")
+      val result = ingress.encode(opdef, http)
+
+      result match {
+        case Consequence.Success(req) =>
+          Then("it preserves each repeated value for operation multiplicity handling")
+          req.arguments shouldBe List(
+            Argument("id", "facility-1", None),
+            Argument("fetch_methods", "official_driver", None),
+            Argument("fetch_methods", "museum_or_jp", None)
           )
           req.properties shouldBe Nil
 
