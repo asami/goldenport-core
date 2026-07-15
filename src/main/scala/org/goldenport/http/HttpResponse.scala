@@ -185,6 +185,7 @@ sealed abstract class HttpStatus(val code: Int)
 
 object HttpStatus {
   case object Ok extends HttpStatus(200)
+  case object Created extends HttpStatus(201)
   case object SeeOther extends HttpStatus(303)
   case object TemporaryRedirect extends HttpStatus(307)
   case object BadRequest extends HttpStatus(400)
@@ -196,6 +197,7 @@ object HttpStatus {
   def fromInt(code: Int): Option[HttpStatus] =
     code match {
       case 200 => Some(Ok)
+      case 201 => Some(Created)
       case 303 => Some(SeeOther)
       case 307 => Some(TemporaryRedirect)
       case 400 => Some(BadRequest)
