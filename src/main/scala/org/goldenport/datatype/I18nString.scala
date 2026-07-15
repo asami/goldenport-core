@@ -1,12 +1,14 @@
 package org.goldenport.datatype
 
 import cats.data.NonEmptyVector
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.syntax.*
 import io.circe.parser.parse
 import org.goldenport.Consequence
 import org.goldenport.context.ExecutionContext
-import org.goldenport.convert.{StringCodex, StringCodexable}
+import org.goldenport.convert.{StringCodex, StringCodexable, StringEncoder, ValueReader}
+import org.goldenport.record.Record
+import org.goldenport.schema.XString
 /*
  * @since   Apr. 17, 2020
  *  version Jun.  1, 2020
@@ -18,7 +20,8 @@ import org.goldenport.convert.{StringCodex, StringCodexable}
  *  version May. 11, 2025
  *  version Jul. 23, 2025
  *  version Dec. 25, 2025
- * @version Apr. 17, 2026
+ *  version Apr. 17, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nString(
@@ -82,6 +85,14 @@ object I18nString {
   def apply(p: String): I18nString =
     I18nString(NonEmptyVector.one(java.util.Locale.ROOT -> p))
 
+  given ValueReader[I18nString] with
+    def readC(value: Any): Consequence[I18nString] = value match {
+      case p: I18nString => Consequence.success(p)
+      case p: String => _decode_for_storage(p)
+      case p: Record => p.toJsonStringC.flatMap(_decode_for_storage)
+      case _ => Consequence.valueInvalid(value, XString)
+    }
+
   given StringCodex[I18nString] with
     def encode(p: I18nString)(using ctx: ExecutionContext): String =
       p.entries.toVector match {
@@ -104,6 +115,23 @@ object I18nString {
 
   def decode(p: String)(using ctx: ExecutionContext): Consequence[I18nString] =
     summon[StringCodex[I18nString]].decode(p)
+
+  def readC(p: Any): Consequence[I18nString] =
+    summon[ValueReader[I18nString]].readC(p)
+
+  private[datatype] def semanticCodec[A](
+    create: I18nString => A,
+    extract: A => I18nString
+  ): Codec[A] =
+    Codec.from(
+      summon[Decoder[I18nString]].map(create),
+      summon[Encoder[I18nString]].contramap(extract)
+    )
+
+  private def _decode_for_storage(p: String): Consequence[I18nString] = {
+    given ExecutionContext = StringEncoder.storageExecutionContext
+    decode(p)
+  }
 
   private def _escape_plain(p: String): String =
     if (p.startsWith("{")) s"""\\$p""" else p

@@ -1,13 +1,15 @@
 package org.goldenport.datatype
 
+import io.circe.Codec
 import org.goldenport.Consequence
 import org.goldenport.context.ExecutionContext
-import org.goldenport.convert.{StringCodex, StringCodexable}
+import org.goldenport.convert.{StringCodex, StringCodexable, ValueReader}
 
 /*
  * @since   Aug.  2, 2025
  *  version Dec. 30, 2025
- * @version Apr.  3, 2026
+ *  version Apr.  3, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nBrief(value: I18nString = I18nString("")) extends StringCodexable {
@@ -17,6 +19,12 @@ case class I18nBrief(value: I18nString = I18nString("")) extends StringCodexable
 
 object I18nBrief {
   def apply(p: String): I18nBrief = I18nBrief(I18nString(p))
+  given Codec[I18nBrief] = I18nString.semanticCodec(I18nBrief(_), _.value)
+  given ValueReader[I18nBrief] with
+    def readC(value: Any): Consequence[I18nBrief] = value match {
+      case p: I18nBrief => Consequence.success(p)
+      case _ => I18nString.readC(value).map(I18nBrief(_))
+    }
   given StringCodex[I18nBrief] with
     def encode(value: I18nBrief)(using ExecutionContext): String = value.value.encode
     def decode(value: String)(using ExecutionContext): Consequence[I18nBrief] =
