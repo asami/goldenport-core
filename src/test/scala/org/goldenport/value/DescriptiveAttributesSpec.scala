@@ -1,10 +1,11 @@
 package org.goldenport.value
 
+import cats.data.NonEmptyVector
 import java.util.Locale
-
 import org.goldenport.datatype.I18nBrief
 import org.goldenport.datatype.I18nDescription
 import org.goldenport.datatype.I18nLabel
+import org.goldenport.datatype.I18nString
 import org.goldenport.datatype.I18nSummary
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
@@ -12,12 +13,12 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jun. 23, 2026
- * @version Jun. 23, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
-class DescriptiveAttributesSpec extends AnyWordSpec with Matchers with GivenWhenThen {
+final class DescriptiveAttributesSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "DescriptiveAttributes" should {
-    "resolve effective descriptive text with SmartDox-compatible precedence" in {
+    "resolve primary descriptive text with SmartDox-compatible precedence" in {
       Given("descriptive attributes with overlapping metadata fields")
       val attrs = DescriptiveAttributes(
         headline = Some(I18nBrief("Headline")),
@@ -29,23 +30,66 @@ class DescriptiveAttributesSpec extends AnyWordSpec with Matchers with GivenWhen
         tooltip = Some(I18nLabel("Tooltip"))
       )
 
-      Then("effective accessors follow the SmartDox Explanation precedence")
-      attrs.effectiveHeadlineString(Locale.ENGLISH) should be(Some("Headline"))
-      attrs.effectiveBriefString(Locale.ENGLISH) should be(Some("Brief"))
-      attrs.effectiveSummaryString(Locale.ENGLISH) should be(Some("Summary"))
-      attrs.effectiveDescriptionString(Locale.ENGLISH) should be(Some("Description"))
-      attrs.effectiveTooltipString(Locale.ENGLISH) should be(Some("Tooltip"))
+      When("effective descriptive strings are requested")
+      val actual = Vector(
+        attrs.effectiveHeadlineString(Locale.ENGLISH),
+        attrs.effectiveBriefString(Locale.ENGLISH),
+        attrs.effectiveSummaryString(Locale.ENGLISH),
+        attrs.effectiveDescriptionString(Locale.ENGLISH),
+        attrs.effectiveTooltipString(Locale.ENGLISH)
+      )
 
-      And("fallback order is stable when primary fields are absent")
-      val fallback = DescriptiveAttributes(
+      Then("each accessor selects its primary field")
+      actual shouldBe Vector(
+        Some("Headline"),
+        Some("Brief"),
+        Some("Summary"),
+        Some("Description"),
+        Some("Tooltip")
+      )
+    }
+
+    "retain SmartDox-compatible fallback order when primary fields are absent" in {
+      Given("descriptive attributes containing only fallback fields")
+      val attrs = DescriptiveAttributes(
         brief = Some(I18nBrief("Brief")),
         lead = Some(I18nSummary("Lead")),
         `abstract` = Some(I18nSummary("Abstract"))
       )
-      fallback.effectiveHeadlineString(Locale.ENGLISH) should be(Some("Brief"))
-      fallback.effectiveSummaryString(Locale.ENGLISH) should be(Some("Lead"))
-      fallback.effectiveDescriptionString(Locale.ENGLISH) should be(Some("Abstract"))
-      fallback.effectiveTooltipString(Locale.ENGLISH) should be(Some("Brief"))
+
+      When("effective descriptive strings are requested")
+      val actual = Vector(
+        attrs.effectiveHeadlineString(Locale.ENGLISH),
+        attrs.effectiveSummaryString(Locale.ENGLISH),
+        attrs.effectiveDescriptionString(Locale.ENGLISH),
+        attrs.effectiveTooltipString(Locale.ENGLISH)
+      )
+
+      Then("each accessor selects the first available fallback")
+      actual shouldBe Vector(Some("Brief"), Some("Lead"), Some("Abstract"), Some("Brief"))
+    }
+
+    "select a locale from I18nDescription without collapsing stored entries" in {
+      Given("a multilingual description stored in descriptive attributes")
+      val sourceentries = Vector(
+        Locale.JAPANESE -> "展示内容の説明",
+        Locale.ENGLISH -> "Exhibition description"
+      )
+      val attrs = DescriptiveAttributes(
+        description = Some(I18nDescription(I18nString(NonEmptyVector(
+          sourceentries.head,
+          sourceentries.tail
+        ))))
+      )
+
+      When("effective description strings are requested for available and unavailable locales")
+      val japanese = attrs.effectiveDescriptionString(Locale.JAPAN)
+      val fallback = attrs.effectiveDescriptionString(Locale.CANADA_FRENCH)
+
+      Then("locale fallback returns display text and preserves the structured value")
+      japanese shouldBe Some("展示内容の説明")
+      fallback shouldBe Some("Exhibition description")
+      attrs.effectiveDescription.map(_.entries.toVector) shouldBe Some(sourceentries)
     }
   }
 }
