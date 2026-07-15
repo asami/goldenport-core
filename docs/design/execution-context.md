@@ -75,6 +75,7 @@ These typically include:
 - clock / time source
 - math context (precision, rounding)
 - random sequence (deterministic, testable)
+- entropy source (production-safe or explicitly deterministic for tests)
 
 - logger (logging capability)
 

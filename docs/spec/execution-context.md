@@ -57,6 +57,7 @@ ExecutionContext Core also carries explicit execution attributes:
 - clock
 - math
 - random
+- entropy
 - logger
 
 ----------------------------------------------------------------------

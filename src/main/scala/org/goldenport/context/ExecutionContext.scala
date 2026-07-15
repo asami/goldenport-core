@@ -17,7 +17,8 @@ import org.goldenport.log.Logger
  */
 /*
  * @since   Dec. 30, 2025
- * @version Dec. 31, 2025
+ *  version Dec. 31, 2025
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class ExecutionContext extends ExecutionContext.Core.Holder {
@@ -40,6 +41,7 @@ object ExecutionContext {
     clock: Clock,
     math: MathContext,
     random: RandomContext,
+    entropy: EntropyContext,
     logger: Logger
   )
   object Core {
@@ -56,6 +58,7 @@ object ExecutionContext {
       def clock: Clock = core.clock
       def math: MathContext = core.math
       def random: RandomContext = core.random
+      def entropy: EntropyContext = core.entropy
 
       def logger: Logger = core.logger
     }

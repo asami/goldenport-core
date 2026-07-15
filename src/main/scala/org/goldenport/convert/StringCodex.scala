@@ -6,12 +6,12 @@ import java.time.{Clock, ZoneId}
 import java.util.Locale
 import org.goldenport.Consequence
 import org.goldenport.context.ExecutionContext
-import org.goldenport.context.{EnvironmentContext, I18nContext, RandomContext, VirtualMachineContext}
+import org.goldenport.context.{EntropyContext, EnvironmentContext, I18nContext, RandomContext, VirtualMachineContext}
 import org.goldenport.log.Logger
 
 /*
  * @since   Apr.  3, 2026
- * @version Apr.  3, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 trait StringEncoder[A]:
@@ -48,6 +48,7 @@ object StringEncoder {
         clock = Clock.systemUTC(),
         math = MathContext.DECIMAL64,
         random = RandomContext.from("fixed"),
+        entropy = EntropyContext.deterministic("storage"),
         logger = new Logger {
           def trace(message: => String): Unit = ()
           def debug(message: => String): Unit = ()

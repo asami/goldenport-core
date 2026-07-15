@@ -3,7 +3,7 @@ package org.goldenport.datatype
 import java.nio.charset.StandardCharsets
 import java.time.{Clock, ZoneOffset}
 import java.util.Locale
-import org.goldenport.context.{EnvironmentContext, ExecutionContext, I18nContext, RandomContext, VirtualMachineContext}
+import org.goldenport.context.{EntropyContext, EnvironmentContext, ExecutionContext, I18nContext, RandomContext, VirtualMachineContext}
 import org.goldenport.log.Logger
 
 /*
@@ -41,6 +41,7 @@ private[datatype] object I18nSpecContext {
       clock = Clock.systemUTC(),
       math = java.math.MathContext.DECIMAL64,
       random = RandomContext.from(randomseed),
+      entropy = EntropyContext.deterministic(randomseed),
       logger = new Logger {
         def trace(message: => String): Unit = ()
         def debug(message: => String): Unit = ()

@@ -128,6 +128,7 @@ For detailed specifications, refer to:
 - virtual-machine-context.md
 - i18n-context.md
 - execution-context.md
+- random-entropy-context.md
 - execution-context-bootstrap.md
 
 END
