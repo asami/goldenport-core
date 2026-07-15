@@ -91,5 +91,43 @@ final class DescriptiveAttributesSpec extends AnyWordSpec with Matchers with Giv
       fallback shouldBe Some("Exhibition description")
       attrs.effectiveDescription.map(_.entries.toVector) shouldBe Some(sourceentries)
     }
+
+    "select headline and brief locales without collapsing stored entries" in {
+      Given("multilingual headline and brief values stored in descriptive attributes")
+      val headlineentries = Vector(
+        Locale.JAPANESE -> "展示案内",
+        Locale.ENGLISH -> "Exhibition guide"
+      )
+      val briefentries = Vector(
+        Locale.JAPANESE -> "展示の概要",
+        Locale.ENGLISH -> "Exhibition brief"
+      )
+      val attrs = DescriptiveAttributes(
+        headline = Some(I18nBrief(I18nString(NonEmptyVector(
+          headlineentries.head,
+          headlineentries.tail
+        )))),
+        brief = Some(I18nBrief(I18nString(NonEmptyVector(
+          briefentries.head,
+          briefentries.tail
+        ))))
+      )
+
+      When("effective headline and brief strings are requested in Japanese and French")
+      val headline = Vector(
+        attrs.effectiveHeadlineString(Locale.JAPAN),
+        attrs.effectiveHeadlineString(Locale.CANADA_FRENCH)
+      )
+      val brief = Vector(
+        attrs.effectiveBriefString(Locale.JAPAN),
+        attrs.effectiveBriefString(Locale.CANADA_FRENCH)
+      )
+
+      Then("locale fallback returns each effective value and preserves both wrappers")
+      headline shouldBe Vector(Some("展示案内"), Some("Exhibition guide"))
+      brief shouldBe Vector(Some("展示の概要"), Some("Exhibition brief"))
+      attrs.effectiveHeadline.map(_.entries.toVector) shouldBe Some(headlineentries)
+      attrs.effectiveBrief.map(_.entries.toVector) shouldBe Some(briefentries)
+    }
   }
 }
