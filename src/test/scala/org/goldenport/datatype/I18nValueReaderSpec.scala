@@ -13,7 +13,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 15, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class I18nValueReaderSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -61,6 +61,23 @@ final class I18nValueReaderSpec extends AnyWordSpec with Matchers with GivenWhen
           Locale.ENGLISH -> "Notification"
         )
       )
+    }
+
+    "round-trip the locale map used at API Record boundaries" in {
+      Given("a Japanese and English text value")
+      val source = I18nString(NonEmptyVector(
+        Locale.JAPANESE -> "通知",
+        Vector(Locale.ENGLISH -> "Notification")
+      ))
+
+      When("the value is projected to and read from its API Record")
+      val record = source.toRecord
+      val result = summon[ValueReader[I18nString]].readC(record)
+
+      Then("the locale keys and values survive without display selection")
+      record.getString("ja") shouldBe Some("通知")
+      record.getString("en") shouldBe Some("Notification")
+      result shouldBe Consequence.success(source)
     }
 
     "provide readers for every shared semantic I18n wrapper" in {

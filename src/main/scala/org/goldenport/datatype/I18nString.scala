@@ -21,7 +21,7 @@ import org.goldenport.schema.XString
  *  version Jul. 23, 2025
  *  version Dec. 25, 2025
  *  version Apr. 17, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nString(
@@ -53,6 +53,11 @@ case class I18nString(
       .collectFirst { case Some(value) => value }
       .getOrElse(entries.head._2)
   }
+
+  def toRecord: Record =
+    Record.create(entries.toVector.map { case (locale, value) =>
+      locale.toLanguageTag -> value
+    })
 
   private def _root_locale(locale: java.util.Locale): java.util.Locale =
     if (locale == null || locale.getLanguage.isEmpty)
@@ -89,7 +94,7 @@ object I18nString {
     def readC(value: Any): Consequence[I18nString] = value match {
       case p: I18nString => Consequence.success(p)
       case p: String => _decode_for_storage(p)
-      case p: Record => p.toJsonStringC.flatMap(_decode_for_storage)
+      case p: Record => _decode_record(p)
       case _ => Consequence.valueInvalid(value, XString)
     }
 
@@ -132,6 +137,26 @@ object I18nString {
     given ExecutionContext = StringEncoder.storageExecutionContext
     decode(p)
   }
+
+  private def _decode_record(p: Record): Consequence[I18nString] =
+    if (p.fields.exists(_.key == "entries"))
+      p.toJsonStringC.flatMap(_decode_for_storage)
+    else {
+      val entries = p.fields.map { field =>
+        field.value.single match {
+          case value: String =>
+            Consequence.success(java.util.Locale.forLanguageTag(field.key) -> value)
+          case value =>
+            Consequence.valueInvalid(value, XString)
+        }
+      }
+      entries.foldLeft(Consequence.success(Vector.empty[(java.util.Locale, String)])) { (z, x) =>
+        z.zip(x).map { case (xs, entry) => xs :+ entry }
+      }.flatMap {
+        case head +: tail => Consequence.success(I18nString(NonEmptyVector(head, tail)))
+        case _ => Consequence.valueInvalid(p, XString)
+      }
+    }
 
   private def _escape_plain(p: String): String =
     if (p.startsWith("{")) s"""\\$p""" else p
