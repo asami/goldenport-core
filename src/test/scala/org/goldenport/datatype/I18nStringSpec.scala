@@ -1,12 +1,9 @@
 package org.goldenport.datatype
 
 import cats.data.NonEmptyVector
-import java.nio.charset.StandardCharsets
-import java.time.{Clock, ZoneOffset}
 import java.util.Locale
 import org.goldenport.Consequence
-import org.goldenport.context.{EnvironmentContext, ExecutionContext, I18nContext, RandomContext, VirtualMachineContext}
-import org.goldenport.log.Logger
+import org.goldenport.context.ExecutionContext
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -20,7 +17,7 @@ final class I18nStringSpec extends AnyWordSpec with Matchers with GivenWhenThen 
   "I18nString" should {
     "decode plain text as one entry in the execution locale" in {
       Given("a Japanese execution context and plain text")
-      given ExecutionContext = _execution_context(Locale.JAPAN)
+      given ExecutionContext = I18nSpecContext.create(Locale.JAPAN, "i18n-string-spec")
 
       When("the text is decoded")
       val decoded = I18nString.decode("通知")
@@ -33,7 +30,7 @@ final class I18nStringSpec extends AnyWordSpec with Matchers with GivenWhenThen 
 
     "round-trip every locale entry through structured JSON" in {
       Given("Japanese and English entries")
-      given ExecutionContext = _execution_context(Locale.JAPAN)
+      given ExecutionContext = I18nSpecContext.create(Locale.JAPAN, "i18n-string-spec")
       val source = I18nString(NonEmptyVector(
         Locale.JAPANESE -> "通知",
         Vector(Locale.ENGLISH -> "Notification")
@@ -70,7 +67,7 @@ final class I18nStringSpec extends AnyWordSpec with Matchers with GivenWhenThen 
 
     "escape a plain leading brace instead of interpreting it as structured JSON" in {
       Given("a Japanese execution context and plain text beginning with a brace")
-      given ExecutionContext = _execution_context(Locale.JAPAN)
+      given ExecutionContext = I18nSpecContext.create(Locale.JAPAN, "i18n-string-spec")
       val source = I18nString("{draft}")
 
       When("the value is encoded and decoded")
@@ -85,45 +82,4 @@ final class I18nStringSpec extends AnyWordSpec with Matchers with GivenWhenThen 
     }
   }
 
-  private def _execution_context(locale: Locale): ExecutionContext = {
-    val environment = EnvironmentContext.Instant(EnvironmentContext.Core("test"))
-    val vm = VirtualMachineContext.Instant(VirtualMachineContext.Core(
-      clock = Clock.systemUTC(),
-      timezone = ZoneOffset.UTC,
-      encoding = StandardCharsets.UTF_8,
-      lineSeparator = "\n",
-      mathContext = java.math.MathContext.DECIMAL64,
-      environmentVariables = Map.empty,
-      resourceBundleBaseNames = Nil,
-      resourceBundleLocales = Nil,
-      resourceBundleResolutionOrder = Nil
-    ))
-    val i18n = I18nContext.Instant(I18nContext.Core(
-      textNormalizationPolicy = "none",
-      textComparisonPolicy = "unicode",
-      dateTimeFormatPolicy = "iso-8601",
-      locale = Some(locale)
-    ))
-    ExecutionContext.Instant(ExecutionContext.Core(
-      environment = environment,
-      vm = vm,
-      i18n = i18n,
-      locale = locale,
-      timezone = ZoneOffset.UTC,
-      encoding = StandardCharsets.UTF_8,
-      clock = Clock.systemUTC(),
-      math = java.math.MathContext.DECIMAL64,
-      random = RandomContext.from("i18n-string-spec"),
-      logger = new Logger {
-        def trace(message: => String): Unit = ()
-        def debug(message: => String): Unit = ()
-        def info(message: => String): Unit = ()
-        def warn(message: => String): Unit = ()
-        def error(message: => String): Unit = ()
-        def error(cause: Throwable, message: => String): Unit = ()
-        def fatal(message: => String): Unit = ()
-        def fatal(cause: Throwable, message: => String): Unit = ()
-      }
-    ))
-  }
 }
