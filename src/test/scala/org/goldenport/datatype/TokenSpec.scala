@@ -2,26 +2,37 @@ package org.goldenport.datatype
 
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import org.scalatest.GivenWhenThen
 
 /*
  * @since   Dec. 22, 2025
- * @version Jun.  4, 2026
+ *  version Jun.  4, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
-class TokenSpec extends AnyWordSpec
-  with ScalaCheckDrivenPropertyChecks
-  with Matchers {
+final class TokenSpec extends AnyWordSpec
+  with Matchers
+  with GivenWhenThen {
 
   "Token" should {
-    "accept generic tokens longer than cookie session identifiers" in {
-      val value = "t" * 128
+    "accept authentication tokens within the canonical request boundary" in {
+      Given("an authentication token within the canonical request boundary")
+      val value = "t" * 1024
 
-      Token(value).value shouldBe value
+      When("the token value is constructed")
+      val token = Token(value)
+
+      Then("the exact token value is retained")
+      token.value shouldBe value
     }
 
-    "reject values beyond the generic token limit" in {
-      an [IllegalArgumentException] should be thrownBy Token("t" * 257)
+    "reject values beyond the canonical request boundary" in {
+      Given("an authentication token longer than the canonical request boundary")
+      val value = "t" * (Token.LENGTH_MAX + 1)
+
+      When("the token value is constructed")
+      Then("construction fails deterministically")
+      an [IllegalArgumentException] should be thrownBy Token(value)
     }
   }
 }
