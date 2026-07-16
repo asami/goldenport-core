@@ -1,7 +1,7 @@
 package org.goldenport.datatype
 
 import cats.data.NonEmptyVector
-import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
+import io.circe.{Codec, Decoder, Encoder, Json}
 import io.circe.syntax.*
 import io.circe.parser.parse
 import org.goldenport.Consequence
@@ -27,14 +27,16 @@ import org.goldenport.schema.XString
 case class I18nString(
   entries: NonEmptyVector[(java.util.Locale, String)]
 ) extends StringCodexable {
+  I18nString._require_valid(entries)
+
   def encode(using ctx: ExecutionContext): String =
     summon[StringCodex[I18nString]].encode(this)
 
   def displayMessage: String = {
     val prioritized = Vector(java.util.Locale.ROOT, java.util.Locale.ENGLISH, java.util.Locale.JAPANESE)
-    val byLocale = entries.toVector.toMap
+    val bylocale = entries.toVector.toMap
     prioritized.iterator
-      .map(byLocale.get)
+      .map(bylocale.get)
       .collectFirst { case Some(value) => value }
       .getOrElse(entries.head._2)
   }
@@ -47,9 +49,9 @@ case class I18nString(
     val priorities =
       (requested ++ requested.map(_root_locale) ++ Vector(java.util.Locale.ROOT, java.util.Locale.ENGLISH, java.util.Locale.JAPANESE))
         .distinct
-    val byLocale = entries.toVector.toMap
+    val bylocale = entries.toVector.toMap
     priorities.iterator
-      .map(byLocale.get)
+      .map(bylocale.get)
       .collectFirst { case Some(value) => value }
       .getOrElse(entries.head._2)
   }
@@ -58,6 +60,9 @@ case class I18nString(
     Record.create(entries.toVector.map { case (locale, value) =>
       locale.toLanguageTag -> value
     })
+
+  def validateAllowedLocales(allowedlocales: Set[java.util.Locale]): Consequence[I18nString] =
+    I18nString.validateAllowedLocales(this, allowedlocales)
 
   private def _root_locale(locale: java.util.Locale): java.util.Locale =
     if (locale == null || locale.getLanguage.isEmpty)
@@ -68,7 +73,7 @@ case class I18nString(
 
 object I18nString {
   given Encoder[java.util.Locale] = Encoder.encodeString.contramap(_.toLanguageTag)
-  given Decoder[java.util.Locale] = Decoder.decodeString.map(java.util.Locale.forLanguageTag)
+  given Decoder[java.util.Locale] = Decoder.decodeString.emap(_parse_locale_tag)
 
   given Encoder[I18nString] = Encoder.instance { p =>
     Json.obj(
@@ -81,7 +86,11 @@ object I18nString {
   given Decoder[I18nString] = Decoder.instance { c =>
     c.downField("entries").as[Vector[(java.util.Locale, String)]].flatMap { xs =>
       xs.headOption match {
-        case Some(x) => Right(I18nString(NonEmptyVector(x, xs.tail)))
+        case Some(x) =>
+          val entries = NonEmptyVector(x, xs.tail)
+          _validate_entries(entries, None)
+            .left.map(message => io.circe.DecodingFailure(message, c.history))
+            .map(_ => I18nString(entries))
         case None => Left(io.circe.DecodingFailure("entries must be non-empty", c.history))
       }
     }
@@ -97,6 +106,13 @@ object I18nString {
       case p: Record => _decode_record(p)
       case _ => Consequence.valueInvalid(value, XString)
     }
+    override def readContextC(value: Any)(using ctx: ExecutionContext): Consequence[I18nString] =
+      value match {
+        case p: I18nString => _create(p.entries, ctx.i18n.allowedLocales)
+        case p: String => decode(p)
+        case p: Record => _decode_record(p, ctx.i18n.allowedLocales)
+        case _ => Consequence.valueInvalid(value, XString)
+      }
 
   given StringCodex[I18nString] with
     def encode(p: I18nString)(using ctx: ExecutionContext): String =
@@ -109,20 +125,38 @@ object I18nString {
 
     def decode(p: String)(using ctx: ExecutionContext): Consequence[I18nString] =
       if (p.startsWith("""\{"""))
-        Consequence.success(I18nString(NonEmptyVector.one(ctx.locale -> p.drop(1))))
+        _create(NonEmptyVector.one(ctx.locale -> p.drop(1)), ctx.i18n.allowedLocales)
       else if (p.startsWith("{"))
         parse(p).flatMap(_.as[I18nString]) match {
-          case Right(s) => Consequence.success(s)
+          case Right(s) => _create(s.entries, ctx.i18n.allowedLocales)
           case Left(e) => Consequence.valueFormatError(e.getMessage)
         }
       else
-        Consequence.success(I18nString(NonEmptyVector.one(ctx.locale -> p)))
+        _create(NonEmptyVector.one(ctx.locale -> p), ctx.i18n.allowedLocales)
 
   def decode(p: String)(using ctx: ExecutionContext): Consequence[I18nString] =
     summon[StringCodex[I18nString]].decode(p)
 
   def readC(p: Any): Consequence[I18nString] =
     summon[ValueReader[I18nString]].readC(p)
+
+  def readContextC(p: Any)(using ExecutionContext): Consequence[I18nString] =
+    summon[ValueReader[I18nString]].readContextC(p)
+
+  def create(entries: NonEmptyVector[(java.util.Locale, String)]): Consequence[I18nString] =
+    _create(entries, None)
+
+  def create(
+    entries: NonEmptyVector[(java.util.Locale, String)],
+    allowedlocales: Set[java.util.Locale]
+  ): Consequence[I18nString] =
+    _create(entries, Some(allowedlocales))
+
+  def validateAllowedLocales(
+    value: I18nString,
+    allowedlocales: Set[java.util.Locale]
+  ): Consequence[I18nString] =
+    _create(value.entries, Some(allowedlocales))
 
   private[datatype] def semanticCodec[A](
     create: I18nString => A,
@@ -138,14 +172,25 @@ object I18nString {
     decode(p)
   }
 
-  private def _decode_record(p: Record): Consequence[I18nString] =
+  private def _decode_record(
+    p: Record,
+    allowedlocales: Option[Set[java.util.Locale]] = None
+  ): Consequence[I18nString] =
     if (p.fields.exists(_.key == "entries"))
-      p.toJsonStringC.flatMap(_decode_for_storage)
+      p.toJsonStringC.flatMap { encoded =>
+        parse(encoded).flatMap(_.as[I18nString]) match {
+          case Right(value) => _create(value.entries, allowedlocales)
+          case Left(e) => Consequence.valueFormatError(e.getMessage)
+        }
+      }
     else {
       val entries = p.fields.map { field =>
         field.value.single match {
           case value: String =>
-            Consequence.success(java.util.Locale.forLanguageTag(field.key) -> value)
+            _parse_locale_tag(field.key) match {
+              case Right(locale) => Consequence.success(locale -> value)
+              case Left(message) => Consequence.valueFormatError(message)
+            }
           case value =>
             Consequence.valueInvalid(value, XString)
         }
@@ -153,17 +198,66 @@ object I18nString {
       entries.foldLeft(Consequence.success(Vector.empty[(java.util.Locale, String)])) { (z, x) =>
         z.zip(x).map { case (xs, entry) => xs :+ entry }
       }.flatMap {
-        case head +: tail => Consequence.success(I18nString(NonEmptyVector(head, tail)))
+        case head +: tail => _create(NonEmptyVector(head, tail), allowedlocales)
         case _ => Consequence.valueInvalid(p, XString)
       }
     }
+
+  private def _create(
+    entries: NonEmptyVector[(java.util.Locale, String)],
+    allowedlocales: Option[Set[java.util.Locale]]
+  ): Consequence[I18nString] =
+    _validate_entries(entries, allowedlocales) match {
+      case Right(_) => Consequence.success(I18nString(entries))
+      case Left(message) => Consequence.valueInvalid(message)
+    }
+
+  private def _validate_entries(
+    entries: NonEmptyVector[(java.util.Locale, String)],
+    allowedlocales: Option[Set[java.util.Locale]]
+  ): Either[String, Unit] = {
+    val locales = entries.toVector.map(_._1)
+    val nullindex = locales.indexWhere(_ == null)
+    if (nullindex >= 0)
+      Left(s"locale must not be null at entry $nullindex")
+    else {
+      val duplicatelocales = locales.groupBy(identity).collect {
+        case (locale, xs) if xs.sizeIs > 1 => locale.toLanguageTag
+      }.toVector.sorted
+      if (duplicatelocales.nonEmpty)
+        Left(s"duplicate locale entries: ${duplicatelocales.mkString(", ")}")
+      else
+        allowedlocales match {
+          case Some(allowed) =>
+            val unsupported = locales.filterNot(allowed).map(_.toLanguageTag).distinct.sorted
+            if (unsupported.nonEmpty)
+              Left(s"locale entries are not allowed: ${unsupported.mkString(", ")}")
+            else
+              Right(())
+          case None => Right(())
+        }
+    }
+  }
+
+  private def _parse_locale_tag(tag: String): Either[String, java.util.Locale] =
+    try {
+      if (tag == null || tag.isEmpty)
+        Left("locale tag must not be empty")
+      else
+        Right(new java.util.Locale.Builder().setLanguageTag(tag).build())
+    } catch {
+      case _: java.util.IllformedLocaleException => Left(s"invalid BCP 47 locale tag: $tag")
+    }
+
+  private def _require_valid(entries: NonEmptyVector[(java.util.Locale, String)]): Unit =
+    _validate_entries(entries, None).fold(message => throw new IllegalArgumentException(message), identity)
 
   private def _escape_plain(p: String): String =
     if (p.startsWith("{")) s"""\\$p""" else p
 
   private def _is_plain_locale(
-    valueLocale: java.util.Locale,
-    contextLocale: java.util.Locale
+    valuelocale: java.util.Locale,
+    contextlocale: java.util.Locale
   ): Boolean =
-    valueLocale == java.util.Locale.ROOT || valueLocale == contextLocale
+    valuelocale == java.util.Locale.ROOT || valuelocale == contextlocale
 }

@@ -80,6 +80,61 @@ final class I18nValueReaderSpec extends AnyWordSpec with Matchers with GivenWhen
       result shouldBe Consequence.success(source)
     }
 
+    "reject malformed or duplicate locale keys at API Record boundaries" in {
+      Given("one malformed locale map and one map with duplicate canonical locale identities")
+      val malformed = Record.data("en_US" -> "Invalid")
+      val duplicate = Record.create(Vector(
+        "en" -> "First",
+        "EN" -> "Second"
+      ))
+
+      When("the locale maps are read")
+      val malformedresult = summon[ValueReader[I18nString]].readC(malformed)
+      val duplicateresult = summon[ValueReader[I18nString]].readC(duplicate)
+
+      Then("both invalid locale maps fail without collapsing entries")
+      malformedresult.isSuccess shouldBe false
+      duplicateresult.isSuccess shouldBe false
+    }
+
+    "enforce the execution context locale policy at API Record boundaries" in {
+      Given("an API Record with one allowed and one unsupported locale")
+      val record = Record.data(
+        "title" -> Record.data(
+          "ja" -> "通知",
+          "en" -> "Notification"
+        )
+      )
+      given org.goldenport.context.ExecutionContext =
+        I18nSpecContext.create(
+          Locale.JAPAN,
+          "i18n-value-reader-policy-spec",
+          Some(Set(Locale.JAPANESE))
+        )
+
+      When("the context-aware Record boundary reads the title")
+      val result = record.getAsContextC[I18nTitle]("title")
+
+      Then("the unsupported locale rejects the complete value")
+      result.isSuccess shouldBe false
+    }
+
+    "use the execution context locale for plain API text" in {
+      Given("plain API text and a Japanese execution locale")
+      given org.goldenport.context.ExecutionContext =
+        I18nSpecContext.create(
+          Locale.JAPAN,
+          "i18n-value-reader-plain-context-spec",
+          Some(Set(Locale.JAPAN))
+        )
+
+      When("the context-aware reader decodes the title")
+      val result = summon[ValueReader[I18nTitle]].readContextC("通知")
+
+      Then("the authored entry retains the execution locale")
+      result.map(_.toI18nString.entries.head._1) shouldBe Consequence.success(Locale.JAPAN)
+    }
+
     "provide readers for every shared semantic I18n wrapper" in {
       Given("plain text at a generated Record boundary")
 

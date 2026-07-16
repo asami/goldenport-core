@@ -9,7 +9,7 @@ import org.goldenport.convert.{StringCodex, StringCodexable, ValueReader}
  * @since   Aug.  2, 2025
  *  version Dec. 30, 2025
  *  version Apr.  3, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 case class I18nSummary(value: I18nString = I18nString("")) extends StringCodexable {
@@ -24,6 +24,10 @@ object I18nSummary {
     def readC(value: Any): Consequence[I18nSummary] = value match {
       case p: I18nSummary => Consequence.success(p)
       case _ => I18nString.readC(value).map(I18nSummary(_))
+    }
+    override def readContextC(value: Any)(using ExecutionContext): Consequence[I18nSummary] = value match {
+      case p: I18nSummary => I18nString.readContextC(p.value).map(I18nSummary(_))
+      case _ => I18nString.readContextC(value).map(I18nSummary(_))
     }
   given StringCodex[I18nSummary] with
     def encode(value: I18nSummary)(using ExecutionContext): String = value.value.encode

@@ -6,6 +6,7 @@ import java.util.{Locale, TimeZone}
 
 import org.goldenport.Consequence
 import org.goldenport.bag.{Bag, BinaryBag, TextBag}
+import org.goldenport.context.ExecutionContext
 import org.goldenport.datatype.Urn
 import org.goldenport.schema.*
 
@@ -13,12 +14,13 @@ import org.goldenport.schema.*
  * @since   Oct. 17, 2025
  *  version Feb. 19, 2026
  *  version Apr. 11, 2026
- * @version Apr. 14, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T]:
   def read(value: Any): Option[T] = readC(value).toOption
   def readC(value: Any): Consequence[T]
+  def readContextC(value: Any)(using ExecutionContext): Consequence[T] = readC(value)
 
 object ValueReader {
   given ValueReader[Any] with

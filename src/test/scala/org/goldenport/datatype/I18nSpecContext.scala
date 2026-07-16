@@ -8,11 +8,15 @@ import org.goldenport.log.Logger
 
 /*
  * @since   Jul. 15, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 private[datatype] object I18nSpecContext {
-  def create(locale: Locale, randomseed: String): ExecutionContext = {
+  def create(
+    locale: Locale,
+    randomseed: String,
+    allowedlocales: Option[Set[Locale]] = None
+  ): ExecutionContext = {
     val environment = EnvironmentContext.Instant(EnvironmentContext.Core("test"))
     val vm = VirtualMachineContext.Instant(VirtualMachineContext.Core(
       clock = Clock.systemUTC(),
@@ -29,7 +33,8 @@ private[datatype] object I18nSpecContext {
       textNormalizationPolicy = "none",
       textComparisonPolicy = "unicode",
       dateTimeFormatPolicy = "iso-8601",
-      locale = Some(locale)
+      locale = Some(locale),
+      allowedLocales = allowedlocales
     ))
     ExecutionContext.Instant(ExecutionContext.Core(
       environment = environment,

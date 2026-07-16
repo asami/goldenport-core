@@ -2,6 +2,7 @@ package org.goldenport.record
 
 import cats.kernel.Monoid
 import org.goldenport.Consequence
+import org.goldenport.context.ExecutionContext
 import org.goldenport.text.Presentable
 import org.goldenport.convert.ValueReader
 import org.goldenport.datatype.PathName
@@ -15,7 +16,7 @@ import org.goldenport.datatype.PathName
  *  version Mar. 31, 2026
  *  version Apr.  8, 2026
  *  version Apr. 14, 2026
- * @version Jul. 10, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -37,6 +38,15 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
       case Some(field) => field.value match {
         case Field.Value.Single(v) if java.util.Objects.isNull(v) => Consequence.none
         case Field.Value.Single(v) => reader.readC(v).map(Some.apply)
+      }
+    }
+
+  def getAsContextC[T](key: String)(using reader: ValueReader[T], ctx: ExecutionContext): Consequence[Option[T]] =
+    fields.find(_.key == key) match {
+      case None => Consequence.none
+      case Some(field) => field.value match {
+        case Field.Value.Single(v) if java.util.Objects.isNull(v) => Consequence.none
+        case Field.Value.Single(v) => reader.readContextC(v).map(Some.apply)
       }
     }
 

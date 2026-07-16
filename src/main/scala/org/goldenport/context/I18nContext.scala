@@ -4,7 +4,7 @@ import java.util.Locale
 
 /*
  * @since   Dec. 31, 2025
- * @version Dec. 31, 2025
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class I18nContext extends I18nContext.Core.Holder {
@@ -15,7 +15,8 @@ object I18nContext {
     textNormalizationPolicy: String,
     textComparisonPolicy: String,
     dateTimeFormatPolicy: String,
-    locale: Option[Locale]
+    locale: Option[Locale],
+    allowedLocales: Option[Set[Locale]] = None
   )
 
   object Core {
@@ -26,6 +27,7 @@ object I18nContext {
       def textComparisonPolicy: String = core.textComparisonPolicy
       def dateTimeFormatPolicy: String = core.dateTimeFormatPolicy
       def locale: Option[Locale] = core.locale
+      def allowedLocales: Option[Set[Locale]] = core.allowedLocales
     }
   }
 
