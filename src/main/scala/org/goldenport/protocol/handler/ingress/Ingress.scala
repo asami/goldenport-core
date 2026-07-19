@@ -24,7 +24,7 @@ import org.goldenport.http.HttpRequest
  *  version Jan. 28, 2026
  *  version Apr. 11, 2026
  *  version Apr. 27, 2026
- * @version Jul. 10, 2026
+ * @version Jul. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -48,7 +48,22 @@ object Ingress {
     val argumentnames = _name_map(definitions, ParameterDefinition.Kind.Argument)
     record.fields.foldLeft((List.empty[Argument], List.empty[Switch], List.empty[Property])) {
       case (z, field) =>
-        _field_values(field.value.single).foldLeft(z) {
+        val values = _field_values(field.value.single)
+        if (values.isEmpty) {
+          val (arguments, switches, properties) = z
+          val key = field.key
+          argumentnames.get(key) match {
+            case Some(name) =>
+              (arguments :+ Argument(name, Vector.empty, None), switches, properties)
+            case None =>
+              propertynames.get(key) match {
+                case Some(name) =>
+                  (arguments, switches, properties :+ Property(name, Vector.empty, None))
+                case None =>
+                  z
+              }
+          }
+        } else values.foldLeft(z) {
           case ((arguments, switches, properties), value) =>
             val key = field.key
             switchnames.get(key) match {

@@ -17,7 +17,7 @@ import org.goldenport.value.BaseContent
 
 /*
  * @since   Apr. 23, 2026
- * @version Jul. 10, 2026
+ * @version Jul. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 class RestIngressSpec
@@ -194,6 +194,45 @@ class RestIngressSpec
           )
           req.properties shouldBe Nil
 
+        case Consequence.Failure(err) =>
+          fail(err.toString)
+      }
+    }
+
+    "preserve an explicitly empty repeated POST form property" in {
+      Given("an HttpRequest whose repeated form control was explicitly cleared")
+      val http =
+        HttpRequest.fromPath(
+          method = HttpRequest.POST,
+          path = "/facility/update",
+          query = Record.empty,
+          header = Record.empty,
+          form = Record.data("fetch_methods" -> Vector.empty[String])
+        )
+      val opdef =
+        OperationDefinition(
+          content = BaseContent.simple("updateFacility"),
+          request = RequestDefinition(parameters = List(
+            ParameterDefinition(
+              BaseContent.simple("fetch_methods"),
+              kind = ParameterDefinition.Kind.Property,
+              domain = ValueDomain(datatype = XString, multiplicity = Multiplicity.ZeroMore)
+            )
+          )),
+          response = ResponseDefinition.void
+        )
+      val ingress = IngressCollection(
+        ingresses = Vector(new RestIngress {})
+      ).ingress(http).TAKE
+
+      When("encoding the form into a protocol Request")
+      val result = ingress.encode(opdef, http)
+
+      result match {
+        case Consequence.Success(req) =>
+          Then("the explicit empty collection remains distinguishable from an omitted field")
+          req.arguments shouldBe Nil
+          req.properties shouldBe List(Property("fetch_methods", Vector.empty, None))
         case Consequence.Failure(err) =>
           fail(err.toString)
       }
