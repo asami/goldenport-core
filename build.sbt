@@ -25,6 +25,7 @@ lazy val root = project
     libraryDependencies += "io.circe" %% "circe-parser" % "0.14.3",
     libraryDependencies += "com.typesafe" % "config" % "1.4.3",
     libraryDependencies += "org.yaml" % "snakeyaml" % "2.1",
+    libraryDependencies += "com.fasterxml.jackson.dataformat" % "jackson-dataformat-toml" % "2.15.2",
     libraryDependencies += "org.apache.poi" % "poi-ooxml" % "5.2.5",
     publishMavenStyle := true,
     Compile / packageDoc / publishArtifact := false,

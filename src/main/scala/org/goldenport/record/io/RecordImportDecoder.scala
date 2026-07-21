@@ -13,7 +13,7 @@ import org.goldenport.schema.*
 
 /*
  * @since   May. 24, 2026
- * @version Jul.  1, 2026
+ * @version Jul. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 final class RecordImportDecoder(
@@ -38,6 +38,7 @@ final class RecordImportDecoder(
       case RecordImportFormat.Yaml => _decoder.yamlAutoRecords(text).map(_shape(_, RecordImportFormat.Yaml, options, Vector.empty, Record.empty))
       case RecordImportFormat.Xml => _decoder.xmlAutoRecords(text).map(_shape(_, RecordImportFormat.Xml, options, Vector.empty, Record.empty))
       case RecordImportFormat.Hocon => _decode_hocon_records(text).map(_shape(_, RecordImportFormat.Hocon, options, Vector.empty, Record.empty))
+      case RecordImportFormat.Toml => RecordSourceLoader.load(text, RecordFormat.Toml).map(x => _shape(Vector(x), RecordImportFormat.Toml, options, Vector.empty, Record.empty))
       case RecordImportFormat.Properties => _decode_properties_records(text).map(_shape(_, RecordImportFormat.Properties, options, Vector.empty, Record.empty))
       case RecordImportFormat.Tsl => _decoder.tslRecords(text).map(_shape(_, RecordImportFormat.Tsl, options, Vector.empty, Record.empty))
       case RecordImportFormat.Excel => Consequence.argumentInvalid("Excel import requires decodeBytes or decodePath.")
@@ -547,7 +548,7 @@ object RecordImportDecoder {
     line.contains('\t') && line.split('\t').toVector.exists(_.contains(":"))
 
   enum RecordImportFormat {
-    case Auto, Csv, Tsv, Ltsv, Lines, Json, Yaml, Xml, Hocon, Properties, Tsl, Excel
+    case Auto, Csv, Tsv, Ltsv, Lines, Json, Yaml, Xml, Hocon, Properties, Tsl, Excel, Toml
 
     def label: String =
       productPrefix.toUpperCase(java.util.Locale.ROOT)
@@ -560,6 +561,7 @@ object RecordImportDecoder {
         case RecordFormat.Yaml => Yaml
         case RecordFormat.Xml => Xml
         case RecordFormat.Hocon => Hocon
+        case RecordFormat.Toml => Toml
         case RecordFormat.Properties => Properties
         case RecordFormat.Csv => Csv
         case RecordFormat.Tsv => Tsv
@@ -580,6 +582,7 @@ object RecordImportDecoder {
         case "yaml" | "yml" => Some(Yaml)
         case "xml" => Some(Xml)
         case "hocon" | "conf" => Some(Hocon)
+        case "toml" => Some(Toml)
         case "props" | "properties" => Some(Properties)
         case "tsl" => Some(Tsl)
         case "excel" | "xlsx" | "xls" => Some(Excel)

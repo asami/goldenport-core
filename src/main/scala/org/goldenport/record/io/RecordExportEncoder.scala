@@ -11,7 +11,7 @@ import org.goldenport.schema.Schema
 
 /*
  * @since   May. 24, 2026
- * @version Jul.  1, 2026
+ * @version Jul. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 final class RecordExportEncoder(
@@ -48,6 +48,7 @@ final class RecordExportEncoder(
         case RecordFormat.Yaml => _yaml(records)
         case RecordFormat.Xml => _xml(records)
         case RecordFormat.Hocon => _hocon(records)
+        case RecordFormat.Toml => throw new IllegalArgumentException("TOML export is not supported.")
         case RecordFormat.Properties => _properties(records)
         case RecordFormat.Csv => _delimited(records, ",", options)
         case RecordFormat.Tsv => _delimited(records, "\t", options)

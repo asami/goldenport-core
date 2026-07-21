@@ -21,7 +21,8 @@ import org.yaml.snakeyaml.Yaml
 
 /*
  * @since   Feb.  7, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Jul. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordDecoder(
@@ -254,7 +255,11 @@ class RecordDecoder(
     value match {
       case null => null
       case m: java.util.Map[?, ?] =>
-        m.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toVector.map { case (k, v) => k -> _yaml_value_to_value(v) }.toMap
+        Record.create(
+          m.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toVector.map { case (k, v) =>
+            k -> _yaml_value_to_value(v)
+          }
+        )
       case c: java.util.Collection[?] =>
         c.asScala.toVector.map(_yaml_value_to_value)
       case xs: Array[?] =>

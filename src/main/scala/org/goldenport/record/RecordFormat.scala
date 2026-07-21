@@ -5,11 +5,11 @@ import java.nio.file.Path
 /*
  * @since   Apr.  8, 2026
  *  version May. 24, 2026
- * @version Jul.  1, 2026
+ * @version Jul. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 enum RecordFormat:
-  case Json, Yaml, Xml, Hocon, Properties, Csv, Tsv, Ltsv, Lines, Tsl, Excel
+  case Json, Yaml, Xml, Hocon, Properties, Csv, Tsv, Ltsv, Lines, Tsl, Excel, Toml
 
 object RecordFormat:
   def fromSuffix(name: String): Option[RecordFormat] =
@@ -20,6 +20,7 @@ object RecordFormat:
       case s if s.endsWith(".xml") => Some(Xml)
       case s if s.endsWith(".conf") => Some(Hocon)
       case s if s.endsWith(".hocon") => Some(Hocon)
+      case s if s.endsWith(".toml") => Some(Toml)
       case s if s.endsWith(".props") => Some(Properties)
       case s if s.endsWith(".properties") => Some(Properties)
       case s if s.endsWith(".csv") => Some(Csv)

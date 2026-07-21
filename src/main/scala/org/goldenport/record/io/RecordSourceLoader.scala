@@ -4,18 +4,21 @@ import java.io.StringReader
 import java.nio.file.{Files, Path}
 import scala.jdk.CollectionConverters.*
 import com.typesafe.config.{Config, ConfigFactory, ConfigObject, ConfigValue}
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.toml.TomlFactory
 import org.goldenport.Consequence
 import org.goldenport.record.{Field, Record, RecordDecoder as TypedRecordDecoder, RecordFormat}
 
 /*
  * @since   Apr.  8, 2026
  *  version May. 24, 2026
- * @version Jul.  1, 2026
+ * @version Jul. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 object RecordSourceLoader:
   private val _decoder = new RecordDecoder()
   private val _import_decoder = new RecordImportDecoder()
+  private val _toml_mapper = new ObjectMapper(new TomlFactory())
 
   def load(path: Path): Consequence[Record] =
     formatFrom(path)
@@ -31,6 +34,7 @@ object RecordSourceLoader:
       case RecordFormat.Yaml => _decoder.yaml(content)
       case RecordFormat.Xml => _decoder.xml(content)
       case RecordFormat.Hocon => _decode_hocon(content)
+      case RecordFormat.Toml => _decode_toml(content)
       case RecordFormat.Properties => _decode_properties(content)
       case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl | RecordFormat.Excel =>
         loadRecords(content, format).map(_.headOption.getOrElse(Record.empty))
@@ -53,6 +57,7 @@ object RecordSourceLoader:
       case RecordFormat.Yaml => _decoder.yamlAutoRecords(content)
       case RecordFormat.Xml => _decoder.xmlAutoRecords(content)
       case RecordFormat.Hocon => _decode_hocon_records(content)
+      case RecordFormat.Toml => _decode_toml(content).map(Vector(_))
       case RecordFormat.Properties => _decode_properties_records(content)
       case RecordFormat.Csv | RecordFormat.Tsv | RecordFormat.Ltsv | RecordFormat.Lines | RecordFormat.Tsl =>
         _import_decoder.decode(content, format, RecordImportDecoder.RecordImportOptions.default).map(_.records)
@@ -80,6 +85,26 @@ object RecordSourceLoader:
 
   private def _decode_hocon_records(content: String): Consequence[Vector[Record]] =
     _decode_hocon(content).map(Vector(_))
+
+  private def _decode_toml(content: String): Consequence[Record] =
+    Consequence {
+      val root = _toml_mapper.readValue(content, classOf[java.util.Map[String, Object]])
+      Record.create(root.asScala.toVector.map { case (key, value) =>
+        key -> _toml_value(value)
+      })
+    }
+
+  private def _toml_value(value: Any): Any =
+    value match
+      case null => null
+      case map: java.util.Map[?, ?] =>
+        Record.create(map.asScala.toVector.map { case (key, entry) =>
+          key.toString -> _toml_value(entry)
+        })
+      case values: java.util.Collection[?] =>
+        values.asScala.toVector.map(_toml_value)
+      case number: java.lang.Number => BigDecimal(number.toString)
+      case other => other
 
   private def _decode_properties(content: String): Consequence[Record] =
     Consequence {
