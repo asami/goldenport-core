@@ -24,7 +24,7 @@ import org.goldenport.configuration.source.ResourceConfigurationSource
  */
 /*
  * @since   Dec. 18, 2025
- * @version Jan. 16, 2026
+ * @version Jul. 31, 2026
  * @author  ASAMI, Tomoharu
  */
 object MergePolicy {
@@ -39,19 +39,27 @@ object MergePolicy {
   ): (Configuration, ConfigurationTrace) = {
     source.load() match {
       case org.goldenport.Consequence.Success(cfg) =>
-        cfg.values.foldLeft((current, trace)) {
-          case ((cfg, tr), (key, value)) =>
-            val newConfiguration = Configuration(cfg.values.updated(key, value))
-            val newTrace  = updateTrace(tr, key, value, source)
-            (newConfiguration, newTrace)
-        }
+        merge(current, trace, source, cfg)
 
       case org.goldenport.Consequence.Failure(_) =>
         (current, trace)
     }
   }
 
-  private def updateTrace(
+  def merge(
+    current: Configuration,
+    trace: ConfigurationTrace,
+    source: ConfigurationSource,
+    value: Configuration
+  ): (Configuration, ConfigurationTrace) =
+    value.values.foldLeft((current, trace)) {
+      case ((cfg, tr), (key, entry)) =>
+        val newconfiguration = Configuration(cfg.values.updated(key, entry))
+        val newtrace  = _update_trace(tr, key, entry, source)
+        (newconfiguration, newtrace)
+    }
+
+  private def _update_trace(
     trace: ConfigurationTrace,
     key: String,
     value: ConfigurationValue,
@@ -71,19 +79,21 @@ object MergePolicy {
       finalValue = value,
       origin     = source.origin,
       history    = history,
-      sourceType = sourceMetadata(source)._1,
-      sourceId   = sourceMetadata(source)._2
+      sourceType = _source_metadata(source)._1,
+      sourceId   = _source_metadata(source)._2
     )
 
     trace.copy(entries = trace.entries.updated(key, resolution))
   }
 
-  private def sourceMetadata(
+  private def _source_metadata(
     source: ConfigurationSource
   ): (Option[String], Option[String]) =
     source match {
       case resource: ResourceConfigurationSource =>
         (Some("resource"), Some(resource.resourceName))
+      case file: ConfigurationSource.File =>
+        (Some("file"), Some(file.path.toString))
       case _ =>
         (None, None)
     }

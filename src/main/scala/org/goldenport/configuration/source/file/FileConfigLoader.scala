@@ -2,6 +2,7 @@ package org.goldenport.configuration.source.file
 
 import java.io.StringReader
 import java.nio.file.{Files, Path}
+import java.util.Base64
 import javax.xml.XMLConstants
 import javax.xml.parsers.{DocumentBuilderFactory, ParserConfigurationException}
 import org.xml.sax.{EntityResolver, InputSource}
@@ -12,21 +13,30 @@ import com.typesafe.config.ConfigFactory
 import io.circe.Json
 import io.circe.parser.parse
 import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode, SequenceNode}
 
 import org.goldenport.Conclusion
 import org.goldenport.Consequence
 import org.goldenport.configuration.Configuration
 import org.goldenport.configuration.ConfigurationValue
+import org.goldenport.configuration.ConfigurationDocument
+import org.goldenport.configuration.ConfigurationSourceLoad
 
 /*
  * @since   Mar. 13, 2026
- * @version Jul.  1, 2026
+ *  version Jul.  1, 2026
+ * @version Aug.  3, 2026
  * @author  ASAMI, Tomoharu
  */
 trait FileConfigLoader {
   def load(
     path: Path
   ): Consequence[Configuration]
+
+  def loadSnapshot(
+    path: Path
+  ): Consequence[ConfigurationSourceLoad] =
+    load(path).map(ConfigurationSourceLoad(_))
 }
 
 final class SimpleFileConfigLoader
@@ -40,6 +50,14 @@ final class SimpleFileConfigLoader
     else
       ConfigTextDecoder.decode(path, Files.readString(path))
   }
+
+  override def loadSnapshot(
+    path: Path
+  ): Consequence[ConfigurationSourceLoad] =
+    if (!Files.exists(path))
+      Consequence.Success(ConfigurationSourceLoad(Configuration.empty))
+    else
+      ConfigTextDecoder.decodeSnapshot(path, Files.readString(path))
 }
 
 object ConfigTextDecoder {
@@ -50,6 +68,20 @@ object ConfigTextDecoder {
 
   def decode(filename: String, content: String): Consequence[Configuration] =
     _decode(filename, content)
+
+  def decodeSnapshot(path: Path, content: String): Consequence[ConfigurationSourceLoad] =
+    decodeSnapshot(path.getFileName.toString, content)
+
+  def decodeSnapshot(filename: String, content: String): Consequence[ConfigurationSourceLoad] =
+    _format(filename) match {
+      case Format.Yaml =>
+        for {
+          configuration <- _decode(filename, content)
+          document <- _decode_yaml_document(content)
+        } yield ConfigurationSourceLoad(configuration, Some(document))
+      case _ =>
+        _decode(filename, content).map(ConfigurationSourceLoad(_))
+    }
 
   private def _decode(filename: String, content: String): Consequence[Configuration] =
     Try {
@@ -115,6 +147,80 @@ object ConfigTextDecoder {
     val root: Any = _yaml_parser.load(content)
     _as_map(root)
   }
+
+  /** Parses YAML's node graph so repeated mapping members are not collapsed
+   *  before a downstream binding layer can validate them. The compatibility
+   *  configuration continues to use SnakeYAML's established last-wins map.
+   */
+  private def _decode_yaml_document(content: String): Consequence[ConfigurationDocument.Object] =
+    Try {
+      Option(new Yaml().compose(new StringReader(content))) match {
+        case None => ConfigurationDocument.Object(Vector.empty)
+        case Some(root: MappingNode) => _yaml_object(root)
+        case Some(_) =>
+          throw new IllegalArgumentException("configuration root must be an object")
+      }
+    } match {
+      case scala.util.Success(document) => Consequence.Success(document)
+      case scala.util.Failure(exception) => Consequence.Failure(Conclusion.from(exception))
+    }
+
+  private def _yaml_object(node: MappingNode): ConfigurationDocument.Object =
+    ConfigurationDocument.Object(
+      node.getValue.asScala.toVector.map { tuple =>
+        tuple.getKeyNode match {
+          case key: ScalarNode =>
+            ConfigurationDocument.Field(key.getValue, _yaml_document(tuple.getValueNode))
+          case _ =>
+            throw new IllegalArgumentException("configuration object key must be a scalar")
+        }
+      }
+    )
+
+  private def _yaml_document(node: Node): ConfigurationDocument =
+    node match {
+      case mapping: MappingNode => _yaml_object(mapping)
+      case sequence: SequenceNode =>
+        ConfigurationDocument.Sequence(sequence.getValue.asScala.toVector.map(_yaml_document))
+      case scalar: ScalarNode => ConfigurationDocument.Scalar(_from_yaml_scalar(scalar))
+      case _ =>
+        throw new IllegalArgumentException("unsupported YAML configuration node")
+    }
+
+  private def _from_yaml_scalar(node: ScalarNode): ConfigurationValue = {
+    val value = node.getValue
+    val tag = node.getTag.getValue
+    if (tag == "tag:yaml.org,2002:str")
+      ConfigurationValue.StringValue(value)
+    else
+      // Reuse the established SnakeYAML scalar conversion with the composed
+      // tag intact. Raw-document capture therefore cannot reinterpret a
+      // compatibility-accepted null, bool, number, timestamp, or other native
+      // scalar as plain text.
+      _from_any(new Yaml().load(_yaml_tagged_scalar(tag, value)))
+  }
+
+  private def _yaml_tagged_scalar(tag: String, value: String): String =
+    s"!<$tag> ${_yaml_double_quoted(value)}"
+
+  private def _yaml_double_quoted(value: String): String =
+    value.foldLeft(new StringBuilder("\"")) { (z, c) =>
+      c match {
+        case '\\' => z.append("\\\\")
+        case '"' => z.append("\\\"")
+        case '\n' => z.append("\\n")
+        case '\r' => z.append("\\r")
+        case '\t' => z.append("\\t")
+        case '\u0000' => z.append("\\0")
+        case '\b' => z.append("\\b")
+        case '\f' => z.append("\\f")
+        case '\u0007' => z.append("\\a")
+        case '\u000b' => z.append("\\v")
+        case '\u001b' => z.append("\\e")
+        case x if Character.isISOControl(x) => z.append(f"\\u${x.toInt}%04X")
+        case x => z.append(x)
+      }
+    }.append('"').toString
 
   private def _decode_xml(content: String): Map[String, ConfigurationValue] = {
     val builder = _xml_factory.newDocumentBuilder()
@@ -207,6 +313,7 @@ object ConfigTextDecoder {
       case v: java.lang.Boolean => ConfigurationValue.BooleanValue(v.booleanValue)
       case v: java.math.BigDecimal => ConfigurationValue.NumberValue(BigDecimal(v))
       case v: java.math.BigInteger => ConfigurationValue.NumberValue(BigDecimal(v))
+      case v: Array[Byte] => ConfigurationValue.StringValue(Base64.getEncoder.encodeToString(v))
       case m: java.util.Map[_, _] =>
         ConfigurationValue.ObjectValue(
           _java_map_entries(m).collect {

@@ -11,6 +11,7 @@ import org.goldenport.Consequence
 import org.goldenport.configuration.Configuration
 import org.goldenport.configuration.ConfigurationValue
 import org.goldenport.configuration.ConfigurationOrigin
+import org.goldenport.configuration.ConfigurationSourceLoad
 import org.goldenport.configuration.source.file.ConfigTextDecoder
 import org.goldenport.configuration.source.file.FileConfigLoader
 import org.goldenport.configuration.source.file.SimpleFileConfigLoader
@@ -34,11 +35,17 @@ sealed trait ConfigurationSource {
   def location: Option[String]
 
   def load(): Consequence[Configuration]
+
+  /** Loads the compatibility configuration plus optional physical document
+   *  evidence. Custom sources remain source-compatible by using this default.
+   */
+  def loadSnapshot(): Consequence[ConfigurationSourceLoad] =
+    load().map(ConfigurationSourceLoad(_))
 }
 
 object ConfigurationSource {
   val DefaultApplicationName = "simplemodeling"
-  private val ConfigFileExtensions = Seq("conf", "props", "properties", "json", "yaml")
+  private val _config_file_extensions = Seq("conf", "props", "properties", "json", "yaml")
 
   def home(applicationname: String = DefaultApplicationName): Seq[ConfigurationSource] = {
     val home = sys.props.get("user.home").map(p => Path.of(p))
@@ -72,7 +79,7 @@ object ConfigurationSource {
     origin: ConfigurationOrigin,
     rank: Int
   ): Seq[ConfigurationSource] =
-    ConfigFileExtensions.map { ext =>
+    _config_file_extensions.map { ext =>
       File(
         origin = origin,
         path = base.resolve(s"config.$ext"),
@@ -128,6 +135,9 @@ object ConfigurationSource {
 
     override def load(): Consequence[Configuration] =
       loader.load(path)
+
+    override def loadSnapshot(): Consequence[ConfigurationSourceLoad] =
+      loader.loadSnapshot(path)
   }
 
   final case class Env(
@@ -190,7 +200,7 @@ final case class ResourceConfigurationSource(
 }
 
 object ResourceConfigurationSource {
-  private val DefaultResourceNames = Seq(
+  private val _default_resource_names = Seq(
     "configuration.conf",
     "configuration.props",
     "configuration.properties",
@@ -204,7 +214,7 @@ object ResourceConfigurationSource {
   )
 
   def fromClasspath(
-    names: Seq[String] = DefaultResourceNames,
+    names: Seq[String] = _default_resource_names,
     loader: ClassLoader = Option(Thread.currentThread().getContextClassLoader)
       .orElse(Option(getClass.getClassLoader))
       .getOrElse(ClassLoader.getSystemClassLoader)

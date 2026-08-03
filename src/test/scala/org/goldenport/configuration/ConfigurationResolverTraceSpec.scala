@@ -34,12 +34,8 @@ final class ConfigurationResolverTraceSpec extends AnyWordSpec with Matchers wit
           .getOrElse(fail("expected resolved configuration trace entry"))
 
         Then("the trace must retain enough file provenance for Phase 53 overlay diagnostics")
-        resolution.sourceType shouldBe None
-        resolution.sourceId shouldBe None
-        pendingUntilFixed {
-          resolution.sourceType shouldBe Some("file")
-          resolution.sourceId shouldBe Some(path.toString)
-        }
+        resolution.sourceType shouldBe Some("file")
+        resolution.sourceId shouldBe Some(path.toString)
       } finally {
         Files.deleteIfExists(path)
       }
