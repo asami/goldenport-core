@@ -19,6 +19,14 @@ Core Protocol Design:
 
 Supporting and Cross-cutting:
 
+- configuration-binding.md
+  Normative generic typed configuration binding, candidate/effective collection,
+  deterministic resolution, provenance, and derived trace design.
+
+- ../spec/configuration-binding.md
+  Normative generic typed configuration binding specification and conformance
+  scenarios.
+
 - parameter-resolution.md
   Details parameter resolution responsibilities and value conversion flow.
 
