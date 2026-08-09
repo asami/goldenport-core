@@ -22,7 +22,8 @@ import org.goldenport.util.StringUtils
  *  version Jan. 31, 2026
  *  version Feb. 25, 2026
  *  version Mar. 13, 2026
- * @version Apr. 29, 2026
+ *  version Apr. 29, 2026
+ * @version Aug. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Descriptor(
@@ -308,6 +309,13 @@ object Descriptor {
       override def show: String = s"""service:${name}"""
 
       def toRecord: Record = Record.data("service" -> name)
+    }
+
+    case class Endpoint(endpoint: String) extends Facet {
+      def print: String = s"""endpoint:${endpoint}"""
+      override def show: String = s"""endpoint:${endpoint}"""
+
+      def toRecord: Record = Record.data("endpoint" -> endpoint)
     }
 
     case class Operation(name: String) extends Facet {

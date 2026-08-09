@@ -1,11 +1,17 @@
 package org.goldenport.protocol.handler.ingress
 
+import java.net.{ConnectException, NoRouteToHostException}
+import java.net.http.HttpTimeoutException
+import java.net.URI
+
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import org.scalacheck.Gen
 
 import org.goldenport.Consequence
-import org.goldenport.observation.Descriptor
+import org.goldenport.observation.{Cause, Descriptor}
 import org.goldenport.protocol.{Argument, Property, Switch}
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ParameterDefinition, RequestDefinition, ResponseDefinition, ServiceDefinition, ServiceDefinitionGroup}
 import org.goldenport.observation.Taxonomy
@@ -19,8 +25,6 @@ import cats.data.NonEmptyVector
  * - Fix the canonical behavior of ArgsIngress
  * - args:Array[String] -> Request
  * - Service/operation identification is syntactic and uses ServiceDefinitionGroup
- *  version Apr. 11, 2026
- * @version May. 11, 2026
  */
 /*
  * Canonical Parsing Contract (Normative)
@@ -58,16 +62,18 @@ import cats.data.NonEmptyVector
  * @since   Jan.  1, 2026
  *  version Jan.  2, 2026
  *  version Mar. 24, 2026
- * @version Apr. 14, 2026
+ *  version Apr. 14, 2026
+ * @version Aug. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 class ArgsIngressSpec
   extends AnyWordSpec
     with GivenWhenThen
-    with Matchers {
+    with Matchers
+    with ScalaCheckDrivenPropertyChecks {
 
-  private val ingress = new DefaultArgsIngress()
-  private val services = {
+  private val _ingress = new DefaultArgsIngress()
+  private val _services = {
     val operation =
       OperationDefinition(
         content = org.goldenport.value.BaseContent.simple("query"),
@@ -91,7 +97,7 @@ class ArgsIngressSpec
       val args = Array("query")
 
       When("encoding args into Request")
-      val result = ingress.encode(services, args)
+      val result = _ingress.encode(_services, args)
 
       result match {
         case org.goldenport.Consequence.Success(req) =>
@@ -110,7 +116,7 @@ class ArgsIngressSpec
       val args = Array("test", "query", "hello")
 
       When("encoding args into Request")
-      val result = ingress.encode(services, args)
+      val result = _ingress.encode(_services, args)
 
       result match {
         case org.goldenport.Consequence.Success(req) =>
@@ -132,7 +138,7 @@ class ArgsIngressSpec
       val args = Array("query", "hello")
 
       When("encoding args into Request")
-      val result = ingress.encode(services, args)
+      val result = _ingress.encode(_services, args)
 
       result match {
         case org.goldenport.Consequence.Success(req) =>
@@ -154,7 +160,7 @@ class ArgsIngressSpec
       val args = Array("query", "--text", "hello")
 
       When("encoding args into Request")
-      val result = ingress.encode(services, args)
+      val result = _ingress.encode(_services, args)
 
       result match {
         case org.goldenport.Consequence.Success(req) =>
@@ -175,7 +181,7 @@ class ArgsIngressSpec
       val args = Array("query", "hello", "world")
 
       When("encoding args into Request")
-      val result = ingress.encode(services, args)
+      val result = _ingress.encode(_services, args)
 
       result match {
         case org.goldenport.Consequence.Success(req) =>
@@ -215,7 +221,7 @@ class ArgsIngressSpec
         )
 
       When("encoding args into Request with OperationDefinition")
-      val result = ingress.encode(opdef, args)
+      val result = _ingress.encode(opdef, args)
 
       result match {
         case org.goldenport.Consequence.Success(req) =>
@@ -260,7 +266,7 @@ class ArgsIngressSpec
         )
 
       When("encoding args into Request with OperationDefinition")
-      val result = ingress.encode(opdef, args)
+      val result = _ingress.encode(opdef, args)
 
       result match {
         case org.goldenport.Consequence.Success(req) =>
@@ -294,5 +300,121 @@ class ArgsIngressSpec
         Descriptor.Facet.Args(args.toIndexedSeq)
       )
     }
+
+    "classify deterministic HTTP connection refusal before generic Throwable conversion" in {
+      Given("an HTTP resolver action that throws connection refusal")
+      val uri = URI.create("https://voicevox.example.test/audio")
+      val exception = new ConnectException("Connection refused")
+      val resolver = ArgsIngress.externalRefResolver(_ => throw exception)
+
+      When("the external reference is resolved")
+      val conclusion = _failure(resolver.resolve(uri))
+      val facets = conclusion.observation.cause.descriptor.facets
+
+      Then("the boundary produces a typed network-unavailable conclusion")
+      conclusion.observation.taxonomy shouldBe Taxonomy.networkUnavailable
+      conclusion.observation.cause.kind shouldBe Some(Cause.Kind.ConnectionRefused)
+      facets should contain(Descriptor.Facet.Endpoint(uri.toString))
+      facets should contain(Descriptor.Facet.Component("external-ref-resolver"))
+      facets should contain(Descriptor.Facet.Exception(exception))
+    }
+
+    "classify deterministic HTTP unreachability and timeout before generic Throwable conversion" in {
+      Given("independent HTTP resolver actions that report routing and timeout failures")
+      val unreachableuri = URI.create("https://unreachable.example.test/")
+      val timeouturi = URI.create("https://timeout.example.test/")
+      val unreachable = new NoRouteToHostException("No route to host")
+      val timeout = new HttpTimeoutException("request timed out")
+      val unreachableresolver = ArgsIngress.externalRefResolver(_ => throw unreachable)
+      val timeoutresolver = ArgsIngress.externalRefResolver(_ => throw timeout)
+
+      When("both external references are resolved")
+      val unreachableconclusion = _failure(unreachableresolver.resolve(unreachableuri))
+      val timeoutconclusion = _failure(timeoutresolver.resolve(timeouturi))
+
+      Then("the two availability mechanisms remain distinct")
+      unreachableconclusion.observation.taxonomy shouldBe Taxonomy.networkUnavailable
+      unreachableconclusion.observation.cause.kind shouldBe Some(Cause.Kind.Unreachable)
+      timeoutconclusion.observation.taxonomy shouldBe Taxonomy.networkUnavailable
+      timeoutconclusion.observation.cause.kind shouldBe Some(Cause.Kind.Timeout)
+    }
+
+    "retain the existing generic Throwable fallback for unrelated HTTP failures" in {
+      Given("an HTTP resolver action that throws an unrelated exception")
+      val uri = URI.create("https://unexpected.example.test/")
+      val exception = new IllegalStateException("unexpected parser state")
+      val resolver = ArgsIngress.externalRefResolver(_ => throw exception)
+
+      When("the external reference is resolved")
+      val conclusion = _failure(resolver.resolve(uri))
+      val facets = conclusion.observation.cause.descriptor.facets
+
+      Then("the exception follows the generic system fallback without availability-only facets")
+      conclusion.observation.taxonomy shouldBe Taxonomy(
+        Taxonomy.Category.System,
+        Taxonomy.Symptom.Corrupted
+      )
+      conclusion.observation.cause.kind shouldBe None
+      facets should contain(Descriptor.Facet.Exception(exception))
+      facets should not contain (Descriptor.Facet.Endpoint(uri.toString))
+      facets should not contain (Descriptor.Facet.Component("external-ref-resolver"))
+    }
+
+    "preserve HTTP availability semantics" which {
+      "availability wrappers are generated" should {
+        "map each supported mechanism before the generic Throwable boundary" in {
+          Given("generated wrapper depths and deterministic availability throwables")
+          val depthgen = Gen.choose(0, 8)
+          val kindgen: Gen[(Cause.Kind, Throwable)] = Gen.oneOf[(Cause.Kind, Throwable)](
+            Cause.Kind.ConnectionRefused -> new ConnectException("Connection refused"),
+            Cause.Kind.Unreachable -> new NoRouteToHostException("No route to host"),
+            Cause.Kind.Timeout -> new HttpTimeoutException("request timed out")
+          )
+
+          When("a generated wrapped throwable is raised by the HTTP resolver")
+          forAll(depthgen, kindgen) { (depth, expected) =>
+            val wrapped = (0 until depth).foldLeft(expected._2: Throwable) { (cause, index) =>
+              new RuntimeException(s"wrapper-$index", cause)
+            }
+            val resolver = ArgsIngress.externalRefResolver(_ => throw wrapped)
+            val conclusion = _failure(resolver.resolve(URI.create("https://availability.example.test/")))
+
+            Then("the boundary retains the availability kind and transport facets")
+            conclusion.observation.cause.kind shouldBe Some(expected._1)
+            conclusion.observation.taxonomy shouldBe Taxonomy.networkUnavailable
+          }
+        }
+      }
+
+      "an interruption is nested in an availability wrapper" should {
+        "restore and propagate the actual interruption" in {
+          Given("a resolver action with a wrapped interruption")
+          val interrupted = new InterruptedException("cancelled")
+          val availability = new ConnectException("Connection refused")
+          availability.initCause(interrupted)
+          val wrapped = new RuntimeException("wrapper", availability)
+          val resolver = ArgsIngress.externalRefResolver(_ => throw wrapped)
+
+          When("the HTTP boundary resolves the reference")
+          try {
+            val thrown = intercept[InterruptedException] {
+              resolver.resolve(URI.create("https://interrupt.example.test/"))
+            }
+
+            Then("the original interruption is propagated and the flag is restored")
+            thrown shouldBe interrupted
+            Thread.currentThread().isInterrupted shouldBe true
+          } finally {
+            Thread.interrupted()
+          }
+        }
+      }
+    }
   }
+
+  private def _failure[A](result: Consequence[A]): org.goldenport.Conclusion =
+    result match {
+      case Consequence.Failure(conclusion) => conclusion
+      case Consequence.Success(_) => fail("expected external reference failure")
+    }
 }

@@ -11,6 +11,7 @@ import scala.util.control.NonFatal
 import org.goldenport.Consequence
 import org.goldenport.bag.Bag
 import org.goldenport.datatype.{ContentType, MimeBody, MimeType}
+import org.goldenport.observation.{Cause, Descriptor}
 import org.goldenport.protocol.{Argument, Property, Switch}
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.spec.OperationDefinition
@@ -24,7 +25,8 @@ import org.goldenport.http.HttpRequest
  *  version Jan. 28, 2026
  *  version Apr. 11, 2026
  *  version Apr. 27, 2026
- * @version Jul. 20, 2026
+ *  version Jul. 20, 2026
+ * @version Aug. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -184,7 +186,7 @@ abstract class ArgsIngress(
     val (service, operation, opdef, rest) =
       _resolve_service_operation(services, args)
 
-    val requestConsequence =
+    val requestconsequence =
       opdef match {
         case Some(definition) =>
           parse_args(definition, Array(operation) ++ rest)
@@ -192,7 +194,7 @@ abstract class ArgsIngress(
           parse_args(Array(operation) ++ rest)
       }
 
-    requestConsequence.map { parsed =>
+    requestconsequence.map { parsed =>
       Request(
         component = None,
         service = service,
@@ -277,8 +279,8 @@ abstract class ArgsIngress(
     var arguments: List[Argument] = Nil
     var switches: List[Switch] = Nil
     var properties: List[Property] = Nil
-    var posIndex = 0
-    var consumedArguments: Set[String] = Set.empty
+    var posindex = 0
+    var consumedarguments: Set[String] = Set.empty
 
     var i = 0
     while (i < params.length) {
@@ -311,7 +313,7 @@ abstract class ArgsIngress(
                 _resolve_value(value) match {
                   case Consequence.Success(v) =>
                     arguments = arguments :+ Argument(name, v, None)
-                    consumedArguments = consumedArguments + name
+                    consumedarguments = consumedarguments + name
                   case f: Consequence.Failure[_] =>
                     return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
                 }
@@ -363,7 +365,7 @@ abstract class ArgsIngress(
                   _resolve_value(value) match {
                     case Consequence.Success(v) =>
                       arguments = arguments :+ Argument(name, v, None)
-                      consumedArguments = consumedArguments + name
+                    consumedarguments = consumedarguments + name
                     case f: Consequence.Failure[_] =>
                       return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
                   }
@@ -389,21 +391,21 @@ abstract class ArgsIngress(
       } else {
         // positional argument
         val remaining =
-          argumentnames.values.toSet.diff(consumedArguments).toList.sorted
+          argumentnames.values.toSet.diff(consumedarguments).toList.sorted
         remaining match {
           case name :: _ =>
             _resolve_value(s) match {
               case Consequence.Success(v) =>
                 arguments = arguments :+ Argument(name, v, None)
-                consumedArguments = consumedArguments + name
+                consumedarguments = consumedarguments + name
               case f: Consequence.Failure[_] =>
                 return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
             }
           case Nil =>
             _resolve_value(s) match {
               case Consequence.Success(v) =>
-                posIndex += 1
-                arguments = arguments :+ Argument(s"param$posIndex", v, None)
+                posindex += 1
+                arguments = arguments :+ Argument(s"param$posindex", v, None)
               case f: Consequence.Failure[_] =>
                 return f.asInstanceOf[Consequence[(List[Argument], List[Switch], List[Property])]]
             }
@@ -434,8 +436,8 @@ abstract class ArgsIngress(
                   ContentType(mt, None, Map.empty[String, String])
                 }
               }
-            val contentType = inferred.getOrElse(ContentType.APPLICATION_OCTET_STREAM)
-            MimeBody(contentType, resolved.bag)
+            val contenttype = inferred.getOrElse(ContentType.APPLICATION_OCTET_STREAM)
+            MimeBody(contenttype, resolved.bag)
           }
         }
     } else Consequence.success(value)
@@ -489,10 +491,15 @@ object ArgsIngress {
     def resolve(uri: URI): Consequence[ResolvedExternalRef]
   }
 
-  def defaultExternalRefResolver: ExternalRefResolver =
-    new ExternalRefResolver {
-      private val httpClient: HttpClient = HttpClient.newHttpClient()
+  private val _http_client: HttpClient = HttpClient.newHttpClient()
 
+  def defaultExternalRefResolver: ExternalRefResolver =
+    externalRefResolver(_read_http)
+
+  private[ingress] def externalRefResolver(
+    httpAction: URI => ResolvedExternalRef
+  ): ExternalRefResolver =
+    new ExternalRefResolver {
       override def resolve(uri: URI): Consequence[ResolvedExternalRef] = {
         val scheme = Option(uri.getScheme).getOrElse("").toLowerCase
         scheme match {
@@ -503,22 +510,60 @@ object ArgsIngress {
               ResolvedExternalRef(None, Bag.fromBytes(bytes))
             }
           case "http" | "https" =>
-            Consequence {
-              val request = java.net.http.HttpRequest.newBuilder(uri).GET().build()
-              val response = httpClient.send(request, BodyHandlers.ofByteArray())
-              val header = response.headers().firstValue("content-type")
-              val contentType =
-                if (header.isPresent)
-                  Some(ContentType.parse(header.get()))
-                else None
-              val bag = Bag.fromBytes(response.body())
-              ResolvedExternalRef(contentType, bag)
-            }
+            _resolve_http(uri, httpAction)
           case other =>
             Consequence.resourceUnsupported(s"Unsupported @ref scheme: ${other}")
         }
       }
     }
+
+  private def _read_http(uri: URI): ResolvedExternalRef = {
+    val request = java.net.http.HttpRequest.newBuilder(uri).GET().build()
+    val response = _http_client.send(request, BodyHandlers.ofByteArray())
+    val header = response.headers().firstValue("content-type")
+    val contenttype =
+      if (header.isPresent)
+        Some(ContentType.parse(header.get()))
+      else None
+    ResolvedExternalRef(contenttype, Bag.fromBytes(response.body()))
+  }
+
+  private def _resolve_http(
+    uri: URI,
+    httpaction: URI => ResolvedExternalRef
+  ): Consequence[ResolvedExternalRef] =
+    try {
+      Consequence.success(httpaction(uri))
+    } catch {
+      case e: InterruptedException =>
+        Thread.currentThread().interrupt()
+        throw e
+      case NonFatal(e) =>
+        Cause.interruption(e) match {
+          case Some(interrupted) =>
+            Thread.currentThread().interrupt()
+            throw interrupted
+          case None =>
+            Cause.availabilityKind(e) match {
+              case Some(_) =>
+                Consequence.networkUnavailable(
+                  _availability_message(e, uri),
+                  uri.toString,
+                  e,
+                  Seq(Descriptor.Facet.Component("external-ref-resolver"))
+                )
+              case None =>
+                Consequence {
+                  throw e
+                }
+            }
+        }
+    }
+
+  private def _availability_message(e: Throwable, uri: URI): String =
+    Option(e.getMessage).filter(_.nonEmpty).getOrElse(
+      s"External reference is unavailable: ${uri}"
+    )
 
   def parseExternalRef(ref: String): Consequence[URI] = {
     try {

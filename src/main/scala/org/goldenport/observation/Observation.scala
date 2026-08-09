@@ -19,7 +19,6 @@ import org.goldenport.observation.calltree.CallTree
 import org.goldenport.util.SmEnum
 
 /**
- * @version May. 11, 2026
  * Unified Observation (Phase 2.9 Design-Fixed Model)
  *
  * Observation represents a factual record of something that was observed.
@@ -48,7 +47,8 @@ import org.goldenport.util.SmEnum
  *  version Feb. 25, 2026
  *  version Mar. 13, 2026
  *  version Apr. 14, 2026
- * @version May. 11, 2026
+ *  version May. 11, 2026
+ * @version Aug. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -821,8 +821,93 @@ object Cause {
     case Exhaustion extends Kind("exhaustion", 10)
     case Timeout extends Kind("timeout", 11)
     case Corruption extends Kind("corruption", 12)
+    case NotRunning extends Kind("not-running", 13)
+    case ConnectionRefused extends Kind("connection-refused", 14)
+    case Unreachable extends Kind("unreachable", 15)
     case Unknown extends Kind("unknown", 99)
   }
+
+  /**
+   * Classifies well-known availability failures while preserving the original
+   * throwable as a descriptive facet at the boundary that observed it.
+   *
+   * InterruptedException deliberately has no availability classification.
+   * Callers must preserve interruption semantics rather than translating it
+   * into a normal failure value.
+   */
+  def interruption(p: Throwable): Option[InterruptedException] = {
+    val visited = new java.util.IdentityHashMap[Throwable, java.lang.Boolean]()
+    var current = p
+    var result: Option[InterruptedException] = None
+    while (current != null && result.isEmpty && !visited.containsKey(current)) {
+      visited.put(current, java.lang.Boolean.TRUE)
+      current match {
+        case e: InterruptedException => result = Some(e)
+        case _ => ()
+      }
+      current = current.getCause
+    }
+    result
+  }
+
+  def availabilityKind(p: Throwable): Option[Kind] = {
+    if (interruption(p).nonEmpty)
+      None
+    else
+      _availability_kind_in_chain(p)
+  }
+
+  private def _availability_kind_in_chain(p: Throwable): Option[Kind] = {
+    val visited = new java.util.IdentityHashMap[Throwable, java.lang.Boolean]()
+    var current = p
+    var result: Option[Kind] = None
+    while (current != null && result.isEmpty && !visited.containsKey(current)) {
+      visited.put(current, java.lang.Boolean.TRUE)
+      result = _availability_kind(current)
+      current = current.getCause
+    }
+    result
+  }
+
+  private def _availability_kind(p: Throwable): Option[Kind] =
+    p match {
+      case _: InterruptedException => None
+      case _: java.net.http.HttpTimeoutException => Some(Kind.Timeout)
+      case _: java.net.SocketTimeoutException => Some(Kind.Timeout)
+      case _: java.util.concurrent.TimeoutException => Some(Kind.Timeout)
+      case _: java.net.NoRouteToHostException => Some(Kind.Unreachable)
+      case _: java.net.UnknownHostException => Some(Kind.Unreachable)
+      case e: java.net.ConnectException =>
+        _connect_exception_kind(e)
+      case e: java.net.SocketException =>
+        _socket_exception_kind(e)
+      case _ => None
+    }
+
+  private def _connect_exception_kind(p: java.net.ConnectException): Option[Kind] = {
+    val message = Option(p.getMessage).fold("")(_.toLowerCase(java.util.Locale.ROOT))
+    if (message.contains("refused"))
+      Some(Kind.ConnectionRefused)
+    else if (_is_unreachable_message(message))
+      Some(Kind.Unreachable)
+    else if (message.isEmpty)
+      Some(Kind.ConnectionRefused)
+    else
+      None
+  }
+
+  private def _socket_exception_kind(p: java.net.SocketException): Option[Kind] = {
+    val message = Option(p.getMessage).fold("")(_.toLowerCase(java.util.Locale.ROOT))
+    if (_is_unreachable_message(message))
+      Some(Kind.Unreachable)
+    else
+      None
+  }
+
+  private def _is_unreachable_message(message: String): Boolean =
+    message.contains("unreachable") ||
+      message.contains("no route to host") ||
+      message.contains("network is down")
 
   // enum Kind(val name: String, val value: Int) {
   //   case Parse extends Kind("parse", 1)

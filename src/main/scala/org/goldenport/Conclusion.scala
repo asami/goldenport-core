@@ -25,7 +25,8 @@ import org.goldenport.http.HttpRequest
  *  version Feb. 28, 2026
  *  version Apr. 11, 2026
  *  version Apr. 14, 2026
- * @version May. 11, 2026
+ *  version May. 11, 2026
+ * @version Aug. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 final class Conclusion private (
@@ -159,7 +160,7 @@ object Conclusion {
     )
 
     def materialize(conclusion: Conclusion): Status =
-      Status.materialized(
+      Status._materialized(
         webCode = Status.webCodeOf(conclusion),
         appCode = appCode,
         appStatus = appStatus,
@@ -194,7 +195,7 @@ object Conclusion {
     ): Status =
       new Status(WebCode.InternalServerError, appCode, appStatus, None)
 
-    private def materialized(
+    private def _materialized(
       webCode: WebCode,
       appCode: Option[Long],
       appStatus: Option[String],
@@ -314,11 +315,11 @@ object Conclusion {
    * No runtime metadata, no side effects.
    */
   def simple(message: String): Conclusion = {
-    val observationMessage = Some(message)
+    val observationmessage = Some(message)
     val observation = _make_observation(
       taxonomy = Taxonomy(Taxonomy.Category.Argument, Taxonomy.Symptom.DomainValue),
-      cause = Cause.message(observationMessage),
-      message = observationMessage,
+      cause = Cause.message(observationmessage),
+      message = observationmessage,
       exception = None,
       severity = None
     )
@@ -335,11 +336,11 @@ object Conclusion {
     val as = a.causes
     val bs = b.causes
     val all = as ++ bs
-    val maxSeverity = all.flatMap(_.observation.severity).reduceOption(Severity.max)
+    val maxseverity = all.flatMap(_.observation.severity).reduceOption(Severity.max)
     val combined = all.reduceLeft { (acc, current) =>
       current.copy(previous = Some(acc))
     }
-    combined.copy(observation = combined.observation.withSeverity(maxSeverity))
+    combined.copy(observation = combined.observation.withSeverity(maxseverity))
   }
 
   private def _make_observation(
@@ -375,7 +376,7 @@ object Conclusion {
       case WebCode.Conflict => conflict(x)
       case WebCode.InternalServerError => internalServerError(x)
       case WebCode.NotImplemented => notImplemented(x)
-      case WebCode.ServiceUnavailable => serviceUnavailable(x)
+      case WebCode.ServiceUnavailable => _service_unavailable(x)
     }
   }
 
@@ -443,6 +444,14 @@ object Conclusion {
       Disposition.serviceUnavailable
     )
 
+  def networkUnavailable(o: Observation): Conclusion =
+    Conclusion(
+      Status(),
+      o,
+      Interpretation.networkFailure,
+      Disposition.serviceUnavailable
+    )
+
   def failure(pos: SourcePosition, taxonomy: Taxonomy, facets: Seq[Descriptor.Facet]): Conclusion =
     failure(pos, taxonomy, Cause.create(facets))
 
@@ -455,7 +464,7 @@ object Conclusion {
       case WebCode.Conflict => conflict(pos, taxonomy, cause)
       case WebCode.InternalServerError => internalServerError(pos, taxonomy, cause)
       case WebCode.NotImplemented => notImplemented(pos, taxonomy, cause)
-      case WebCode.ServiceUnavailable => serviceUnavailable(pos, taxonomy, cause)
+      case WebCode.ServiceUnavailable => _service_unavailable(pos, taxonomy, cause)
     }
 
   def badRequest(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
@@ -481,6 +490,25 @@ object Conclusion {
 
   def serviceUnavailable(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
     serviceUnavailable(_make_failure_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  def networkUnavailable(pos: SourcePosition, taxonomy: Taxonomy, cause: Cause): Conclusion =
+    networkUnavailable(_make_failure_observation(taxonomy, cause.withSourcePosition(pos)))
+
+  private def _service_unavailable(o: Observation): Conclusion =
+    if (o.taxonomy.category == Taxonomy.Category.Network)
+      networkUnavailable(o)
+    else
+      serviceUnavailable(o)
+
+  private def _service_unavailable(
+    pos: SourcePosition,
+    taxonomy: Taxonomy,
+    cause: Cause
+  ): Conclusion =
+    if (taxonomy.category == Taxonomy.Category.Network)
+      networkUnavailable(pos, taxonomy, cause)
+    else
+      serviceUnavailable(pos, taxonomy, cause)
 
   private def _make_rejection_observation(
     taxonomy: Taxonomy,

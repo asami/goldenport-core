@@ -56,7 +56,8 @@ import org.goldenport.id.UniversalId
  *  version Apr. 25, 2026
  *  version Apr. 29, 2026
  *  version May. 11, 2026
- * @version Jul.  5, 2026
+ *  version Jul.  5, 2026
+ * @version Aug. 10, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait Consequence[+T] extends Presentable {
@@ -902,13 +903,13 @@ object Consequence {
     _validation_facets(Descriptor.Facet.Parameter.argument(parameter), expected, actual, limit, policy)
 
   private def _field_validation_facets(
-    fieldPath: String,
+    fieldpath: String,
     expected: Option[Any],
     actual: Any,
     limit: Option[Any],
     policy: Option[String]
   ): Vector[Descriptor.Facet] =
-    _validation_facets(Descriptor.Facet.FieldPath(fieldPath), expected, actual, limit, policy)
+    _validation_facets(Descriptor.Facet.FieldPath(fieldpath), expected, actual, limit, policy)
 
   private def _validation_facets(
     target: Descriptor.Facet,
@@ -1182,6 +1183,85 @@ object Consequence {
       pos
     )
 
+  inline def serviceUnavailable[A](
+    message: String,
+    endpoint: String,
+    exception: Throwable,
+    facets: Seq[Descriptor.Facet] = Nil
+  ): Consequence.Failure[A] =
+    serviceUnavailable(
+      message,
+      endpoint,
+      exception,
+      facets,
+      SourcePositionMacro.position()
+    )
+
+  def serviceUnavailable[A](
+    message: String,
+    endpoint: String,
+    exception: Throwable,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _availability_failure(
+      Taxonomy.serviceUnavailable,
+      message,
+      endpoint,
+      exception,
+      facets,
+      pos
+    )
+
+  inline def networkUnavailable[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet]
+  ): Consequence.Failure[A] =
+    networkUnavailable(message, kind, facets, SourcePositionMacro.position())
+
+  def networkUnavailable[A](
+    message: String,
+    kind: Cause.Kind,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _semantic_failure(
+      Taxonomy.networkUnavailable,
+      Cause(Some(kind), Descriptor((Descriptor.Facet.Message(message) +: facets).toVector)),
+      pos
+    )
+
+  inline def networkUnavailable[A](
+    message: String,
+    endpoint: String,
+    exception: Throwable,
+    facets: Seq[Descriptor.Facet] = Nil
+  ): Consequence.Failure[A] =
+    networkUnavailable(
+      message,
+      endpoint,
+      exception,
+      facets,
+      SourcePositionMacro.position()
+    )
+
+  def networkUnavailable[A](
+    message: String,
+    endpoint: String,
+    exception: Throwable,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] =
+    _availability_failure(
+      Taxonomy.networkUnavailable,
+      message,
+      endpoint,
+      exception,
+      facets,
+      pos
+    )
+
   inline def resourceNotFound[A](message: String): Consequence.Failure[A] =
     resourceNotFound(message, SourcePositionMacro.position())
 
@@ -1294,6 +1374,30 @@ object Consequence {
     previous: Option[Conclusion]
   ): Consequence.Failure[A] =
     Consequence.Failure(Conclusion.failure(pos, taxonomy, cause).copy(previous = previous))
+
+  private def _availability_failure[A](
+    taxonomy: Taxonomy,
+    message: String,
+    endpoint: String,
+    exception: Throwable,
+    facets: Seq[Descriptor.Facet],
+    pos: SourcePosition
+  ): Consequence.Failure[A] = {
+    val kind = Cause.availabilityKind(exception).getOrElse(Cause.Kind.Unknown)
+    _semantic_failure(
+      taxonomy,
+      Cause(
+        Some(kind),
+        Descriptor(
+          (Descriptor.Facet.Message(message) +:
+            Descriptor.Facet.Endpoint(endpoint) +:
+            Descriptor.Facet.Exception(exception) +:
+            facets).toVector
+        )
+      ),
+      pos
+    )
+  }
 
   inline def recordNotFound(key: String, rec: Record): Consequence.Failure[Nothing] =
     Failures.recordNotFound(key, rec)
