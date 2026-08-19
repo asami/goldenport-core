@@ -8,6 +8,8 @@ lazy val root = project
     version := "0.4.3-SNAPSHOT",
 
     scalaVersion := scala3Version,
+    Compile / scalacOptions += "-release:17",
+    Compile / javacOptions ++= Seq("--release", "17"),
 
     libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test",
     libraryDependencies += "org.typelevel" %% "cats-core" % "2.7.0",
