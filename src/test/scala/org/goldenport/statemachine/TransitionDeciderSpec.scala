@@ -10,7 +10,7 @@ import org.goldenport.Consequence
 /*
  * @since   Mar. 20, 2026
  *  version Apr. 14, 2026
- * @version Sep. 18, 2026
+ * @version Sep. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 class TransitionDeciderSpec
@@ -21,9 +21,9 @@ class TransitionDeciderSpec
 
   private case class Runtime(current: State)
 
-  private val start = State("start")
-  private val middle = State("middle")
-  private val end = State("end")
+  private val _start = State("start")
+  private val _middle = State("middle")
+  private val _end = State("end")
   private val _lifecycle = StateMachineIdentity("example.lifecycle")
 
   private def _canonical(
@@ -43,10 +43,10 @@ class TransitionDeciderSpec
       identity = Some(TransitionIdentity(_lifecycle, declarationorder))
     )
 
-  private def machine(transitions: Vector[Transition[Runtime, String]]) =
+  private def _machine(transitions: Vector[Transition[Runtime, String]]) =
     StateMachine[Runtime, String](
-      states = Vector(start, middle, end),
-      initial = start,
+      states = Vector(_start, _middle, _end),
+      initial = _start,
       transitions = transitions,
       stateOf = _.current
     )
@@ -54,50 +54,50 @@ class TransitionDeciderSpec
   "TransitionDecider" should {
     "select smaller priority first" in {
       Given("two matching transitions with different priorities")
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          Transition[Runtime, String](start, middle, "go", priority = 20),
-          Transition[Runtime, String](start, end, "go", priority = 10)
+          Transition[Runtime, String](_start, _middle, "go", priority = 20),
+          Transition[Runtime, String](_start, _end, "go", priority = 10)
         )
       )
 
       When("deciding transition")
-      val result = TransitionDecider.decide(sm, Runtime(start), "go")
+      val result = TransitionDecider.decide(sm, Runtime(_start), "go")
 
       Then("priority 10 transition is selected")
-      result.map(_.map(_.to)) shouldBe Consequence.success(Some(end))
+      result.map(_.map(_.to)) shouldBe Consequence.success(Some(_end))
     }
 
     "use declaration order for same priority" in {
       Given("two matching transitions with same priority")
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          Transition[Runtime, String](start, middle, "go", priority = 10),
-          Transition[Runtime, String](start, end, "go", priority = 10)
+          Transition[Runtime, String](_start, _middle, "go", priority = 10),
+          Transition[Runtime, String](_start, _end, "go", priority = 10)
         )
       )
 
       When("deciding transition")
-      val result = TransitionDecider.decide(sm, Runtime(start), "go")
+      val result = TransitionDecider.decide(sm, Runtime(_start), "go")
 
       Then("first declared transition is selected")
-      result.map(_.map(_.to)) shouldBe Consequence.success(Some(middle))
+      result.map(_.map(_.to)) shouldBe Consequence.success(Some(_middle))
     }
 
     "select canonical transitions by explicit declaration order" in {
       Given("two canonical transitions supplied in the reverse collection order")
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          _canonical(start, end, "go", priority = 10, declarationorder = 2),
-          _canonical(start, middle, "go", priority = 10, declarationorder = 1)
+          _canonical(_start, _end, "go", priority = 10, declarationorder = 2),
+          _canonical(_start, _middle, "go", priority = 10, declarationorder = 1)
         )
       )
 
       When("the strict canonical selector decides the transition")
-      val result = TransitionDecider.decideCanonical(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonical(sm, Runtime(_start), "go")
 
       Then("declared order, rather than the incidental Vector order, wins")
-      result.map(_.map(_.to)) shouldBe Consequence.success(Some(middle))
+      result.map(_.map(_.to)) shouldBe Consequence.success(Some(_middle))
     }
 
     "return an unexecuted candidate-state plan for the selected canonical transition" in {
@@ -109,18 +109,18 @@ class TransitionDeciderSpec
           Consequence.success(())
         }
       }
-      val transition = _canonical(start, middle, "go", priority = 10, declarationorder = 0).copy(
+      val transition = _canonical(_start, _middle, "go", priority = 10, declarationorder = 0).copy(
         effects = Vector(effect)
       )
-      val sm = machine(Vector(transition))
+      val sm = _machine(Vector(transition))
 
       When("the strict selector returns its typed outcome")
-      val result = TransitionDecider.decideCanonicalOutcome(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonicalOutcome(sm, Runtime(_start), "go")
 
       Then("the candidate target and declared effects are returned without execution")
       result shouldBe Consequence.success(
         TransitionSelectionOutcome.Selected(
-          TransitionPlan(transition, middle, Vector(effect))
+          TransitionPlan(transition, _middle, Vector(effect))
         )
       )
       executions shouldBe 0
@@ -135,16 +135,16 @@ class TransitionDeciderSpec
           Consequence.success(true)
         }
       }
-      val sm = machine(Vector(Transition[Runtime, String](
-        start,
-        middle,
+      val sm = _machine(Vector(Transition[Runtime, String](
+        _start,
+        _middle,
         "go",
         guard = Some(guard),
         priority = 10
       )))
 
       When("the strict canonical selector decides the transition")
-      val result = TransitionDecider.decideCanonical(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonical(sm, Runtime(_start), "go")
 
       Then("selection fails before evaluating the transition")
       result shouldBe a[Consequence.Failure[?]]
@@ -153,10 +153,10 @@ class TransitionDeciderSpec
 
     "return a typed no-match outcome when no canonical transition matches" in {
       Given("a valid canonical machine with a transition for a different event")
-      val sm = machine(Vector(_canonical(start, middle, "stop", priority = 10, declarationorder = 0)))
+      val sm = _machine(Vector(_canonical(_start, _middle, "stop", priority = 10, declarationorder = 0)))
 
       When("the strict canonical selector returns its typed outcome for an unmatched event")
-      val result = TransitionDecider.decideCanonicalOutcome(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonicalOutcome(sm, Runtime(_start), "go")
 
       Then("the outcome is an explicit canonical no-match")
       result shouldBe Consequence.success(TransitionSelectionOutcome.NoMatch())
@@ -164,15 +164,15 @@ class TransitionDeciderSpec
 
     "reject duplicate canonical candidate order" in {
       Given("two matching canonical transitions with the same identity and order")
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          _canonical(start, middle, "go", priority = 10, declarationorder = 1),
-          _canonical(start, end, "go", priority = 10, declarationorder = 1)
+          _canonical(_start, _middle, "go", priority = 10, declarationorder = 1),
+          _canonical(_start, _end, "go", priority = 10, declarationorder = 1)
         )
       )
 
       When("the strict canonical selector decides the transition")
-      val result = TransitionDecider.decideCanonical(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonical(sm, Runtime(_start), "go")
 
       Then("the ambiguous declaration is rejected")
       result shouldBe a[Consequence.Failure[?]]
@@ -180,10 +180,10 @@ class TransitionDeciderSpec
 
     "reject a canonical transition with an invalid priority" in {
       Given("one canonical transition with a negative priority")
-      val sm = machine(Vector(_canonical(start, middle, "go", priority = -1, declarationorder = 0)))
+      val sm = _machine(Vector(_canonical(_start, _middle, "go", priority = -1, declarationorder = 0)))
 
       When("the strict canonical selector decides the transition")
-      val result = TransitionDecider.decideCanonical(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonical(sm, Runtime(_start), "go")
 
       Then("selection fails before evaluating the transition")
       result shouldBe a[Consequence.Failure[?]]
@@ -217,12 +217,12 @@ class TransitionDeciderSpec
     "reject a canonical candidate set that mixes machine identities" in {
       Given("otherwise matching transitions from two declared StateMachines")
       val other = StateMachineIdentity("example.other")
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          _canonical(start, middle, "go", priority = 10, declarationorder = 0),
+          _canonical(_start, _middle, "go", priority = 10, declarationorder = 0),
           Transition(
-            from = start,
-            to = end,
+            from = _start,
+            to = _end,
             event = "go",
             priority = 20,
             identity = Some(TransitionIdentity(other, 1))
@@ -231,7 +231,7 @@ class TransitionDeciderSpec
       )
 
       When("the strict canonical selector decides the transition")
-      val result = TransitionDecider.decideCanonical(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonical(sm, Runtime(_start), "go")
 
       Then("the accidental cross-machine candidate set is rejected")
       result shouldBe a[Consequence.Failure[?]]
@@ -242,18 +242,18 @@ class TransitionDeciderSpec
       val falseguard = new Guard[Runtime, String] {
         def eval(state: Runtime, event: String): Consequence[Boolean] = Consequence.success(false)
       }
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          _canonical(start, middle, "go", priority = 10, declarationorder = 0, guard = Some(falseguard)),
-          _canonical(start, end, "go", priority = 10, declarationorder = 1)
+          _canonical(_start, _middle, "go", priority = 10, declarationorder = 0, guard = Some(falseguard)),
+          _canonical(_start, _end, "go", priority = 10, declarationorder = 1)
         )
       )
 
       When("the strict canonical selector decides")
-      val result = TransitionDecider.decideCanonical(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonical(sm, Runtime(_start), "go")
 
       Then("the next ordered candidate is selected")
-      result.map(_.map(_.to)) shouldBe Consequence.success(Some(end))
+      result.map(_.map(_.to)) shouldBe Consequence.success(Some(_end))
     }
 
     "stop after a canonical guard failure" in {
@@ -262,15 +262,15 @@ class TransitionDeciderSpec
         def eval(state: Runtime, event: String): Consequence[Boolean] =
           Consequence.operationInvalid("guard evaluation error")
       }
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          _canonical(start, middle, "go", priority = 10, declarationorder = 0, guard = Some(errorguard)),
-          _canonical(start, end, "go", priority = 10, declarationorder = 1)
+          _canonical(_start, _middle, "go", priority = 10, declarationorder = 0, guard = Some(errorguard)),
+          _canonical(_start, _end, "go", priority = 10, declarationorder = 1)
         )
       )
 
       When("the strict canonical selector decides")
-      val result = TransitionDecider.decideCanonical(sm, Runtime(start), "go")
+      val result = TransitionDecider.decideCanonical(sm, Runtime(_start), "go")
 
       Then("selection preserves the guard failure")
       result shouldBe a[Consequence.Failure[?]]
@@ -282,18 +282,18 @@ class TransitionDeciderSpec
         def eval(state: Runtime, event: String): Consequence[Boolean] =
           Consequence.success(false)
       }
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          Transition[Runtime, String](start, middle, "go", guard = Some(falseguard), priority = 10),
-          Transition[Runtime, String](start, end, "go", priority = 20)
+          Transition[Runtime, String](_start, _middle, "go", guard = Some(falseguard), priority = 10),
+          Transition[Runtime, String](_start, _end, "go", priority = 20)
         )
       )
 
       When("deciding transition")
-      val result = TransitionDecider.decide(sm, Runtime(start), "go")
+      val result = TransitionDecider.decide(sm, Runtime(_start), "go")
 
       Then("second transition is selected")
-      result.map(_.map(_.to)) shouldBe Consequence.success(Some(end))
+      result.map(_.map(_.to)) shouldBe Consequence.success(Some(_end))
     }
 
     "propagate guard evaluation failure" in {
@@ -302,15 +302,15 @@ class TransitionDeciderSpec
         def eval(state: Runtime, event: String): Consequence[Boolean] =
           Consequence.operationInvalid("guard evaluation error")
       }
-      val sm = machine(
+      val sm = _machine(
         Vector(
-          Transition[Runtime, String](start, middle, "go", guard = Some(errorguard), priority = 10),
-          Transition[Runtime, String](start, end, "go", priority = 20)
+          Transition[Runtime, String](_start, _middle, "go", guard = Some(errorguard), priority = 10),
+          Transition[Runtime, String](_start, _end, "go", priority = 20)
         )
       )
 
       When("deciding transition")
-      val result = TransitionDecider.decide(sm, Runtime(start), "go")
+      val result = TransitionDecider.decide(sm, Runtime(_start), "go")
 
       Then("failure is returned and scanning stops")
       result shouldBe a[Consequence.Failure[?]]

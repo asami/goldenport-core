@@ -5,7 +5,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   May. 26, 2026
- * @version May. 26, 2026
+ * @version Sep. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 object RecordKeyNaming {
@@ -118,5 +118,5 @@ object RecordKeyNaming {
     if (p.isEmpty)
       p
     else
-      p.head.toUpper + p.tail
+      s"${p.head.toUpper}${p.tail}"
 }

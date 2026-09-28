@@ -13,7 +13,8 @@ import org.goldenport.schema.XString
  * SimpleEntity content body and derived content-reference index.
  *
  * @since   May.  3, 2026
- * @version Jul. 16, 2026
+ *  version Jul. 16, 2026
+ * @version Sep. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class ContentBody(value: String) {
@@ -29,8 +30,8 @@ object ContentBody {
       case m: Record =>
         _string(m, "value", "content")
           .map(s => Consequence.success(ContentBody(s)))
-          .getOrElse(Consequence.failValueInvalid(v, XString))
-      case _ => Consequence.failValueInvalid(v, XString)
+          .getOrElse(Consequence.valueInvalid(v, XString))
+      case _ => Consequence.valueInvalid(v, XString)
     }
   }
 
@@ -52,7 +53,7 @@ enum ContentMarkup(val value: String) {
 
 object ContentMarkup {
   def parseC(value: String): Consequence[ContentMarkup] =
-    parseOption(value).map(Consequence.success).getOrElse(Consequence.failValueInvalid(value, XString))
+    parseOption(value).map(Consequence.success).getOrElse(Consequence.valueInvalid(value, XString))
 
   def parseOption(value: String): Option[ContentMarkup] =
     Option(value).map(_.trim.toLowerCase(java.util.Locale.ROOT)).flatMap {
@@ -67,8 +68,8 @@ object ContentMarkup {
       case m: ContentMarkup => Consequence.success(m)
       case m: String => parseC(m)
       case m: Record =>
-        m.getString("value").map(parseC).getOrElse(Consequence.failValueInvalid(v, XString))
-      case _ => Consequence.failValueInvalid(v, XString)
+        m.getString("value").map(parseC).getOrElse(Consequence.valueInvalid(v, XString))
+      case _ => Consequence.valueInvalid(v, XString)
     }
   }
 }
@@ -117,7 +118,7 @@ object ContentReferenceOccurrence {
     def readC(v: Any): Consequence[ContentReferenceOccurrence] = v match {
       case m: ContentReferenceOccurrence => Consequence.success(m)
       case m: Record => createC(m)
-      case _ => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
     }
   }
 
@@ -254,7 +255,7 @@ object ContentAttributes {
       case m: ContentAttributes => Consequence.success(m)
       case m: Record => createC(m)
       case s: String => Consequence.success(ContentAttributes(content = Some(ContentBody(s))))
-      case _ => Consequence.failValueInvalid(v, XString)
+      case _ => Consequence.valueInvalid(v, XString)
     }
   }
 
@@ -281,7 +282,7 @@ object ContentAttributes {
       case Some(xs: Seq[?]) => _reference_seq(xs)
       case Some(xs: Array[?]) => _reference_seq(xs.toVector)
       case Some(r: Record) => ContentReferenceOccurrence.createC(r).map(Vector(_))
-      case Some(_) => Consequence.failValueInvalid(record, XString)
+      case Some(_) => Consequence.valueInvalid(record, XString)
       case None => Consequence.success(Vector.empty)
     }
 
@@ -291,7 +292,7 @@ object ContentAttributes {
         x match {
           case r: Record => ContentReferenceOccurrence.createC(r).map(values :+ _)
           case o: ContentReferenceOccurrence => Consequence.success(values :+ o)
-          case _ => Consequence.failValueInvalid(x, XString)
+          case _ => Consequence.valueInvalid(x, XString)
         }
       }
     }
@@ -321,7 +322,7 @@ object ContentAttributes {
       case Some(s) =>
         Try(Charset.forName(s.toString.trim)).toOption match {
           case Some(cs) => Consequence.success(Some(cs))
-          case None => Consequence.failValueInvalid(s, XString)
+          case None => Consequence.valueInvalid(s, XString)
         }
       case None => Consequence.success(None)
     }
@@ -335,7 +336,7 @@ object ContentAttributes {
       case Some(s) =>
         ContentMarkup.parseOption(s.toString.trim) match {
           case Some(markup) => Consequence.success(Some(markup))
-          case None => Consequence.failValueInvalid(s, XString)
+          case None => Consequence.valueInvalid(s, XString)
         }
       case None => Consequence.success(None)
     }

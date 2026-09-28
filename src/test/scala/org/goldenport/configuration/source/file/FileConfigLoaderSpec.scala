@@ -1,5 +1,7 @@
 package org.goldenport.configuration.source.file
 
+import java.io.{ByteArrayOutputStream, OutputStream, PrintStream}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.util.Comparator
 import scala.util.Using
@@ -18,7 +20,8 @@ import org.goldenport.configuration.ConfigurationDocument
 /*
  * @since   Mar. 13, 2026
  *  version Jul.  2, 2026
- * @version Aug.  3, 2026
+ *  version Aug.  3, 2026
+ * @version Sep. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 class FileConfigLoaderSpec
@@ -84,12 +87,23 @@ class FileConfigLoaderSpec
         Files.writeString(path, content)
 
         When(s"loading scalar config.$ext")
-        val result = _loader.load(path)
+        val (result, diagnostic) =
+          if (ext == "xml")
+            _capture_xml_diagnostic(_loader.load(path))
+          else
+            (_loader.load(path), "")
 
         Then("the config decoder rejects non-object roots or malformed XML")
         result match {
           case Consequence.Failure(_) => succeed
           case Consequence.Success(cfg) => fail(s"expected failure for .$ext, got $cfg")
+        }
+        if (ext == "xml") {
+          val diagnosticlines = diagnostic.linesIterator.filter(_.nonEmpty).toVector
+          diagnosticlines should have size 1
+          diagnosticlines.head should startWith("[Fatal Error] :1:1:")
+        } else {
+          diagnostic shouldBe ""
         }
       }
     }
@@ -104,13 +118,18 @@ class FileConfigLoaderSpec
       Files.writeString(path, xml)
 
       When("loading the XML config")
-      val result = _loader.load(path)
+      val (result, diagnostic) = _capture_xml_diagnostic(_loader.load(path))
 
       Then("the hardened decoder rejects the document before entity expansion")
       result match {
         case Consequence.Failure(_) => succeed
         case Consequence.Success(cfg) => fail(s"expected hardened XML parse failure, got $cfg")
       }
+      val diagnosticlines = diagnostic.linesIterator.filter(_.nonEmpty).toVector
+      diagnosticlines should have size 1
+      diagnosticlines.head should startWith("[Fatal Error] :1:10:")
+      diagnostic should include("DOCTYPE")
+      diagnostic should include("http://apache.org/xml/features/disallow-doctype-decl")
     }
 
     "treat .properties as Java properties" in {
@@ -206,4 +225,43 @@ class FileConfigLoaderSpec
       Using.resource(Files.walk(path)) { paths =>
         paths.sorted(Comparator.reverseOrder()).forEach(x => Files.deleteIfExists(x))
       }
+
+  private def _capture_xml_diagnostic[A](body: => A): (A, String) = {
+    val originalerr = System.err
+    val ownerthread = Thread.currentThread()
+    val diagnosticbytes = new ByteArrayOutputStream()
+    val forwarding = new OutputStream {
+      override def write(value: Int): Unit =
+        if (Thread.currentThread() == ownerthread)
+          diagnosticbytes.write(value)
+        else
+          originalerr.write(value)
+
+      override def write(buffer: Array[Byte], offset: Int, length: Int): Unit =
+        if (Thread.currentThread() == ownerthread)
+          diagnosticbytes.write(buffer, offset, length)
+        else
+          originalerr.write(buffer, offset, length)
+
+      override def flush(): Unit = originalerr.flush()
+    }
+    val capture = new PrintStream(forwarding, true, StandardCharsets.UTF_8)
+    System.setErr(capture)
+    try {
+      try {
+        val value = body
+        capture.flush()
+        (value, new String(diagnosticbytes.toByteArray, StandardCharsets.UTF_8))
+      } catch {
+        case t: Throwable =>
+          capture.flush()
+          val captured = diagnosticbytes.toByteArray
+          originalerr.write(captured, 0, captured.length)
+          originalerr.flush()
+          throw t
+      }
+    } finally {
+      System.setErr(originalerr)
+    }
+  }
 }
