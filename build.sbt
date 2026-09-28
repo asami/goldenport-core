@@ -29,6 +29,8 @@ lazy val root = project
     libraryDependencies += "org.yaml" % "snakeyaml" % "2.1",
     libraryDependencies += "com.fasterxml.jackson.dataformat" % "jackson-dataformat-toml" % "2.15.2",
     libraryDependencies += "org.apache.poi" % "poi-ooxml" % "5.2.5",
+    // Test-only bridge for POI's Log4j API; consumers retain ownership of the logging backend.
+    libraryDependencies += "org.apache.logging.log4j" % "log4j-to-jul" % "2.21.1" % Test,
     publishMavenStyle := true,
     Compile / packageDoc / publishArtifact := false,
 
