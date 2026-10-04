@@ -3,18 +3,21 @@ package org.goldenport.convert
 import java.net.{URI, URL}
 import java.time.LocalTime
 import java.util.{Locale, TimeZone}
+import io.circe.Json
 
 import org.goldenport.Consequence
 import org.goldenport.bag.{Bag, BinaryBag, TextBag}
 import org.goldenport.context.ExecutionContext
 import org.goldenport.datatype.Urn
+import org.goldenport.record.Record
 import org.goldenport.schema.*
 
 /*
  * @since   Oct. 17, 2025
  *  version Feb. 19, 2026
  *  version Apr. 11, 2026
- * @version Jul. 16, 2026
+ *  version Jul. 16, 2026
+ * @version Oct.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T]:
@@ -23,6 +26,14 @@ trait ValueReader[T]:
   def readContextC(value: Any)(using ExecutionContext): Consequence[T] = readC(value)
 
 object ValueReader {
+  given ValueReader[Json] with {
+    override def readC(value: Any): Consequence[Json] = XJson.normalizer.normalize(value)
+  }
+
+  given ValueReader[Record] with {
+    override def readC(value: Any): Consequence[Record] = XSemiStructuredData.normalizer.normalize(value)
+  }
+
   given ValueReader[Any] with
     def readC(v: Any): Consequence[Any] = Consequence.success(v)
 

@@ -6,11 +6,12 @@ import scala.util.Try
 import org.goldenport.{Conclusion, Consequence}
 import org.goldenport.datatype.{I18nMessage, MimeType}
 import org.goldenport.observation.Cause
+import io.circe.Json
+import org.goldenport.record.Record
 import org.goldenport.text.Presentable
 import org.goldenport.value.{ContentBody, ContentMarkup}
 
 /*
- * @version May. 11, 2026
  * Datatype reference used by schema definitions.
  *
  * This is intentionally a lightweight, declarative identifier.
@@ -51,7 +52,9 @@ import org.goldenport.value.{ContentBody, ContentMarkup}
  *  version Jan. 29, 2026
  *  version Feb. 19, 2026
  *  version Apr. 30, 2026
- * @version May.  4, 2026
+ *  version May.  4, 2026
+ *  version May. 11, 2026
+ * @version Oct.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -116,6 +119,47 @@ case object XPositiveInteger extends IntegerDataType {
 
 case object XDecimal extends DataType {
   def name = "decimal"
+}
+
+case object XJson extends CanonicalDataType[Json] {
+  def name = "json"
+
+  def normalizer: CanonicalNormalizer[Json] = new CanonicalNormalizer[Json] {
+    def datatype: DataType = XJson
+
+    def normalize(value: Any): Consequence[Json] = {
+      value match {
+        case json: Json => Consequence.success(json)
+        case _ => Consequence.valueInvalid(value, datatype)
+      }
+    }
+  }
+
+  def fromJsonText(text: String): Consequence[Json] = StructuredDataJson.fromJsonText(text)
+}
+
+case object XSemiStructuredData extends CanonicalDataType[Record] {
+  def name = "semiStructuredData"
+
+  def normalizer: CanonicalNormalizer[Record] = new CanonicalNormalizer[Record] {
+    def datatype: DataType = XSemiStructuredData
+
+    def normalize(value: Any): Consequence[Record] = {
+      value match {
+        case record: Record => toJson(record).flatMap(fromJson)
+        case json: Json => fromJson(json)
+        case _ => Consequence.valueInvalid(value, datatype)
+      }
+    }
+  }
+
+  def fromJson(value: Json): Consequence[Record] = StructuredDataJson.fromJson(value)
+
+  def toJson(value: Record): Consequence[Json] = StructuredDataJson.toJson(value)
+
+  def fromText(text: String, format: StructuredDataFormat): Consequence[Record] = {
+    StructuredDataText.fromText(text, format)
+  }
 }
 
 case object XBlob extends DataType {
