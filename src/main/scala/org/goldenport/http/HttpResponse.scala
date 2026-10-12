@@ -20,7 +20,8 @@ import org.goldenport.util.Strings
  *  version Dec. 25, 2025
  *  version Jan. 21, 2026
  *  version Feb.  6, 2026
- * @version Apr. 26, 2026
+ *  version Apr. 26, 2026
+ * @version Sep. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
@@ -80,7 +81,7 @@ object HttpResponse {
       .map(ContentType.parse)
       .getOrElse(ContentType.APPLICATION_OCTET_STREAM)
     val status = HttpStatus.fromInt(code).getOrElse(HttpStatus.InternalServerError)
-    def text = {
+    def _text_ = {
       contenttype.charset.
         map(IoUtils.toText(in, _)).
         getOrElse(
@@ -92,12 +93,12 @@ object HttpResponse {
             IoUtils.toText(in)
         )
     }
-    def binary = in.readAllBytes()
+    def _binary_ = in.readAllBytes()
     val response =
       if (contenttype.mimeType.isText)
-        HttpResponse.Text(status, contenttype, Bag.text(text))
+        HttpResponse.Text(status, contenttype, Bag.text(_text_))
       else
-        HttpResponse.Binary(status, contenttype, Bag.binary(binary))
+        HttpResponse.Binary(status, contenttype, Bag.binary(_binary_))
     response.withHeader(_header_record(header))
   }
 
@@ -193,6 +194,7 @@ object HttpStatus {
   case object Forbidden extends HttpStatus(403)
   case object NotFound extends HttpStatus(404)
   case object InternalServerError extends HttpStatus(500)
+  case object ServiceUnavailable extends HttpStatus(503)
 
   def fromInt(code: Int): Option[HttpStatus] =
     code match {
@@ -205,6 +207,7 @@ object HttpStatus {
       case 403 => Some(Forbidden)
       case 404 => Some(NotFound)
       case 500 => Some(InternalServerError)
+      case 503 => Some(ServiceUnavailable)
       case _   => None
     }
 }
