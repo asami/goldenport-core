@@ -21,7 +21,8 @@ import org.goldenport.util.Strings
  *  version Jan. 21, 2026
  *  version Feb.  6, 2026
  *  version Apr. 26, 2026
- * @version Sep. 29, 2026
+ *  version Sep. 29, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
@@ -187,6 +188,7 @@ sealed abstract class HttpStatus(val code: Int)
 object HttpStatus {
   case object Ok extends HttpStatus(200)
   case object Created extends HttpStatus(201)
+  case object NoContent extends HttpStatus(204)
   case object SeeOther extends HttpStatus(303)
   case object TemporaryRedirect extends HttpStatus(307)
   case object BadRequest extends HttpStatus(400)
@@ -196,10 +198,13 @@ object HttpStatus {
   case object InternalServerError extends HttpStatus(500)
   case object ServiceUnavailable extends HttpStatus(503)
 
+  private final case class Redirection(override val code: Int) extends HttpStatus(code)
+
   def fromInt(code: Int): Option[HttpStatus] =
     code match {
       case 200 => Some(Ok)
       case 201 => Some(Created)
+      case 204 => Some(NoContent)
       case 303 => Some(SeeOther)
       case 307 => Some(TemporaryRedirect)
       case 400 => Some(BadRequest)
@@ -208,6 +213,7 @@ object HttpStatus {
       case 404 => Some(NotFound)
       case 500 => Some(InternalServerError)
       case 503 => Some(ServiceUnavailable)
+      case code if 300 <= code && code <= 399 => Some(Redirection(code))
       case _   => None
     }
 }
