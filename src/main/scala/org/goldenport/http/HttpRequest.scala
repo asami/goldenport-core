@@ -3,6 +3,8 @@ package org.goldenport.http
 import java.net.URL
 import java.net.URI
 import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import scala.annotation.nowarn
 import org.goldenport.record.Record
 import org.goldenport.util.StringUtils
@@ -19,7 +21,8 @@ import org.goldenport.bag.Bag
  *  version Dec. 25, 2025
  *  version Jan. 17, 2026
  *  version Mar. 29, 2026
- * @version Apr. 11, 2026
+ *  version Apr. 11, 2026
+ * @version Oct. 13, 2026
  * @author  ASAMI, Tomoharu
  */
 case class HttpRequest(
@@ -42,7 +45,11 @@ case class HttpRequest(
     val base = context.originalUri
       .orElse(url.map(_.toExternalForm))
       .getOrElse(path.asString)
-    StringUtils.addUrlParams(base, query.asNameStringVector)
+    val params = query.asNameStringVector.map { case (name, value) =>
+      URLEncoder.encode(name, StandardCharsets.UTF_8) ->
+        URLEncoder.encode(value, StandardCharsets.UTF_8)
+    }
+    StringUtils.addUrlParams(base, params)
   }
   def pathParts: Vector[String] = path.segments
   // Router must depend only on path, not on context.
