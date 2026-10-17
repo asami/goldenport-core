@@ -40,6 +40,7 @@ AI/Agent guidance is in `AGENTS.md`, not here.
 
 ## Related Docs (Details Live Here)
 
+- Development plans and checklists: [Core phases](docs/phase/README.md)
 - Error and observation model: `docs/spec/error-observation-integration.md`
 - Error model exploration notes: `docs/notes/error-model-exploration.md`
 - Design and integration boundaries: `docs/design/`
