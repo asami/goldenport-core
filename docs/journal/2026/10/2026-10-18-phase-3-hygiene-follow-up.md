@@ -1,0 +1,3 @@
+<!-- cncf-phase-finding:HYG-CORE-P3-001:begin -->
+HYG-CORE-P3-001 — Record path lookup local naming. src/main/scala/org/goldenport/record/Record.scala:200 retains the method-local identifier pathKey, contrary to the shared flatcase local-variable rule. The identical declaration exists at original base 8102fe40e2b052c637f89c929fec9a7434f24b57 and is unchanged by RCA-01-02A. This is nonbehavioral naming debt and does not block Step acceptance. In a separate maintenance task, rename the local declaration and its reference without changing path lookup behavior or public APIs.
+<!-- cncf-phase-finding:HYG-CORE-P3-001:end -->

@@ -54,7 +54,7 @@ import org.goldenport.value.{ContentBody, ContentMarkup}
  *  version Apr. 30, 2026
  *  version May.  4, 2026
  *  version May. 11, 2026
- * @version Oct.  5, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -146,7 +146,7 @@ case object XSemiStructuredData extends CanonicalDataType[Record] {
 
     def normalize(value: Any): Consequence[Record] = {
       value match {
-        case record: Record => toJson(record).flatMap(fromJson)
+        case record: Record => StructuredDataJson.normalize(record)
         case json: Json => fromJson(json)
         case _ => Consequence.valueInvalid(value, datatype)
       }

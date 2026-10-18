@@ -1,9 +1,10 @@
 # Phase 3 - Record Collections and Attribute Normalization
 
-Status: PLANNED
+Status: IN_PROGRESS
 Owner: goldenport-core
 Created: 2026-10-18
 Checklist: [Phase 3 checklist](phase-3-checklist.md)
+Update rule: Record accepted delivery outcomes from actual validation and independent review; close the Phase only after its remaining implementation, full validation and release gates.
 
 ## Goal
 
@@ -13,8 +14,42 @@ attributes, and preserve empty structures and the order of retained data.
 Deliver one connected construction -> encoding -> decoding -> typed-read
 route before completing the remaining affected entry points.
 
-This is a new implementation plan, not a claim that current code conforms.
-It does not inherit the unrelated error-model follow-ups of Phase 2.9.
+The connected RCA-01/02 route is accepted; this is not a claim that all entry
+points conform. This Phase does not inherit the unrelated error-model follow-ups
+of Phase 2.9.
+
+## Current delivery status
+
+- RCA-01/02: the connected construction, JSON/YAML encoding, canonical decoding
+  and explicit NonEmptyVector typed-read route passed its protected focused
+  independent Step review on 2026-10-18. Representative validation passed 39
+  tests across three suites; the affected accumulator passed 123 tests across
+  nine suites, with two unchanged pre-existing pending placeholders.
+- The three pre-review corrections are covered by that accepted final delta.
+  [HYG-CORE-P3-001](../journal/2026/10/2026-10-18-phase-3-hygiene-follow-up.md)
+  remains separate nonblocking maintenance; there are no current Step blockers.
+- RCA-03, integrated Phase acceptance, consumer handoff, repository-full
+  validation, the independent Phase full review and release closure remain open.
+
+## Governing rule: no null in normal program logic
+
+Native null is forbidden as a value, sentinel, return result or control signal
+in normal semantic/business logic. Handle nullable input at the I/O or foreign
+API boundary before calling that logic: normalize it to absence or an existing
+typed value, or return a Consequence failure where the contract disallows it.
+Use Option for optional values and existing explicit types for instructions.
+Only an output adapter may materialize native null when an external API requires
+it. Do not pass raw null through internal layers until an eventual encoder.
+
+Record's omission of null-valued input attributes is one application of this
+general rule, not an exception allowing null inside Record. Boundary handling
+must not become repeated null checks in every internal method. Use the existing
+type contracts and one shared normalization path; no new validation framework.
+
+Json.Null is a typed JSON syntax value, not a native null reference. It may
+remain in an explicitly JSON-valued document under the XJson contract; decode
+it to the application's declared absence/value semantics before using it as
+a business value. Do not use Json.Null to disguise a missing internal value.
 
 ## Ownership and sequencing
 
@@ -53,11 +88,13 @@ empty String/false/zero as absent, or converting unknown objects to Strings.
 Root arrays/scalars/null remain outside the XSemiStructuredData object contract.
 Use XJson when retaining arbitrary JSON null values is the requirement.
 
-For standalone Record value construction/replacement, a supplied null does
-not leave a stored null attribute. For an explicit attribute replacement,
-null removes that attribute. This is not a patch protocol: applying a patch
-that omits a field must not erase an existing value. Existing distinct
-merge/concatenation semantics must not be conflated with replacement.
+At a standalone Record construction/replacement input boundary, an external
+null is normalized to an absent attribute. If that input explicitly replaces
+an existing attribute, the boundary translates it into removal; internal callers
+use an explicit removal API rather than passing null as a command. This is not
+a patch protocol: applying a patch that omits a field must not erase an existing
+value. Existing distinct merge/concatenation semantics must not be conflated
+with replacement.
 
 The semantic roundtrip is relative to the normalized value, not the original
 null-bearing input. Preserve retained property order, sequence order, exact
@@ -67,7 +104,7 @@ Raw JSON continues to have its separate preservation contract.
 ## Work plan
 
 1. **RCA-01 - Specify one complete route.** Update the affected working specs
-   and author connected executable scenarios for nested Records containing
+   and author connected executable scenarios for external inputs containing
    null attributes, empty structures and NonEmptyVector values. Distinguish
    untyped decoding from explicit nonempty typed reads.
 2. **RCA-02 - Implement the route in Core.** Connect existing Record codecs,
@@ -78,6 +115,8 @@ Raw JSON continues to have its separate preservation contract.
    data/create/createFull paths, Field-vector construction/copy, attribute
    replacement and supported JSON/YAML/HOCON conversion routes. Resolve
    inconsistent null-preserving paths and migrate their actual callers.
+   Move native-null handling to the actual input/output boundaries; remove
+   null sentinels and routine null checks from the affected normal logic.
    Verify existing XML export handles NonEmptyVector as a collection where
    that export already supports sequences; do not add new format features.
 4. **RCA-04 - Validate and review the integrated change.** Run focused Record,

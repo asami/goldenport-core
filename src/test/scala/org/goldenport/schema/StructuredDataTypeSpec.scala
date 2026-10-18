@@ -15,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
  * Executable specification for canonical JSON and semi-structured datatypes.
  *
  * @since   Oct.  5, 2026
- * @version Oct.  5, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class StructuredDataTypeSpec
@@ -48,7 +48,7 @@ final class StructuredDataTypeSpec
   "XJson (R2)" should {
     "retain every JSON shape unchanged" in {
       Given("object, array, string, boolean, number and null JSON values")
-      val values = Vector(Json.obj(), Json.arr(), Json.fromString("日本語"),
+      val values = Vector(Json.obj(), Json.arr(Json.Null), Json.fromString("日本語"),
         Json.True, Json.fromInt(1), Json.Null)
       When("the canonical JSON normalizer receives those values")
       val results = values.map(XJson.normalizer.normalize)
@@ -110,26 +110,27 @@ final class StructuredDataTypeSpec
       normalized.get shouldBe Some(record)
     }
 
-    "preserve nested objects, empty arrays and explicit null members" in {
+    "omit null attributes recursively while preserving nested empty objects and arrays" in {
       Given("a JSON object with empty and populated nested values in a declared key order")
       val json = Json.obj(
         "emptyObject" -> Json.obj(),
         "emptyArray" -> Json.arr(),
         "nullMember" -> Json.Null,
-        "nested" -> Json.obj("items" -> Json.arr(Json.fromString("雪"), Json.True, Json.Null)))
+        "nested" -> Json.obj("absent" -> Json.Null,
+          "items" -> Json.arr(Json.fromString("雪"), Json.True)))
       val expected = Record.createFull(Vector(
         "emptyObject" -> Record.empty,
         "emptyArray" -> Vector.empty,
-        "nullMember" -> null,
-        "nested" -> Record.createFull(Vector("items" -> Vector("雪", true, null)))))
+        "nested" -> Record.createFull(Vector("items" -> Vector("雪", true)))))
+      val expectedjson = _expected_json(json)
       When("canonical conversion decodes and re-encodes the object")
       val decoded = XSemiStructuredData.normalizer.normalize(json)
       val encoded = decoded.flatMap(XSemiStructuredData.toJson)
-      Then("all members, nested runtime representations and array order are retained")
+      Then("retained members and array order survive while null attributes disappear")
       decoded.get shouldBe Some(expected)
-      decoded.get.get.fields.map(_.key) shouldBe json.asObject.get.keys.toVector
-      encoded.get shouldBe Some(json)
-      encoded.get.get.asObject.get.keys.toVector shouldBe json.asObject.get.keys.toVector
+      decoded.get.get.fields.map(_.key) shouldBe expectedjson.asObject.get.keys.toVector
+      encoded.get shouldBe Some(expectedjson)
+      encoded.get.get.asObject.get.keys.toVector shouldBe expectedjson.asObject.get.keys.toVector
     }
 
     "reject JSON roots that are not objects and implicit text decoding" in {
@@ -171,7 +172,7 @@ final class StructuredDataTypeSpec
       _expect_invalid(result, XSemiStructuredData)
     }
 
-    "normalize supported Scala and Java numeric values through exact JSON" in {
+    "normalize supported Scala and Java numeric values directly and exactly" in {
       Given("supported numeric families and finite floating point decimal spellings")
       val numbers = Vector[Any](1.toByte, 2.toShort, 3, 4L, BigInt("9007199254740993"),
         BigDecimal("5.125"), new java.math.BigInteger("9223372036854775808"),
@@ -192,11 +193,11 @@ final class StructuredDataTypeSpec
     "preserve native primitive and reference arrays and sequences" in {
       Given("a Record with ordered primitive arrays, reference arrays, lists and empty arrays")
       val record = Record.createFull(Vector(
-        "ints" -> Array(2, 1), "refs" -> Array[Any]("first", null, Record.empty),
+        "ints" -> Array(2, 1), "refs" -> Array[Any]("first", Record.empty),
         "list" -> List(true, false), "empty" -> Array.empty[String]))
       val expected = Json.obj(
         "ints" -> Json.arr(Json.fromInt(2), Json.fromInt(1)),
-        "refs" -> Json.arr(Json.fromString("first"), Json.Null, Json.obj()),
+        "refs" -> Json.arr(Json.fromString("first"), Json.obj()),
         "list" -> Json.arr(Json.True, Json.False), "empty" -> Json.arr())
       When("explicit encoding and canonical normalization interpret the Record")
       val encoded = XSemiStructuredData.toJson(record)
@@ -218,6 +219,22 @@ final class StructuredDataTypeSpec
       val normalized = records.map(XSemiStructuredData.normalizer.normalize)
       Then("unsupported and nonfinite members fail instead of being omitted or stringified")
       (encoded ++ normalized).foreach(_expect_invalid(_, XSemiStructuredData))
+    }
+
+    "reject null sequence elements without removing positions at any depth" in {
+      Given("Record and JSON objects containing direct, nested and native-array null elements")
+      val records = Vector(
+        Record.data("items" -> Vector[Any](null)),
+        Record.data("items" -> Vector(Vector[Any](1, null))),
+        Record.data("items" -> Array[Any](Record.empty, null)))
+      val jsons = Vector(Json.obj("items" -> Json.arr(Json.Null)),
+        Json.obj("items" -> Json.arr(Json.arr(Json.fromInt(1), Json.Null))))
+      When("canonical encoding, semantic normalization and JSON decoding interpret them")
+      val results = records.flatMap(record => Vector(
+        XSemiStructuredData.toJson(record), XSemiStructuredData.normalizer.normalize(record))) ++
+        jsons.map(XSemiStructuredData.fromJson)
+      Then("every conversion rejects the invalid element instead of shortening its sequence")
+      results.foreach(_expect_invalid(_, XSemiStructuredData))
     }
 
     "reject duplicate keys at every object level" in {
@@ -251,19 +268,20 @@ final class StructuredDataTypeSpec
   }
 
   "Canonical object roundtrips (R8)" should {
-    "preserve generated decimals, Unicode, nested objects, ordered arrays and null presence" in {
-      Given("generated JSON objects with exact numbers and supported nested shapes")
+    "preserve generated normalized decimals, Unicode, nested objects and ordered arrays" in {
       forAll(_object_gen) { json =>
+        Given("a generated object with nullable attributes and non-null array elements")
+        val expected = _expected_json(json)
         When("each object is decoded, normalized and encoded canonically")
         val decoded = XSemiStructuredData.fromJson(json)
         val encoded = decoded.flatMap(XSemiStructuredData.toJson)
         val normalized = decoded.flatMap(XSemiStructuredData.normalizer.normalize)
-        Then("JSON meaning, key order and the canonical Record remain stable")
+        Then("independently normalized JSON meaning, retained key order and canonical values are stable")
         decoded.isSuccess shouldBe true
-        encoded.get shouldBe Some(json)
-        encoded.get.get.asObject.get.keys.toVector shouldBe json.asObject.get.keys.toVector
+        encoded.get shouldBe Some(expected)
+        encoded.get.get.asObject.get.keys.toVector shouldBe expected.asObject.get.keys.toVector
         normalized.get shouldBe decoded.get
-        decoded.get.get.fields.map(_.key) should contain ("nullMember")
+        decoded.get.get.fields.map(_.key) should not contain ("nullMember")
       }
     }
   }
@@ -310,7 +328,7 @@ final class StructuredDataTypeSpec
 
   private def _value_gen(depth: Int): Gen[Json] = {
     val scalar = Gen.oneOf(
-      Gen.const(Json.Null), Gen.oneOf(true, false).map(Json.fromBoolean),
+      Gen.oneOf(true, false).map(Json.fromBoolean),
       _string_gen.map(Json.fromString), _decimal_gen.map(Json.fromBigDecimal))
     if (depth == 0) {
       scalar
@@ -318,7 +336,8 @@ final class StructuredDataTypeSpec
       val nested = _value_gen(depth - 1)
       Gen.oneOf(scalar,
         Gen.choose(0, 5).flatMap(size => Gen.listOfN(size, nested)).map(Json.fromValues),
-        nested.map(value => Json.obj("child" -> value, "empty" -> Json.obj())))
+        Gen.oneOf(Gen.const(Json.Null), nested).map(value =>
+          Json.obj("child" -> value, "empty" -> Json.obj())))
     }
   }
 
@@ -326,12 +345,20 @@ final class StructuredDataTypeSpec
     for {
       decimal <- _decimal_gen
       string <- _string_gen
-      payload <- _value_gen(2)
+      payload <- Gen.oneOf(Gen.const(Json.Null), _value_gen(2))
       elements <- Gen.choose(0, 5).flatMap(size => Gen.listOfN(size, _value_gen(1)))
     } yield {
       Json.obj("number" -> Json.fromBigDecimal(decimal), "text" -> Json.fromString(string),
         "payload" -> payload, "array" -> Json.fromValues(elements),
         "nullMember" -> Json.Null, "emptyObject" -> Json.obj())
     }
+  }
+
+  private def _expected_json(value: Json): Json = {
+    value.arrayOrObject(value,
+      values => Json.fromValues(values.map(_expected_json)),
+      members => Json.fromFields(members.toVector.collect {
+        case (key, child) if !child.isNull => key -> _expected_json(child)
+      }))
   }
 }

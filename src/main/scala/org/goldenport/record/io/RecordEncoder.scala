@@ -7,7 +7,7 @@ import io.circe.Json
 
 import org.goldenport.Consequence
 import org.goldenport.record.Record
-import org.goldenport.record.Field
+import org.goldenport.schema.XSemiStructuredData
 import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
 import scala.xml.{Elem, NodeSeq, Text}
@@ -15,23 +15,21 @@ import scala.xml.{Elem, NodeSeq, Text}
 /*
  * @since   Feb.  7, 2026
  *  version Mar.  4, 2026
- * @version Jul.  1, 2026
+ *  version Jul.  1, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordEncoder(
   config: RecordEncoder.Config = RecordEncoder.Config.default
 ) {
   def jsonC(in: Record): Consequence[String] =
-    Consequence {
-      _to_json(in).noSpaces
-    }
+    XSemiStructuredData.toJson(in).map(_.noSpaces)
 
   def json(in: Record): String = jsonC(in).foldIdntity(c => s"""{"error": "${c.print}"}""")
 
   def yamlC(in: Record): Consequence[String] =
-    Consequence {
-      val json = _to_json(in)
-      _yaml.dump(_to_java(json))
+    XSemiStructuredData.toJson(in).flatMap { json =>
+      Consequence { _yaml.dump(_to_java(json)) }
     }
 
   def yaml(in: Record): String = yamlC(in).foldIdntity(c => s"error: ${c.print}")
@@ -52,27 +50,6 @@ class RecordEncoder(
   }
 
   // --- private helpers ---
-
-  private def _to_json(record: Record): Json =
-    Json.fromJsonObject(
-      io.circe.JsonObject.fromIterable(
-        record.fields.collect {
-          case Field(key, Field.Value.Single(value)) => key -> _to_json_value(value)
-        }
-      )
-    )
-
-  private def _to_json_value(value: Any): Json =
-    value match {
-      case null => Json.Null
-      case r: Record => _to_json(r)
-      case seq: Iterable[?] => Json.fromValues(seq.map(_to_json_value))
-      case arr: Array[?] => Json.fromValues(arr.toSeq.map(_to_json_value))
-      case b: java.lang.Boolean => Json.fromBoolean(b)
-      case n: java.lang.Number => Json.fromBigDecimal(BigDecimal(n.toString))
-      case s: String => Json.fromString(s)
-      case other => Json.fromString(other.toString)
-    }
 
   private def _to_xml(record: Record): String = {
     val nodes = record.fields.map { field =>

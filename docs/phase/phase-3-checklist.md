@@ -1,16 +1,22 @@
 # Phase 3 Checklist - Record Collections and Attribute Normalization
 
-Status: PLANNED
+Status: IN_PROGRESS
 Owner: goldenport-core
 Plan: [Phase 3](phase-3.md)
+Update rule: Check only outcomes supported by actual implementation, validation and the applicable independent acceptance; retain remaining Phase gates as open.
 
-All items are OPEN. Creating this plan does not accept current implementation.
+RCA-01 and RCA-02 are accepted as the connected Step RCA-01-02 on 2026-10-18:
+39 representative tests across three suites and 123 accumulator tests across
+nine suites passed, and the independent protected focused Step review passed.
+Two pre-existing pending placeholders remain unchanged. This is not Phase closure;
+RCA-03 through RCA-05 and final validation/review/release remain open.
 
-- [ ] **RCA-01 - Contract migration specified.** Working specifications replace
+- [x] **RCA-01 - Contract migration specified.** Working specifications replace
   null-attribute retention with omission, preserve empty objects/arrays, define
   null-element failure and distinguish Record from XJson. Acceptance examples
-  cover the complete route and typed/non-typed collection conversion.
-- [ ] **RCA-02 - Connected route works.** Nested Record with NonEmptyVector
+  cover the complete route and typed/non-typed collection conversion. Native
+  null is forbidden in normal logic; input/output adapters own its handling.
+- [x] **RCA-02 - Connected route works.** Nested Record with NonEmptyVector
   encodes as an array and decodes with correct values and order; null attributes
   disappear recursively while empty children remain. Explicit nonempty reads
   succeed or fail by cardinality through Consequence.
@@ -18,7 +24,9 @@ All items are OPEN. Creating this plan does not accept current implementation.
   immutable APIs, codecs and canonical normalizers have one documented policy;
   direct Field/createFull paths do not accidentally reintroduce null attributes.
   Affected callers/specifications are migrated. JSON/YAML/HOCON and existing
-  sequence-capable XML output are covered proportionately.
+  sequence-capable XML output are covered proportionately. Internal callers
+  use typed absence/removal instead of null sentinels; boundary conversion
+  supplies the normal logic without repeated internal null checking.
 - [ ] **RCA-04 - Integrated behavior accepted.** Focused executable scenarios
   and property-based normalized roundtrip/idempotence/order laws pass. Null
   array positions are never silently removed. XJson, exact numbers and unrelated

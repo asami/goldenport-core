@@ -15,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
  * Executable specification for explicit structured text formats.
  *
  * @since   Oct.  5, 2026
- * @version Oct.  5, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class StructuredDataTextSpec
@@ -28,35 +28,38 @@ final class StructuredDataTextSpec
     "produce the same canonical Record from each declared syntax" in {
       Given("equivalent JSON, YAML and literal HOCON objects and their explicit selectors")
       val inputs = Vector(
-        StructuredDataFormat.Json -> "{\"name\":\"雪\",\"count\":7,\"items\":[true,null]}",
-        StructuredDataFormat.Yaml -> "name: 雪\ncount: 7\nitems: [true, null]\n",
-        StructuredDataFormat.Hocon -> "name=雪\ncount=7\nitems=[true,null]")
+        StructuredDataFormat.Json -> "{\"name\":\"雪\",\"count\":7,\"absent\":null,\"items\":[true,false]}",
+        StructuredDataFormat.Yaml -> "name: 雪\ncount: 7\nabsent: null\nitems: [true, false]\n",
+        StructuredDataFormat.Hocon -> "name=雪\ncount=7\nabsent=null\nitems=[true,false]")
       val expected = Record.createFull(Vector("name" -> "雪", "count" -> BigDecimal(7),
-        "items" -> Vector(true, null)))
+        "items" -> Vector(true, false)))
+      val expectedjson = Json.obj("name" -> Json.fromString("雪"), "count" -> Json.fromInt(7),
+        "items" -> Json.arr(Json.True, Json.False))
       When("each text is decoded using its declared format")
       val results = inputs.map { case (format, text) => XSemiStructuredData.fromText(text, format) }
       val encoded = results.map(_.flatMap(XSemiStructuredData.toJson))
-      val expectedjson = XSemiStructuredData.toJson(expected)
       val implicitresult = XSemiStructuredData.normalizer.normalize(inputs.head._2)
       Then("all decoded objects share canonical meaning and undecoded text remains invalid")
-      encoded.map(_.get) shouldBe Vector.fill(3)(expectedjson.get)
+      results.map(_.get.map(_.fields.sortBy(_.key))) shouldBe Vector.fill(3)(Some(expected.fields.sortBy(_.key)))
+      encoded.map(_.get) shouldBe Vector.fill(3)(Some(expectedjson))
       _expect_invalid(implicitresult)
       StructuredDataFormat.values.toVector shouldBe Vector(
         StructuredDataFormat.Json, StructuredDataFormat.Yaml, StructuredDataFormat.Hocon)
     }
 
-    "preserve empty objects and arrays, null, Unicode and literal dotted keys" in {
+    "omit null attributes while preserving empty structures, Unicode and literal dotted keys" in {
       Given("JSON text valid in all formats, with nested empty and populated shapes")
       val json = Json.obj("empty" -> Json.obj(), "array" -> Json.arr(), "null" -> Json.Null,
         "a.b" -> Json.fromString("雪🙂"), "a" -> Json.obj("b" -> Json.True),
-        "nested" -> Json.arr(Json.arr(), Json.arr(Json.Null, Json.obj())))
+        "nested" -> Json.arr(Json.arr(), Json.arr(Json.obj("absent" -> Json.Null))))
+      val expected = _expected_json(json)
       When("all selected formats decode and canonically encode the object and an empty root")
       val results = StructuredDataFormat.values.map { format =>
         XSemiStructuredData.fromText(json.noSpaces, format).flatMap(XSemiStructuredData.toJson)
       }
       val emptyresults = StructuredDataFormat.values.map(XSemiStructuredData.fromText("{}", _))
-      Then("every member and distinct literal key retains its semantic meaning")
-      results.foreach(_.get shouldBe Some(json))
+      Then("retained members and distinct literal keys survive while empty children remain")
+      results.foreach(_.get shouldBe Some(expected))
       emptyresults.foreach(_.get shouldBe Some(Record.empty))
     }
 
@@ -77,16 +80,17 @@ final class StructuredDataTextSpec
       results.foreach(_.get shouldBe Some(expected))
     }
 
-    "roundtrip generated exact decimals, Unicode, nested objects, arrays and null" in {
+    "roundtrip generated normalized decimals, Unicode, nested objects and arrays" in {
       forAll(_object_gen) { json =>
         Given("a generated canonical object serialized as JSON text valid in all three formats")
         val text = json.noSpaces
+        val expected = _expected_json(json)
         When("each declared format decodes and encodes that text")
         val results = StructuredDataFormat.values.map { format =>
           XSemiStructuredData.fromText(text, format).flatMap(XSemiStructuredData.toJson)
         }
-        Then("all decoded values retain canonical semantic JSON meaning")
-        results.foreach(_.get shouldBe Some(json))
+        Then("all decoded values match independent recursive attribute omission")
+        results.foreach(_.get shouldBe Some(expected))
       }
     }
   }
@@ -107,30 +111,29 @@ final class StructuredDataTextSpec
     }
 
     "use tags to distinguish booleans and numbers from quoted strings and keys" in {
-      Given("all YAML boolean spellings, quoted equivalents and empty or numeric string keys")
+      Given("all YAML boolean spellings, quoted equivalents, a null-valued empty key and a numeric string key")
       val text = "values: [true, FALSE, yes, No, ON, off, \"true\", \"012\"]\n" +
         "\"\": null\n\"123\": {}\n"
       When("YAML node tags determine canonical member types")
       val result = XSemiStructuredData.fromText(text, StructuredDataFormat.Yaml)
-      Then("boolean nodes become booleans while quoted scalars remain strings")
+      Then("boolean nodes become booleans, quoted scalars remain strings and the null attribute is omitted")
       result.get.get.fields.head.value.single shouldBe Vector(true, false, true, false,
         true, false, "true", "012")
-      result.get.get.fields.map(_.key) shouldBe Vector("values", "", "123")
-      result.get.get.fields(1).value.single shouldBe (null: Any)
-      result.get.get.fields(2).value.single shouldBe Record.empty
+      result.get.get.fields.map(_.key) shouldBe Vector("values", "123")
+      result.get.get.fields(1).value.single shouldBe Record.empty
     }
 
     "decode independent acyclic alias reuse without omitting members" in {
-      Given("a shared anchored object reused independently and inside an array")
-      val text = "original: &shared {empty: {}, values: [null, 雪]}\n" +
+      Given("a shared anchored object with a null attribute reused independently and inside an array")
+      val text = "original: &shared {empty: {}, absent: null, values: [雪]}\n" +
         "copy: *shared\narray: [*shared, *shared]\n"
-      val shared = Json.obj("empty" -> Json.obj(), "values" -> Json.arr(Json.Null, Json.fromString("雪")))
+      val shared = Json.obj("empty" -> Json.obj(), "values" -> Json.arr(Json.fromString("雪")))
       val expected = Json.obj("original" -> shared, "copy" -> shared,
         "array" -> Json.arr(shared, shared))
       When("YAML aliases are recursively decoded and canonically encoded")
       val result = XSemiStructuredData.fromText(text, StructuredDataFormat.Yaml)
         .flatMap(XSemiStructuredData.toJson)
-      Then("each independent reuse has the complete anchored value")
+      Then("each independent reuse retains the normalized anchored value with its null attribute omitted")
       result.get shouldBe Some(expected)
     }
 
@@ -278,14 +281,14 @@ final class StructuredDataTextSpec
     }
 
     "retain nested objects separately from literal quoted dotted keys" in {
-      Given("a literal HOCON dotted key and a distinct nested object")
-      val text = "\"a.b\"=1\na { b=2, empty={}, items=[[],null] }"
+      Given("a literal HOCON dotted key and a distinct nested object with an absent attribute and empty structures")
+      val text = "\"a.b\"=1\na { b=2, empty={}, absent=null, items=[[],{}] }"
       val expected = Json.obj("a.b" -> Json.fromInt(1), "a" -> Json.obj(
-        "b" -> Json.fromInt(2), "empty" -> Json.obj(), "items" -> Json.arr(Json.arr(), Json.Null)))
+        "b" -> Json.fromInt(2), "empty" -> Json.obj(), "items" -> Json.arr(Json.arr(), Json.obj())))
       When("HOCON root entries are decoded directly and canonically encoded")
       val result = XSemiStructuredData.fromText(text, StructuredDataFormat.Hocon)
         .flatMap(XSemiStructuredData.toJson)
-      Then("literal keys and nested members remain distinct and complete")
+      Then("literal keys and retained nested members remain distinct while the null attribute is omitted")
       result.get shouldBe Some(expected)
     }
 
@@ -313,6 +316,21 @@ final class StructuredDataTextSpec
   }
 
   "Unsupported external input (R11)" should {
+    "reject null array positions at every depth in each declared syntax" in {
+      Given("direct and nested null array elements in JSON, YAML and HOCON inputs")
+      val inputs = Vector(
+        StructuredDataFormat.Json -> "{\"items\":[null]}",
+        StructuredDataFormat.Json -> "{\"items\":[[1,null]]}",
+        StructuredDataFormat.Yaml -> "items: [null]",
+        StructuredDataFormat.Yaml -> "items: [[1, null]]",
+        StructuredDataFormat.Hocon -> "items=[null]",
+        StructuredDataFormat.Hocon -> "items=[[1,null]]")
+      When("each explicitly selected decoder interprets the invalid positions")
+      val results = inputs.map { case (format, text) => XSemiStructuredData.fromText(text, format) }
+      Then("all inputs fail as invalid values without filtering or shifting their elements")
+      results.foreach(_expect_invalid)
+    }
+
     "distinguish malformed or absent text from invalid format selection and JSON roots" in {
       Given("malformed text, absent text, a null selector and non-object JSON roots")
       val malformed = Vector(StructuredDataFormat.Json -> "{",
@@ -388,7 +406,7 @@ final class StructuredDataTextSpec
   }
 
   private def _value_gen(depth: Int): Gen[Json] = {
-    val scalar = Gen.oneOf(Gen.const(Json.Null), Gen.oneOf(true, false).map(Json.fromBoolean),
+    val scalar = Gen.oneOf(Gen.oneOf(true, false).map(Json.fromBoolean),
       _string_gen.map(Json.fromString), _decimal_gen.map(Json.fromBigDecimal))
     if (depth == 0) {
       scalar
@@ -396,7 +414,8 @@ final class StructuredDataTextSpec
       val nested = _value_gen(depth - 1)
       Gen.oneOf(scalar,
         Gen.choose(0, 4).flatMap(size => Gen.listOfN(size, nested)).map(Json.fromValues),
-        nested.map(value => Json.obj("child" -> value, "empty" -> Json.obj())))
+        Gen.oneOf(Gen.const(Json.Null), nested).map(value =>
+          Json.obj("child" -> value, "empty" -> Json.obj())))
     }
   }
 
@@ -404,12 +423,20 @@ final class StructuredDataTextSpec
     for {
       decimal <- _decimal_gen
       string <- _string_gen
-      payload <- _value_gen(2)
+      payload <- Gen.oneOf(Gen.const(Json.Null), _value_gen(2))
       elements <- Gen.choose(0, 4).flatMap(size => Gen.listOfN(size, _value_gen(1)))
     } yield {
       Json.obj("number" -> Json.fromBigDecimal(decimal), "text" -> Json.fromString(string),
         "payload" -> payload, "array" -> Json.fromValues(elements), "nullMember" -> Json.Null,
         "emptyObject" -> Json.obj(), "a.b" -> Json.fromString(string))
     }
+  }
+
+  private def _expected_json(value: Json): Json = {
+    value.arrayOrObject(value,
+      values => Json.fromValues(values.map(_expected_json)),
+      members => Json.fromFields(members.toVector.collect {
+        case (key, child) if !child.isNull => key -> _expected_json(child)
+      }))
   }
 }

@@ -16,7 +16,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
  * Executable specification for canonical structured typed readers.
  *
  * @since   Oct.  5, 2026
- * @version Oct.  5, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class StructuredValueReaderSpec
@@ -52,22 +52,23 @@ final class StructuredValueReaderSpec
   }
 
   "Canonical Record typed reads (R12)" should {
-    "retain supported Unicode, null, empty and nested values from object Json" in {
-      Given("an object with exact numbers, Unicode, explicit null and empty nested structures")
+    "omit null attributes and retain Unicode, empty and nested values from object Json" in {
+      Given("an object with exact numbers, Unicode, nullable attributes and empty nested structures")
       val decimal = new BigDecimal(new java.math.BigDecimal(
         "987654321098765432109876543210.00000000000000000000000000001"), MathContext.UNLIMITED)
       val json = Json.obj("雪🙂" -> Json.fromString("é日本語"),
         "number" -> Json.fromBigDecimal(decimal), "nullMember" -> Json.Null,
         "emptyObject" -> Json.obj(), "emptyArray" -> Json.arr(),
-        "nested" -> Json.obj("items" -> Json.arr(Json.True, Json.Null, Json.fromString("中"))))
+        "nested" -> Json.obj("absent" -> Json.Null,
+          "items" -> Json.arr(Json.True, Json.fromString("中"))))
       val expected = Record.createFull(Vector("雪🙂" -> "é日本語", "number" -> decimal,
-        "nullMember" -> null, "emptyObject" -> Record.empty, "emptyArray" -> Vector.empty,
-        "nested" -> Record.createFull(Vector("items" -> Vector(true, null, "中")))))
+        "emptyObject" -> Record.empty, "emptyArray" -> Vector.empty,
+        "nested" -> Record.createFull(Vector("items" -> Vector(true, "中")))))
       When("a generic consumer reads the object as Record")
       val result = _read_c[Record](json)
-      Then("the canonical Record retains every member and exact numeric meaning")
+      Then("the canonical Record retains non-null members and exact numeric meaning")
       result.get shouldBe Some(expected)
-      result.get.get.fields.map(_.key) shouldBe json.asObject.get.keys.toVector
+      result.get.get.fields.map(_.key) shouldBe _expected_json(json).asObject.get.keys.toVector
     }
 
     "normalize supported Record numbers and preserve empty roots and structure" in {
@@ -76,14 +77,14 @@ final class StructuredValueReaderSpec
         "123456789012345678901234567890.0000000000000000000000001"), MathContext.UNLIMITED)
       val record = Record.createFull(Vector("text" -> "雪🙂", "integer" -> BigInt("123456789012345678901234567890"),
         "decimal" -> decimal, "nullMember" -> null, "emptyObject" -> Record.empty,
-        "emptyArray" -> Vector.empty, "nested" -> Record.createFull(Vector("items" -> Vector(1, null, "é")))))
+        "emptyArray" -> Vector.empty, "nested" -> Record.createFull(Vector("items" -> Vector(1, "é")))))
       val expected = Record.createFull(Vector("text" -> "雪🙂", "integer" -> BigDecimal("123456789012345678901234567890"),
-        "decimal" -> decimal, "nullMember" -> null, "emptyObject" -> Record.empty,
-        "emptyArray" -> Vector.empty, "nested" -> Record.createFull(Vector("items" -> Vector(BigDecimal(1), null, "é")))))
+        "decimal" -> decimal, "emptyObject" -> Record.empty,
+        "emptyArray" -> Vector.empty, "nested" -> Record.createFull(Vector("items" -> Vector(BigDecimal(1), "é")))))
       When("a generic consumer reads populated and empty canonical roots as Record")
       val result = _read_c[Record](record)
       val emptyresults = Vector[Any](Record.empty, Json.obj()).map(_read_c[Record])
-      Then("numbers are canonical BigDecimals and null, empty and nested values remain present")
+      Then("numbers are canonical BigDecimals and empty and nested values remain present")
       result.get shouldBe Some(expected)
       emptyresults.foreach(_.get shouldBe Some(Record.empty))
     }
@@ -126,20 +127,33 @@ final class StructuredValueReaderSpec
         case _ => fail("Unsupported members must produce aggregated failure")
       }
     }
+
+    "reject null array elements in Json and Record inputs at every depth" in {
+      Given("object inputs with direct and nested invalid array positions")
+      val values = Vector[Any](Json.obj("items" -> Json.arr(Json.Null)),
+        Json.obj("items" -> Json.arr(Json.arr(Json.Null))),
+        Record.data("items" -> Array[Any](null)),
+        Record.data("items" -> Vector(Vector[Any](null))))
+      When("the generic Record reader interprets each input")
+      val results = values.map(_read_c[Record])
+      Then("all null positions produce structured invalid outcomes")
+      results.foreach(_expect_invalid(_, XSemiStructuredData))
+    }
   }
 
   "Generic Record reader roundtrips (R12)" should {
-    "preserve generated exact decimals, Unicode, nested objects, arrays and null" in {
-      Given("generated canonical JSON objects with supported exact and nested values")
+    "preserve generated normalized decimals, Unicode, nested objects and arrays" in {
       forAll(_object_gen) { json =>
+        Given("a generated JSON object with nullable attributes and non-null array elements")
+        val expected = _expected_json(json)
         When("a generic consumer reads Record and explicitly encodes its canonical JSON")
         val decoded = _read_c[Record](json)
         val encoded = decoded.flatMap(XSemiStructuredData.toJson)
-        Then("the roundtrip preserves semantic JSON equality and member order")
+        Then("the roundtrip preserves independently normalized JSON and retained member order")
         decoded.isSuccess shouldBe true
-        encoded.get shouldBe Some(json)
-        encoded.get.get.asObject.get.keys.toVector shouldBe json.asObject.get.keys.toVector
-        decoded.get.get.fields.map(_.key) should contain ("nullMember")
+        encoded.get shouldBe Some(expected)
+        encoded.get.get.asObject.get.keys.toVector shouldBe expected.asObject.get.keys.toVector
+        decoded.get.get.fields.map(_.key) should not contain ("nullMember")
       }
     }
   }
@@ -197,7 +211,7 @@ final class StructuredValueReaderSpec
   }
 
   private def _value_gen(depth: Int): Gen[Json] = {
-    val scalar = Gen.oneOf(Gen.const(Json.Null), Gen.oneOf(true, false).map(Json.fromBoolean),
+    val scalar = Gen.oneOf(Gen.oneOf(true, false).map(Json.fromBoolean),
       _string_gen.map(Json.fromString), _decimal_gen.map(Json.fromBigDecimal))
     if (depth == 0) {
       scalar
@@ -205,7 +219,8 @@ final class StructuredValueReaderSpec
       val nested = _value_gen(depth - 1)
       Gen.oneOf(scalar,
         Gen.choose(0, 5).flatMap(size => Gen.listOfN(size, nested)).map(Json.fromValues),
-        nested.map(value => Json.obj("child" -> value, "empty" -> Json.obj())))
+        Gen.oneOf(Gen.const(Json.Null), nested).map(value =>
+          Json.obj("child" -> value, "empty" -> Json.obj())))
     }
   }
 
@@ -213,12 +228,20 @@ final class StructuredValueReaderSpec
     for {
       decimal <- _decimal_gen
       string <- _string_gen
-      payload <- _value_gen(2)
+      payload <- Gen.oneOf(Gen.const(Json.Null), _value_gen(2))
       elements <- Gen.choose(0, 5).flatMap(size => Gen.listOfN(size, _value_gen(1)))
     } yield {
       Json.obj("number" -> Json.fromBigDecimal(decimal), "text" -> Json.fromString(string),
         "payload" -> payload, "array" -> Json.fromValues(elements),
         "nullMember" -> Json.Null, "emptyObject" -> Json.obj())
     }
+  }
+
+  private def _expected_json(value: Json): Json = {
+    value.arrayOrObject(value,
+      values => Json.fromValues(values.map(_expected_json)),
+      members => Json.fromFields(members.toVector.collect {
+        case (key, child) if !child.isNull => key -> _expected_json(child)
+      }))
   }
 }

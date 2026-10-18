@@ -4,6 +4,7 @@ import java.net.{URI, URL}
 import java.time.LocalTime
 import java.util.{Locale, TimeZone}
 import io.circe.Json
+import cats.data.NonEmptyVector
 
 import org.goldenport.Consequence
 import org.goldenport.bag.{Bag, BinaryBag, TextBag}
@@ -17,7 +18,7 @@ import org.goldenport.schema.*
  *  version Feb. 19, 2026
  *  version Apr. 11, 2026
  *  version Jul. 16, 2026
- * @version Oct. 17, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 trait ValueReader[T] {
@@ -28,6 +29,34 @@ trait ValueReader[T] {
 }
 
 object ValueReader {
+  given [A](using reader: ValueReader[A]): ValueReader[NonEmptyVector[A]] with {
+    def readC(value: Any): Consequence[NonEmptyVector[A]] =
+      _read_elements(value, reader.readC)
+
+    override def readContextC(value: Any)(using ctx: ExecutionContext): Consequence[NonEmptyVector[A]] =
+      _read_elements(value, element => reader.readContextC(element)(using ctx))
+
+    private def _read_elements(value: Any, read: Any => Consequence[A]): Consequence[NonEmptyVector[A]] = {
+      val elements = value match {
+        case values: NonEmptyVector[?] => Some(values.toVector)
+        case values: Seq[?] => Some(values.toVector)
+        case values: Array[?] => Some(values.toVector)
+        case _ => None
+      }
+      elements match {
+        case Some(values) if values.nonEmpty =>
+          Consequence.zipN(values.map { element =>
+            if (java.util.Objects.isNull(element)) {
+              Consequence.valueInvalid("Null NonEmptyVector element")
+            } else {
+              read(element)
+            }
+          }).map(values => NonEmptyVector(values.head, values.tail.toVector))
+        case _ => Consequence.valueInvalid("Expected a nonempty sequence for NonEmptyVector")
+      }
+    }
+  }
+
   given ValueReader[Json] with {
     override def readC(value: Any): Consequence[Json] = XJson.normalizer.normalize(value)
   }

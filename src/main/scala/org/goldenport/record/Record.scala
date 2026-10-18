@@ -1,6 +1,7 @@
 package org.goldenport.record
 
 import cats.kernel.Monoid
+import cats.data.NonEmptyVector
 import org.goldenport.Consequence
 import org.goldenport.context.ExecutionContext
 import org.goldenport.text.Presentable
@@ -16,7 +17,8 @@ import org.goldenport.datatype.PathName
  *  version Mar. 31, 2026
  *  version Apr.  8, 2026
  *  version Apr. 14, 2026
- * @version Jul. 16, 2026
+ *  version Jul. 16, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
@@ -179,6 +181,7 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
 
   def getVector(key: String): Option[Vector[Any]] =
     getAny(key).collect {
+      case xs: NonEmptyVector[?] => xs.toVector
       case xs: Vector[?] => xs.asInstanceOf[Vector[Any]]
       case xs: Seq[?] => xs.toVector.asInstanceOf[Vector[Any]]
       case xs: Array[?] => xs.toVector.asInstanceOf[Vector[Any]]
@@ -247,16 +250,13 @@ object Record {
   def create(xs: Seq[(String, Any)]): Record = {
     val a = xs.flatMap {
       case (_, v) if java.util.Objects.isNull(v) => None
-      case (k, v) => v match {
-        case m: Record if m.isEmpty => None
-        case _ => Some(Field(k, Field.Value.Single(v)))
-      }
+      case (k, v) => Some(Field(k, Field.Value.Single(v)))
     }.toVector
     Record(a.toVector)
   }
 
   def createFull(xs: Seq[(String, Any)]): Record =
-    Record(xs.map { case (k, v) => Field(k, Field.Value.Single(v)) }.toVector)
+    create(xs)
 
   def create(p: Map[String, Any]): Record = Record.create(p.toVector)
 
