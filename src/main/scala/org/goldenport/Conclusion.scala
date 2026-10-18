@@ -26,7 +26,8 @@ import org.goldenport.http.HttpRequest
  *  version Apr. 11, 2026
  *  version Apr. 14, 2026
  *  version May. 11, 2026
- * @version Aug. 10, 2026
+ *  version Aug. 10, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class Conclusion private (
@@ -318,7 +319,7 @@ object Conclusion {
     val observationmessage = Some(message)
     val observation = _make_observation(
       taxonomy = Taxonomy(Taxonomy.Category.Argument, Taxonomy.Symptom.DomainValue),
-      cause = Cause.message(observationmessage),
+      cause = Cause.empty,
       message = observationmessage,
       exception = None,
       severity = None

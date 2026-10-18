@@ -3,10 +3,17 @@
 Status: PHASE-115 / RCP-CONSUMERS / LIB-CORE API and executable specifications
 focused-validated on 2026-10-18: selected Core conversion repair passed 79/79 in
 six suites. The connected consumer Step is focused-validated and passed independent
-complete protected focused RCP-CONSUMERS Step review. Local commits, all four
-repository full tests, the sole comprehensive Phase 115 review and final release
-remain pending; all five RCP obligations remain OPEN and Phase 115 IN_PROGRESS. This status preserves
-closed Core Phase 3 acceptance and does not establish final Phase 115 acceptance.
+complete protected focused RCP-CONSUMERS Step review.
+Phase 115 adoption is CLOSED, with all five RCP obligations DONE. Both
+connected Steps were independently reviewed and committed locally; the sole
+original Phase full review and its Modeler repair1 and combined repair2–6
+focused closures passed. The selected Core full gate passed 602 tests in
+159 suites, zero failed/canceled/ignored/aborted and 125 existing pending.
+The [Phase acceptance](../../../cloud-native-component-framework/docs/phase/phase-115.md#final-phase-acceptance--2026-10-18)
+and [checklist](../../../cloud-native-component-framework/docs/phase/phase-115-checklist.md)
+record all four selected full gates and retained failures. Closure takes effect
+through the local release commit containing `phase115-final-closure-20261018-01@1`.
+Closed Core Phase 3 history remains unchanged.
 
 The public projection lives in `org.goldenport.convert.ExternalValueEncoder`:
 
