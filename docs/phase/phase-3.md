@@ -15,8 +15,9 @@ Deliver one connected construction -> encoding -> decoding -> typed-read
 route before completing the remaining affected entry points.
 
 The connected RCA-01/02 route and RCA-03 entry-point migration have passed their
-Step validation and independent review. Integrated Phase acceptance and the
-consumer handoff remain open. This Phase does not inherit the unrelated
+Step validation and independent review. The integrated focused evidence and
+consumer handoff passed final-Step documentation acceptance; Phase gates remain.
+This Phase does not inherit the unrelated
 error-model follow-ups of Phase 2.9.
 
 ## Current delivery status
@@ -37,8 +38,12 @@ error-model follow-ups of Phase 2.9.
   and are not additive. There are no unresolved RCA-03 blockers.
 - HYG-CORE-P3-001 through HYG-CORE-P3-003 remain separately recorded nonblocking
   maintenance; no incidental naming or structural-syntax cleanup is included.
-- RCA-04/05 integrated Phase acceptance and consumer handoff, repository-full
-  validation, the independent Phase full review and release closure remain open.
+- RCA-04/05: the [consumer handoff and integrated focused evidence](../spec/record-normalization-cncf115-handoff.md)
+  passed independent documentation acceptance for the originally declared final Step.
+  Repository-full validation, the sole comprehensive independent Phase full
+  review and release closure remain open. RCA-04/05 remain unchecked until
+  those mandatory Phase gates complete; no successor Step or CNCF115 completion
+  dependency is introduced.
 
 ## Governing rule: no null in normal program logic
 
@@ -136,6 +141,11 @@ Raw JSON continues to have its separate preservation contract.
 5. **RCA-05 - Deliver the consumer handoff.** Identify actual changed APIs,
    behavior, dependency revision and validation results for CNCF Phase 115.
    Preserve unrelated unfinished work and record remaining candidates.
+   The [non-normative migration guide](../spec/record-normalization-cncf115-handoff.md)
+   now supplies the selected source/artifact distinction, actual consumer fixture
+   input and integrated focused evidence. It passed final-Step documentation
+   acceptance; remaining Phase gates are still required. It performs no
+   publication or downstream adoption.
 
 ## Implementation boundary
 

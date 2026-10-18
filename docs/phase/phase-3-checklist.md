@@ -12,7 +12,12 @@ Two pre-existing pending placeholders remain unchanged. RCA-03 subsequently
 passed selected validation (176 tests, 16 suites; four existing pending cases).
 Its HOCON integer-roundtrip correction passed 104 tests across four suites and
 the independent focused closure review; the counts overlap and are not additive.
-This is not Phase closure: RCA-04/05 and final validation/review/release remain open.
+The [non-normative CNCF115 handoff](../spec/record-normalization-cncf115-handoff.md)
+and integrated focused evidence passed independent documentation acceptance for
+the originally declared final Step. This is not Phase closure: RCA-04/05 stay open
+until the mandatory Phase gates complete. Core owns the sole comprehensive
+Phase full review, repository-full validation and final release closure; these
+are Phase gates, not an extra successor Step or a dependency on CNCF115 completion.
 
 - [x] **RCA-01 - Contract migration specified.** Working specifications replace
   null-attribute retention with omission, preserve empty objects/arrays, define
