@@ -192,3 +192,64 @@ to test its closed-codec contract without invalid Record instances or subclass
 construction. Core MUST NOT weaken the construction invariant to preserve those
 fixtures. This Core Phase edits no CNCF source and establishes neither downstream
 validation/adoption nor dependency publication.
+
+
+## Ordered reader and application adapter policy
+
+Status: PHASE-115 / RCP-CONSUMERS / LIB-CORE additions focused-validated on
+2026-10-18: selected Core conversion repair passed 79/79 in six suites. The
+connected consumer Step has selected focused validation and passed independent
+complete protected focused RCP-CONSUMERS Step review. Local commits, all four
+repository full tests, the sole comprehensive Phase 115 review and final release
+remain pending; all five RCP obligations remain OPEN and Phase 115 IN_PROGRESS. This
+status preserves all closed Core Phase 3 history and canonical structured
+constraints above; it does not reopen that Phase or change this policy.
+
+The ValueReader companion MUST provide `ValueReader[Vector[A]]` when a
+ValueReader[A] is available. The given MUST delegate to the explicit factory:
+
+```scala
+def vector[A](elementReader: ValueReader[A], allowSingle: Boolean = false): ValueReader[Vector[A]]
+def recordReader[A](decode: Record => Consequence[A])(using scala.reflect.ClassTag[A]): ValueReader[A]
+```
+
+The default Vector reader MUST accept actual NonEmptyVector, Scala Seq and native
+Array roots only. Empty collections succeed as empty Vector. Ordered duplicate
+values MUST remain in their original positions. Wrong-shaped or native-null roots
+MUST fail structurally. The factory's explicitly selected `allowSingle = true`
+policy MAY admit one non-null scalar by decoding it with the supplied element
+reader. Default collection readers MUST NOT silently promote scalars. Native null
+MUST NOT be promoted under either policy.
+
+Vector and NonEmptyVector ordinary and contextual reads MUST share one Core-owned
+element traversal. Every contextual element reader MUST receive the identical
+supplied ExecutionContext. Native-null elements MUST fail before a permissive
+reader can accept them; independent failures MUST aggregate with Consequence.zipN.
+The NonEmptyVector reader MUST retain strict collection admission, nonempty
+requirements and structured missing/empty/null/error behavior. Only that reader
+uses NonEmptyVector.fromVector; no empty fallback or automatic List restoration
+is permitted.
+
+Real Record.getAsC/getAsContextC already own absence: a missing field succeeds as
+None, a present empty Vector succeeds as Some(empty Vector), a present empty
+NonEmptyVector request fails, and invalid elements fail. Canonical Record elements
+continue through XSemiStructuredData normalization; Json elements retain typed raw
+Json, including Json.Null. These remain distinct declared semantic datatypes.
+
+The explicit recordReader application adapter MUST invoke its decode callback for
+a Record, retain an already typed A through ClassTag admission, and reject other
+roots structurally. It MUST NOT run XSemiStructuredData normalization over custom
+application Records or replace the canonical ValueReader[Record]. Application
+readers can compose this adapter with the shared ordered readers while retaining
+their own field and datatype semantics.
+
+External value projection and its typed model-library extension hook are specified
+in [external-value-conversion.md](external-value-conversion.md). That projection
+preserves typed Json and valid construction-normalized Record values without
+weakening canonical Record normalization or changing ordinary Record codecs.
+
+Executable evidence is authored in
+[CollectionValueReaderSpec.scala](../../src/test/scala/org/goldenport/convert/CollectionValueReaderSpec.scala),
+including actual ordinary/contextual Record getter routes, malformed values,
+explicit promotion, context identity, application decoder admission and at least
+100 successful order/duplicate/value property samples with zero discards.

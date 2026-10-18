@@ -29,31 +29,67 @@ trait ValueReader[T] {
 }
 
 object ValueReader {
+  given [A](using reader: ValueReader[A]): ValueReader[Vector[A]] = vector(reader)
+
+  def vector[A](elementReader: ValueReader[A], allowSingle: Boolean = false): ValueReader[Vector[A]] =
+    new ValueReader[Vector[A]] {
+      def readC(value: Any): Consequence[Vector[A]] =
+        _read_elements(value, elementReader.readC, allowSingle, false)
+
+      override def readContextC(value: Any)(using ctx: ExecutionContext): Consequence[Vector[A]] =
+        _read_elements(value, element => elementReader.readContextC(element)(using ctx), allowSingle, false)
+    }
+
   given [A](using reader: ValueReader[A]): ValueReader[NonEmptyVector[A]] with {
     def readC(value: Any): Consequence[NonEmptyVector[A]] =
-      _read_elements(value, reader.readC)
+      _read_elements(value, reader.readC, false, true).flatMap(_nonempty)
 
     override def readContextC(value: Any)(using ctx: ExecutionContext): Consequence[NonEmptyVector[A]] =
-      _read_elements(value, element => reader.readContextC(element)(using ctx))
+      _read_elements(value, element => reader.readContextC(element)(using ctx), false, true).flatMap(_nonempty)
 
-    private def _read_elements(value: Any, read: Any => Consequence[A]): Consequence[NonEmptyVector[A]] = {
-      val elements = value match {
-        case values: NonEmptyVector[?] => Some(values.toVector)
-        case values: Seq[?] => Some(values.toVector)
-        case values: Array[?] => Some(values.toVector)
-        case _ => None
+    private def _nonempty(values: Vector[A]): Consequence[NonEmptyVector[A]] =
+      NonEmptyVector.fromVector(values) match {
+        case Some(result) => Consequence.success(result)
+        case None => Consequence.valueInvalid("Expected a nonempty sequence for NonEmptyVector")
       }
-      elements match {
-        case Some(values) if values.nonEmpty =>
-          Consequence.zipN(values.map { element =>
-            if (java.util.Objects.isNull(element)) {
-              Consequence.valueInvalid("Null NonEmptyVector element")
-            } else {
-              read(element)
-            }
-          }).map(values => NonEmptyVector(values.head, values.tail.toVector))
-        case _ => Consequence.valueInvalid("Expected a nonempty sequence for NonEmptyVector")
+  }
+
+  def recordReader[A](decode: Record => Consequence[A])(using scala.reflect.ClassTag[A]): ValueReader[A] =
+    new ValueReader[A] {
+      def readC(value: Any): Consequence[A] = value match {
+        case record: Record => Consequence.run(decode(record))
+        case other => summon[scala.reflect.ClassTag[A]].unapply(other) match {
+          case Some(typed) => Consequence.success(typed)
+          case None => Consequence.valueInvalid("Expected an application Record or its typed value")
+        }
       }
+    }
+
+  private def _read_elements[A](
+    value: Any,
+    read: Any => Consequence[A],
+    allowsingle: Boolean,
+    nonempty: Boolean
+  ): Consequence[Vector[A]] = {
+    val elements = value match {
+      case null => None
+      case values: NonEmptyVector[?] => Some(values.toVector)
+      case values: scala.collection.Seq[?] => Some(values.toVector)
+      case values: Array[?] => Some(values.toVector)
+      case other if allowsingle => Some(Vector(other))
+      case _ => None
+    }
+    elements match {
+      case Some(values) if !nonempty || values.nonEmpty =>
+        Consequence.zipN(values.map { element =>
+          if (java.util.Objects.isNull(element)) {
+            Consequence.valueInvalid(if (nonempty) "Null NonEmptyVector element" else "Null Vector element")
+          } else {
+            read(element)
+          }
+        }).map(_.toVector)
+      case _ => Consequence.valueInvalid(
+        if (nonempty) "Expected a nonempty sequence for NonEmptyVector" else "Expected a sequence for Vector")
     }
   }
 
