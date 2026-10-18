@@ -6,23 +6,18 @@ import java.nio.charset.StandardCharsets
 
 import javax.xml.parsers.DocumentBuilderFactory
 
-import scala.jdk.CollectionConverters._
-
-import io.circe.Json
-import io.circe.parser.parse
-
 import org.goldenport.Consequence
 import org.goldenport.bag.Bag
 import org.goldenport.record.Record
-import org.goldenport.record.Field
+import org.goldenport.schema.{StructuredDataFormat, StructuredDataText}
 
 import org.xml.sax.InputSource
-import org.yaml.snakeyaml.Yaml
 
 /*
  * @since   Feb.  7, 2026
  *  version Apr. 11, 2026
- * @version Jul. 21, 2026
+ *  version Jul. 21, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 class RecordDecoder(
@@ -129,7 +124,6 @@ class RecordDecoder(
 
   // --- private helpers ---
 
-  private val _yaml_parser = new Yaml()
   private val _xml_factory = {
     val f = DocumentBuilderFactory.newInstance()
     f.setNamespaceAware(true)
@@ -138,87 +132,22 @@ class RecordDecoder(
   }
 
   private def _decode_json(text: String): Consequence[Record] =
-    Consequence {
-      parse(text) match {
-        case Right(json) => _to_record(json)
-        case Left(e)     => throw e
-      }
-    }
+    StructuredDataText.fromText(text, StructuredDataFormat.Json)
 
   private def _decode_json_records(text: String): Consequence[Vector[Record]] =
-    Consequence {
-      parse(text) match {
-        case Right(json) =>
-          json.asArray match {
-            case Some(values) =>
-              values.toVector.map { value =>
-                value.asObject match {
-                  case Some(_) => _to_record(value)
-                  case None => throw new IllegalArgumentException("JSON records require an array of objects")
-                }
-              }
-            case None =>
-              throw new IllegalArgumentException("JSON records require a top-level array")
-          }
-        case Left(e) => throw e
-      }
-    }
+    StructuredDataText.fromJsonRecords(text, allowSingle = false)
 
   private def _decode_json_auto_records(text: String): Consequence[Vector[Record]] =
-    Consequence {
-      parse(text) match {
-        case Right(json) =>
-          json.asObject match {
-            case Some(_) => Vector(_to_record(json))
-            case None =>
-              json.asArray match {
-                case Some(values) =>
-                  values.toVector.map { value =>
-                    value.asObject match {
-                      case Some(_) => _to_record(value)
-                      case None => throw new IllegalArgumentException("JSON auto records require an object or an array of objects")
-                    }
-                  }
-                case None => throw new IllegalArgumentException("JSON auto records require an object or an array of objects")
-              }
-          }
-        case Left(e) => throw e
-      }
-    }
+    StructuredDataText.fromJsonRecords(text, allowSingle = true)
 
   private def _decode_yaml(text: String): Consequence[Record] =
-    Consequence {
-      val yamlValue: AnyRef = _yaml_parser.load(text)
-      _yaml_value_to_record(yamlValue)
-    }
+    StructuredDataText.fromText(text, StructuredDataFormat.Yaml)
 
   private def _decode_yaml_records(text: String): Consequence[Vector[Record]] =
-    Consequence {
-      val yamlValue: AnyRef = _yaml_parser.load(text)
-      if (yamlValue == null)
-        Vector.empty
-      else if (yamlValue.isInstanceOf[java.util.Collection[?]]) {
-        val xs = yamlValue.asInstanceOf[java.util.Collection[AnyRef]]
-        xs.asScala.toVector.map(_yaml_record_from_list_item)
-      } else {
-        throw new IllegalArgumentException("YAML plural decode requires a top-level list")
-      }
-    }
+    StructuredDataText.fromYamlRecords(text, allowSingle = false)
 
   private def _decode_yaml_auto_records(text: String): Consequence[Vector[Record]] =
-    Consequence {
-      val yamlValue: AnyRef = _yaml_parser.load(text)
-      if (yamlValue == null) {
-        throw new IllegalArgumentException("YAML auto records require a mapping or a list of mappings")
-      } else if (yamlValue.isInstanceOf[java.util.Map[?, ?]]) {
-        Vector(_yaml_record_from_list_item(yamlValue))
-      } else if (yamlValue.isInstanceOf[java.util.Collection[?]]) {
-        val xs = yamlValue.asInstanceOf[java.util.Collection[AnyRef]]
-        xs.asScala.toVector.map(_yaml_record_from_list_item)
-      } else {
-        throw new IllegalArgumentException("YAML auto records require a mapping or a list of mappings")
-      }
-    }
+    StructuredDataText.fromYamlRecords(text, allowSingle = true)
 
   private def _decode_xml(text: String): Consequence[Record] =
     Consequence {
@@ -236,35 +165,6 @@ class RecordDecoder(
     Consequence {
       val doc = _xml_factory.newDocumentBuilder().parse(new InputSource(new StringReader(text)))
       _xml_container_to_auto_records(doc.getDocumentElement)
-    }
-
-  private def _yaml_record_from_list_item(value: Any): Record =
-    _yaml_value_to_record(value)
-
-  private def _yaml_value_to_record(value: Any): Record =
-    if (value.isInstanceOf[java.util.Map[?, ?]]) {
-      val m = value.asInstanceOf[java.util.Map[String, AnyRef]]
-      Record.create(
-        m.asScala.toVector.map { case (k, v) => k -> _yaml_value_to_value(v) }
-      )
-    } else {
-      throw new IllegalArgumentException("YAML values must be mappings")
-    }
-
-  private def _yaml_value_to_value(value: Any): Any =
-    value match {
-      case null => null
-      case m: java.util.Map[?, ?] =>
-        Record.create(
-          m.asInstanceOf[java.util.Map[String, AnyRef]].asScala.toVector.map { case (k, v) =>
-            k -> _yaml_value_to_value(v)
-          }
-        )
-      case c: java.util.Collection[?] =>
-        c.asScala.toVector.map(_yaml_value_to_value)
-      case xs: Array[?] =>
-        xs.toVector.map(_yaml_value_to_value)
-      case v => v
     }
 
   private def _decode_csv_records(text: String): Consequence[Vector[Record]] =
@@ -291,53 +191,6 @@ class RecordDecoder(
         throw new IllegalArgumentException("TSL input is empty")
       blocks.map(_parse_tsl_block).toVector
     }
-
-  private def _to_json(value: Any): Json =
-    if (value == null) {
-      Json.Null
-    } else if (value.isInstanceOf[java.lang.Boolean]) {
-      Json.fromBoolean(value.asInstanceOf[java.lang.Boolean])
-    } else if (value.isInstanceOf[java.lang.Number]) {
-      Json.fromBigDecimal(BigDecimal(value.asInstanceOf[java.lang.Number].toString))
-    } else if (value.isInstanceOf[String]) {
-      Json.fromString(value.asInstanceOf[String])
-    } else if (value.isInstanceOf[java.util.Map[?, ?]]) {
-      val m = value.asInstanceOf[java.util.Map[String, AnyRef]]
-      Json.fromJsonObject(
-        io.circe.JsonObject.fromIterable(
-          m.asScala.map { case (k, v) => k -> _to_json(v) }
-        )
-      )
-    } else if (value.isInstanceOf[java.util.Collection[?]]) {
-      val c = value.asInstanceOf[java.util.Collection[AnyRef]]
-      Json.fromValues(c.asScala.iterator.map(_to_json).toVector)
-    } else if (value.isInstanceOf[Array[?]]) {
-      Json.fromValues(value.asInstanceOf[Array[AnyRef]].toVector.map(_to_json))
-    } else {
-      Json.fromString(value.toString)
-    }
-
-  private def _to_value(json: Json): Any =
-    json.fold(
-      jsonNull = null,
-      jsonBoolean = identity,
-      jsonNumber = num => num.toBigDecimal.getOrElse(BigDecimal(num.toDouble)),
-      jsonString = identity,
-      jsonArray = arr => arr.map(_to_value).toVector,
-      jsonObject = obj =>
-        Record.create(
-          obj.toIterable.map { case (k, v) => k -> _to_value(v) }.toVector
-        )
-    )
-
-  private def _to_record(json: Json): Record =
-    json.asObject
-      .map(obj =>
-        Record.create(
-          obj.toIterable.map { case (k, v) => k -> _to_value(v) }.toVector
-        )
-      )
-      .getOrElse(Record.empty)
 
   private def _xml_container_to_records(element: org.w3c.dom.Element): Vector[Record] = {
     val children = _xml_child_elements(element)

@@ -14,9 +14,10 @@ attributes, and preserve empty structures and the order of retained data.
 Deliver one connected construction -> encoding -> decoding -> typed-read
 route before completing the remaining affected entry points.
 
-The connected RCA-01/02 route is accepted; this is not a claim that all entry
-points conform. This Phase does not inherit the unrelated error-model follow-ups
-of Phase 2.9.
+The connected RCA-01/02 route and RCA-03 entry-point migration have passed their
+Step validation and independent review. Integrated Phase acceptance and the
+consumer handoff remain open. This Phase does not inherit the unrelated
+error-model follow-ups of Phase 2.9.
 
 ## Current delivery status
 
@@ -28,7 +29,15 @@ of Phase 2.9.
 - The three pre-review corrections are covered by that accepted final delta.
   [HYG-CORE-P3-001](../journal/2026/10/2026-10-18-phase-3-hygiene-follow-up.md)
   remains separate nonblocking maintenance; there are no current Step blockers.
-- RCA-03, integrated Phase acceptance, consumer handoff, repository-full
+- RCA-03: shared construction/copy/product normalization and ordinary codec
+  migration passed selected validation (176 tests, 16 suites; four existing
+  pending cases). The independent Step review identified one HOCON large-integer
+  row-roundtrip defect. Its correction passed 104 tests across four suites and
+  a fresh focused independent closure review. These validation counts overlap
+  and are not additive. There are no unresolved RCA-03 blockers.
+- HYG-CORE-P3-001 through HYG-CORE-P3-003 remain separately recorded nonblocking
+  maintenance; no incidental naming or structural-syntax cleanup is included.
+- RCA-04/05 integrated Phase acceptance and consumer handoff, repository-full
   validation, the independent Phase full review and release closure remain open.
 
 ## Governing rule: no null in normal program logic

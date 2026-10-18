@@ -3,16 +3,18 @@ package org.goldenport.record.io
 import java.io.StringReader
 import java.nio.file.{Files, Path}
 import scala.jdk.CollectionConverters.*
-import com.typesafe.config.{Config, ConfigFactory, ConfigObject, ConfigValue}
+import com.typesafe.config.ConfigFactory
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.toml.TomlFactory
 import org.goldenport.Consequence
-import org.goldenport.record.{Field, Record, RecordDecoder as TypedRecordDecoder, RecordFormat}
+import org.goldenport.record.{Record, RecordDecoder as TypedRecordDecoder, RecordFormat}
+import org.goldenport.schema.StructuredDataHocon
 
 /*
  * @since   Apr.  8, 2026
  *  version May. 24, 2026
- * @version Jul. 21, 2026
+ *  version Jul. 21, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 object RecordSourceLoader:
@@ -79,32 +81,31 @@ object RecordSourceLoader:
     }
 
   private def _decode_hocon(content: String): Consequence[Record] =
-    Consequence {
-      _config_to_record(ConfigFactory.parseString(content).resolve())
-    }
+    Consequence { ConfigFactory.parseString(content).resolve() }
+      .flatMap(StructuredDataHocon.fromConfig)
 
   private def _decode_hocon_records(content: String): Consequence[Vector[Record]] =
     _decode_hocon(content).map(Vector(_))
 
   private def _decode_toml(content: String): Consequence[Record] =
     Consequence {
-      val root = _toml_mapper.readValue(content, classOf[java.util.Map[String, Object]])
-      Record.create(root.asScala.toVector.map { case (key, value) =>
-        key -> _toml_value(value)
-      })
-    }
+      _toml_mapper.readValue(content, classOf[java.util.Map[String, Object]])
+    }.flatMap(_toml_object)
 
-  private def _toml_value(value: Any): Any =
+  private def _toml_object(value: java.util.Map[?, ?]): Consequence[Record] =
+    Consequence.zipN(value.asScala.toVector.flatMap { case (key, entry) =>
+      Option(entry).map(present => _toml_value(present).map(key.toString -> _))
+    }).flatMap(Record.createC)
+
+  private def _toml_value(value: Any): Consequence[Any] =
     value match
-      case null => null
+      case null => Consequence.valueInvalid("Null TOML sequence element")
       case map: java.util.Map[?, ?] =>
-        Record.create(map.asScala.toVector.map { case (key, entry) =>
-          key.toString -> _toml_value(entry)
-        })
+        _toml_object(map)
       case values: java.util.Collection[?] =>
-        values.asScala.toVector.map(_toml_value)
-      case number: java.lang.Number => BigDecimal(number.toString)
-      case other => other
+        Consequence.zipN(values.asScala.toVector.map(_toml_value)).map(_.toVector)
+      case number: java.lang.Number => Consequence { BigDecimal(number.toString) }
+      case other => Consequence.success(other)
 
   private def _decode_properties(content: String): Consequence[Record] =
     Consequence {
@@ -119,65 +120,3 @@ object RecordSourceLoader:
 
   private def _decode_properties_records(content: String): Consequence[Vector[Record]] =
     _decode_properties(content).map(Vector(_))
-
-  private def _config_to_record(config: Config): Record =
-    _record_from_pairs(
-      config.entrySet().asScala.toVector.map { entry =>
-        entry.getKey -> _config_value(entry.getValue)
-      }
-    )
-
-  private def _config_value(value: ConfigValue): Any =
-    value.unwrapped() match
-      case null => null
-      case _: java.lang.Boolean => value.unwrapped()
-      case _: java.lang.Number => BigDecimal(value.unwrapped().toString)
-      case s: String => s
-      case obj: java.util.Map[?, ?] =>
-        val cobj = value.asInstanceOf[ConfigObject]
-        _config_object(cobj)
-      case xs: java.util.Collection[?] =>
-        xs.asScala.toVector.map {
-          case cv: ConfigValue => _config_value(cv)
-          case other => other
-        }
-      case other => other.toString
-
-  private def _config_object(obj: ConfigObject): Map[String, Any] =
-    obj.entrySet().asScala.toVector.map { entry =>
-      entry.getKey -> _config_value(entry.getValue)
-    }.toMap
-
-  private def _record_from_pairs(
-    pairs: Seq[(String, Any)]
-  ): Record =
-    def merge(lhs: Map[String, Any], rhs: Map[String, Any]): Map[String, Any] =
-      rhs.foldLeft(lhs) { case (z, (key, value)) =>
-        (z.get(key), value) match
-          case (Some(lm: Map[?, ?]), rm: Map[?, ?]) =>
-            z.updated(
-              key,
-              merge(
-                lm.asInstanceOf[Map[String, Any]],
-                rm.asInstanceOf[Map[String, Any]]
-              )
-            )
-          case _ =>
-            z.updated(key, value)
-      }
-
-    def nest(path: String, value: Any): Map[String, Any] =
-      path.split("\\.").toList.filter(_.nonEmpty) match
-        case Nil => Map.empty
-        case head :: Nil => Map(head -> value)
-        case head :: tail => Map(head -> nest(tail.mkString("."), value))
-
-    def to_record_value(value: Any): Any = value match
-      case m: Map[?, ?] =>
-        Record.create(m.iterator.map { case (k, v) => k.toString -> to_record_value(v) }.toSeq)
-      case other => other
-
-    val tree = pairs.foldLeft(Map.empty[String, Any]) { case (z, (key, value)) =>
-      merge(z, nest(key, value))
-    }
-    Record.create(tree.iterator.map { case (k, v) => k -> to_record_value(v) }.toSeq)

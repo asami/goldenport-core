@@ -1,7 +1,7 @@
 # Canonical structured datatypes
 
 Status: Normative Core canonical/external-format/typed-reader contract, revised for
-Core Phase 3 / RCA-01-02A. The earlier Workbench PHASE-1 / STEP-2 / PREREQ-CORE-A,
+Core Phase 3 / RCA-01-02A and RCA-03 entry points. The earlier Workbench PHASE-1 / STEP-2 / PREREQ-CORE-A,
 PREREQ-CORE-B and PREREQ-CORE-C accumulator recorded 94/94 focused tests across six
 suites and a protected focused independent conformance review (PASS). That historical
 evidence applies to the earlier null-preserving prerequisite, not these Phase 3 semantics.
@@ -14,8 +14,11 @@ establish the remaining entry-point migration or complete Phase acceptance.
 
 - Current status: The connected Record construction, JSON/YAML encoding, explicit
   decoding and nonempty typed-read route passed its Step validation and independent
-  review. Remaining RCA-03 entry points, Phase-full validation/review and release
-  closure are pending.
+  review. RCA-03 selected validation passed 176 tests across 16 suites with four
+  existing pending cases. Its independent Step review's HOCON integer-roundtrip
+  blocker was corrected, then 104 tests across four suites and the fresh focused
+  closure review passed. These counts overlap and are not additive. Phase-full
+  validation/review and release closure remain pending.
 - Owner: goldenport-core; the Workbench PHASE-1 / STEP-2 prerequisite remains historical context.
 - Update rule: Advance this status from actual focused validation and independent
   Core review results. Generator, DataStore and final Phase acceptance retain
@@ -79,8 +82,8 @@ object-shaped Json. An absent root is invalid.
 
 JSON objects MUST become nested `Record` values constructed with
 `Record.createFull`. Null-valued object attributes MUST be omitted before recursive
-child decoding; native-null input attributes MUST be omitted by semantic Record
-normalization. This rule applies at every object depth, including objects in arrays.
+child decoding; native-null input attributes MUST be omitted at Record's shared
+construction boundary. This rule applies at every object depth, including objects in arrays.
 Arrays MUST become `Vector` values. Null array/sequence elements at any depth MUST
 fail as invalid values; they MUST NOT be filtered out or shift subsequent positions.
 Strings (including `"null"` and empty String), booleans (including false) and zero
@@ -89,7 +92,9 @@ present, including a child object emptied by null-attribute omission.
 
 Record normalization MUST support nested Records, Scala sequences including Vector,
 native primitive and reference arrays, Cats `NonEmptyVector`, String and Boolean.
-All supported sequences MUST normalize to ordered Vectors; untyped decoding MUST NOT
+Canonical semantic normalization converts supported sequences to ordered Vectors;
+construction itself retains an actual NonEmptyVector's shape while owning its
+elements. Untyped decoding MUST NOT
 infer a NonEmptyVector from array length. Retained object key order and array element
 order MUST be preserved. Conversion MUST read Record fields directly. Ordinary
 RecordEncoder JSON/YAML output MUST use the same canonical semantic contract.
@@ -142,9 +147,10 @@ adjacent to setup, interpretation and expectations.
 Existing scalar datatype identities, names, signatures and normalizer behavior
 MUST retain their established semantics. Phase 3 / RCA-01-02A changes Record
 create/createFull/data factory omission and empty preservation, getVector collection
-support and RecordEncoder JSON/YAML canonical conversion. Constructor/copy/dataAuto,
-remaining ordinary decoding/source-loading harmonization and XML collection work
-are explicitly later RCA-03 scope.
+support and RecordEncoder JSON/YAML canonical conversion. RCA-03 extends the
+specified policy to constructor/copy/dataAuto, ordinary decoding/source loading
+and the existing XML collection surface as detailed in R13. Its authored
+scenarios do not extend the earlier Step's validation evidence.
 
 This accumulator specifies canonical types and explicit JSON/YAML/HOCON conversion.
 Generated schema metadata in SimpleModeler/Cozy and SQL mapping/DataStore
@@ -201,7 +207,7 @@ HOCON object conversion MUST traverse `config.root()` ConfigObject entries
 directly, preserving literal quoted dotted keys separately from nested objects,
 arrays and null input syntax. Config lists MUST become Vectors. Strings and booleans
 MUST follow their declared ConfigValueType. Null object attributes MUST be omitted
-and null list elements MUST fail under final canonical normalization. NUMBER conversion MUST
+and null list elements MUST fail during direct conversion. NUMBER conversion MUST
 use public Config string coercion via
 `value.atKey("canonicalValue").getString("canonicalValue")` to retain config
 1.4.3 original numeric text, followed by exact BigDecimal conversion with
@@ -224,7 +230,8 @@ ConfigObjects MUST be paired by exact key set and ConfigLists by length and
 index. STRING-to-NUMBER pairs MUST use the adapted exact numeric text;
 STRING-to-STRING pairs MUST retain the original string, including concatenations;
 NUMBER-to-NUMBER pairs MUST use original exact numeric text. Objects and lists
-MUST recurse, and agreeing BOOLEAN and NULL types MUST retain original values.
+MUST recurse, agreeing BOOLEAN types MUST retain original values, and agreeing
+NULL object members MUST be omitted before recursion. NULL list elements fail.
 Unexpected type pairs or key/length differences MUST produce an invalid outcome
 without guessing or omitting members. If no token changes, the original root
 MUST serve as both sides without another parse. This compatibility adaptation
@@ -251,8 +258,8 @@ depth. Only null object attributes are omitted; other invalid values MUST NOT
 become successful empty values, omitted members or strings. Independent child conversion MUST aggregate failures with
 `Consequence.zipN`; only dependent parsing, decoding and canonical normalization
 may sequence with `flatMap`. Ordinary Record JSON/YAML encoding shares this contract.
-Remaining decoder/source-loading entry points await RCA-03; scalar datatype APIs
-MUST retain their established behavior.
+Ordinary decoder/source-loading entry points share the conversion rules in R13;
+scalar datatype APIs MUST retain their established behavior.
 
 The executable contract MUST cover the supported and rejected inputs above
 with adjacent Given/When/Then clauses and should matchers. Generated exact
@@ -314,3 +321,97 @@ Json containing exact decimals, Unicode, nested objects, nullable attributes and
 non-null arrays MUST preserve normalized semantic JSON equality through the Record reader followed by explicit
 `XSemiStructuredData.toJson`. Combined Core validation and independent review
 remain pending as recorded in Stage Status.
+
+## R13. Record construction and ordinary IO entry points
+
+The complete entry-point contract and CNCF migration input are specified in
+[record-normalization.md](record-normalization.md), with executable scenarios in
+[RecordEntryPointSpec.scala](../../src/test/scala/org/goldenport/record/RecordEntryPointSpec.scala).
+Record remains the same field-vector case class with Product, equality and
+extractor behavior. Its primary constructor is private; public APIs are:
+
+```scala
+Record(fields: Vector[Field] = Vector.empty): Record
+Record.fromProduct(product: Product): Record
+Record.fromFieldsC(fields: Vector[Field]): Consequence[Record]
+Record.createC(xs: Seq[(String, Any)]): Consequence[Record]
+record.copy(fields: Vector[Field] = record.fields): Record
+```
+
+fromFieldsC is the sole construction kernel. Absent vectors, null Fields, null
+keys and absent or unsupported Field.Value inputs fail with
+Consequence.valueInvalid(message). Single(null) attributes are omitted before
+entering normal logic. Seq and native Array values are recursively copied to
+immutable Vectors; actual NonEmptyVectors retain their shape with owned elements.
+Null elements fail at every depth with zipN aggregation. Nested Records, empty
+structures, order, duplicate fields and present scalar/opaque atoms are retained.
+Construction does not canonicalize numbers or inspect arbitrary models;
+XSemiStructuredData separately validates canonical numbers, unsupported values
+and duplicate keys. No semantic validation uses a JSON roundtrip.
+
+All public create/createFull/Map/data/dataOption/dataAuto/apply/copy and immutable
+append/replacement/concatenation/filter routes reach this kernel. Convenience
+APIs TAKE the result; C paths preserve the original failure taxonomy. The existing
+public fromProduct adapter, called directly or through Mirror.ProductOf[Record],
+MUST pass the Product's first element cast as Vector[Field] through apply and
+the same kernel, retaining existing Product shape and cast behavior. createC
+MUST return Consequence.valueInvalid(message) for an absent input sequence or
+native-null tuple, aggregating tuple admission with zipN before fromFieldsC.
+dataAuto
+retains empty structures after its existing Some/None unwrapping; None and
+Some(null) are omitted. Null append preserves existing fields; null replacement
+removes the replaced key. Internal callers use removeKeys. Getters and path/string
+access consume the invariant without routine null filtering, with their existing
+typed-reader, missing-value and path-precedence semantics.
+
+StructuredDataJson, StructuredDataText and StructuredDataHocon are shared only
+inside private[goldenport] scope. Ordinary RecordDecoder JSON/YAML single APIs
+require objects; plural APIs require arrays/lists of objects and auto APIs also
+accept one object. Explicit empty lists succeed. Empty YAML documents, scalar
+and null roots fail in plural as well as single/auto APIs. This deliberately
+removes the old yamlRecords(null/empty-document)-to-empty-vector ambiguity.
+String/Bag/InputStream wrappers retain their public forms. Numeric values are
+exact BigDecimals. SnakeYAML compose handles its absent Node through Option;
+mapping keys and duplicates are validated before Tag.NULL members are omitted,
+and Tag.NULL sequence elements fail. Existing exact numeric, boolean, alias-cycle,
+unsupported-tag, merge-key and non-string-key restrictions remain in force.
+
+Strict literal HOCON retains all R10 restrictions and unlimited exact numeric
+token adaptation. The internal fromConfig(Config): Consequence[Record] converts
+an already parsed/resolved root directly using that root as both original and
+adapted objects; it performs no IO, resolution or numeric-looking-string inference.
+Ordinary source loading and HOCON import retain their existing
+ConfigFactory.parseString(...).resolve() features before calling this converter.
+Empty child objects, literal dotted keys and recursively converted list objects
+survive. NULL object members are omitted before recursion; NULL list elements
+fail. Import preserves first-nonempty records/items/data priority, scalar value
+wrapping and whole-root fallback. Existing schema coercion still returns Int20
+for age under XInt. TOML foreign maps/collections are converted recursively at
+ingress with Option member omission, invalid null list positions and zipN
+aggregation, preserving existing scalar/time/table features.
+
+Row JSON and TSL exports aggregate canonical per-record JSON and render arrays.
+YAML uses canonical per-record YAML with deterministic list indentation, `[]` for
+an empty collection and a valid empty mapping item for Record.empty. HOCON renders
+the same canonical JSON objects in the existing records list and MUST recursively
+emit integral numbers outside Long range as exact unquoted decimal numeric tokens
+with scale 1 so ordinary Config loading preserves numeric type. This emission
+MUST NOT infer numeric Strings or change full-config resolution, strict literal
+parsing or public APIs. These paths return
+structured failures directly. Nested Record, NonEmptyVector, Seq/Array text cells
+share internal valueToJson semantic conversion; missing CSV/Excel cells remain
+Option until rendered as empty String. Ordinary scalar table display and export
+schemas, content types and extensions are unchanged. XML display traverses
+NonEmptyVector with the existing item shape, escaping and scalar lexical display;
+it does not impose canonical structured-type validation on every XML scalar.
+
+This constructor change affects source/ABI compatibility: callers must migrate
+from `new Record` and anonymous subclasses to Record(...), Record.fromFieldsC or
+copy. CNCF `DurableJobOperationResponseCodecSpec.scala:115` uses a hostile
+`new Record(Vector.empty)` anonymous subclass, and lines 92-145 intentionally
+construct malformed null fields. CNCF115 must redesign these closed-codec
+fixtures without invalid Record instances or subclass construction. This is a
+concrete downstream handoff, not downstream validation, publication or a
+compatibility-transparency claim. XJson raw JSON/null semantics and all earlier
+evidence remain historical and unchanged. Step/Phase acceptance still requires
+the separately recorded actual validation and independent review outcomes.

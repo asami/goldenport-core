@@ -1,3 +1,11 @@
 <!-- cncf-phase-finding:HYG-CORE-P3-001:begin -->
 HYG-CORE-P3-001 — Record path lookup local naming. src/main/scala/org/goldenport/record/Record.scala:200 retains the method-local identifier pathKey, contrary to the shared flatcase local-variable rule. The identical declaration exists at original base 8102fe40e2b052c637f89c929fec9a7434f24b57 and is unchanged by RCA-01-02A. This is nonbehavioral naming debt and does not block Step acceptance. In a separate maintenance task, rename the local declaration and its reference without changing path lookup behavior or public APIs.
 <!-- cncf-phase-finding:HYG-CORE-P3-001:end -->
+
+<!-- cncf-phase-finding:HYG-CORE-P3-002:begin -->
+HYG-CORE-P3-002 — Existing Record IO naming debt. src/main/scala/org/goldenport/record/io/RecordDecoder.scala:228,241,258 retains method-local childElements and namesInOrder rather than flatcase. src/main/scala/org/goldenport/record/io/RecordImportDecoder.scala:598,608 retains camelCase fields hasHeader and sourceLabel in private internal case classes. src/main/scala/org/goldenport/record/io/RecordExportEncoder.scala:249 retains the constant name ExcelContentType rather than SCREAMING_SNAKE_CASE. These declarations are present unchanged at RCA-03 Step base 2150f9377c4c51eb7ce7114df30a350163492512. This is nonbehavioral maintenance debt and does not block Step acceptance. Address in a separate IO naming maintenance task with applicable public/source compatibility constraints; do not incidentally rename APIs or expand this Step.
+<!-- cncf-phase-finding:HYG-CORE-P3-002:end -->
+
+<!-- cncf-phase-finding:HYG-CORE-P3-003:begin -->
+HYG-CORE-P3-003 — Existing RecordSourceLoader structural syntax debt. src/main/scala/org/goldenport/record/io/RecordSourceLoader.scala:20 defines the object using indentation syntax, contrary to the shared explicit-braces rule for structural declarations. The same object declaration exists at RCA-03 Step base 2150f9377c4c51eb7ce7114df30a350163492512 and was not introduced by this Step. No current behavioral failure is attributed to it. In a separate maintenance task, migrate the object boundary to explicit braces while preserving behavior and its existing API; do not expand the RCA-03 repair boundary.
+<!-- cncf-phase-finding:HYG-CORE-P3-003:end -->

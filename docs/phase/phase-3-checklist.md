@@ -8,8 +8,11 @@ Update rule: Check only outcomes supported by actual implementation, validation 
 RCA-01 and RCA-02 are accepted as the connected Step RCA-01-02 on 2026-10-18:
 39 representative tests across three suites and 123 accumulator tests across
 nine suites passed, and the independent protected focused Step review passed.
-Two pre-existing pending placeholders remain unchanged. This is not Phase closure;
-RCA-03 through RCA-05 and final validation/review/release remain open.
+Two pre-existing pending placeholders remain unchanged. RCA-03 subsequently
+passed selected validation (176 tests, 16 suites; four existing pending cases).
+Its HOCON integer-roundtrip correction passed 104 tests across four suites and
+the independent focused closure review; the counts overlap and are not additive.
+This is not Phase closure: RCA-04/05 and final validation/review/release remain open.
 
 - [x] **RCA-01 - Contract migration specified.** Working specifications replace
   null-attribute retention with omission, preserve empty objects/arrays, define
@@ -20,7 +23,7 @@ RCA-03 through RCA-05 and final validation/review/release remain open.
   encodes as an array and decodes with correct values and order; null attributes
   disappear recursively while empty children remain. Explicit nonempty reads
   succeed or fail by cardinality through Consequence.
-- [ ] **RCA-03 - Entry points agree.** Actual constructors, mutation-style
+- [x] **RCA-03 - Entry points agree.** Actual constructors, mutation-style
   immutable APIs, codecs and canonical normalizers have one documented policy;
   direct Field/createFull paths do not accidentally reintroduce null attributes.
   Affected callers/specifications are migrated. JSON/YAML/HOCON and existing

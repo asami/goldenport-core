@@ -126,17 +126,19 @@ final class RecordNormalizationSpec
       _expect_invalid(nestedresult)
     }
 
-    "aggregate independent element failures and reject nulls throughout ordinary output" in {
-      Given("two invalid typed elements and Records with null positions at several depths")
+    "aggregate independent element failures and reject nulls before ordinary output" in {
+      Given("two invalid typed elements and construction inputs with null positions at several depths")
       val invalids = Vector[Any]("first-invalid", "second-invalid")
-      val records = Vector(Record.data("items" -> Vector[Any](1, null)),
-        Record.data("items" -> NonEmptyVector.of[Any](null)),
-        Record.data("items" -> Array[Any](Vector[Any](null))),
-        Record.data("items" -> Vector(Record.data("nested" -> Vector[Any](null)))))
-      When("the typed reader and both ordinary encoders interpret these values")
+      val inputs = Vector[Any](Vector[Any](1, null), NonEmptyVector.of[Any](null),
+        Array[Any](Vector[Any](null)))
+      When("the typed reader and C construction boundaries interpret the values before both encoders")
       val elements = summon[ValueReader[NonEmptyVector[Int]]].readC(invalids)
-      val outputs = records.flatMap(record => Vector(RecordEncoder.jsonC(record), RecordEncoder.yamlC(record)))
-      Then("both element conclusions survive and every invalid output fails through Consequence")
+      val records = inputs.map(value => Record.createC(Vector("items" -> value))) :+
+        Record.createC(Vector("nested" -> Vector[Any](null)))
+          .flatMap(child => Record.createC(Vector("items" -> Vector(child))))
+      val outputs = records.flatMap(record => Vector(record.flatMap(RecordEncoder.jsonC),
+        record.flatMap(RecordEncoder.yamlC)))
+      Then("both typed conclusions survive and every invalid construction fails before output")
       elements match {
         case Consequence.Failure(conclusion) =>
           conclusion.causes should have size 2

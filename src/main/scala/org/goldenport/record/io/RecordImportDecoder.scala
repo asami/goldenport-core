@@ -2,7 +2,7 @@ package org.goldenport.record.io
 
 import java.io.{ByteArrayInputStream, StringReader}
 import java.nio.file.{Files, Path}
-import com.typesafe.config.{Config as HoconConfig, ConfigFactory, ConfigObject, ConfigValue}
+import com.typesafe.config.ConfigFactory
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 import org.apache.poi.ss.usermodel.{DataFormatter, WorkbookFactory}
@@ -13,7 +13,8 @@ import org.goldenport.schema.*
 
 /*
  * @since   May. 24, 2026
- * @version Jul. 21, 2026
+ *  version Jul. 21, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class RecordImportDecoder(
@@ -215,9 +216,8 @@ final class RecordImportDecoder(
   private def _decode_hocon_records(
     text: String
   ): Consequence[Vector[Record]] =
-    Consequence {
-      _config_records(ConfigFactory.parseString(text).resolve())
-    }
+    Consequence { ConfigFactory.parseString(text).resolve() }
+      .flatMap(StructuredDataHocon.fromConfig).map(_config_records)
 
   private def _decode_properties_records(
     text: String
@@ -232,48 +232,23 @@ final class RecordImportDecoder(
       ))
     }
 
-  private def _config_records(config: HoconConfig): Vector[Record] = {
-    val root = config.root()
-    val containerrecords = Vector("records", "items", "data").flatMap { key =>
-      if (root.containsKey(key))
-        Some(_config_records_from_value(root.get(key)))
-      else
-        None
-    }
-    containerrecords.find(_.nonEmpty).getOrElse(Vector(_config_object(root)))
+  private def _config_records(root: Record): Vector[Record] = {
+    val containerrecords = Vector("records", "items", "data")
+      .flatMap(key => root.getAny(key).map(_config_records_from_value))
+    containerrecords.find(_.nonEmpty).getOrElse(Vector(root))
   }
 
-  private def _config_records_from_value(value: ConfigValue): Vector[Record] =
+  private def _config_records_from_value(value: Any): Vector[Record] =
     value match {
-      case obj: ConfigObject => Vector(_config_object(obj))
-      case _ =>
-        value.unwrapped() match {
-          case xs: java.util.Collection[?] => xs.asScala.toVector.map(_plain_value_to_record)
-          case other => Vector(Record.create(Vector("value" -> _plain_config_value(other))))
-        }
+      case record: Record => Vector(record)
+      case values: Seq[?] => values.toVector.map(_plain_value_to_record)
+      case other => Vector(_plain_value_to_record(other))
     }
 
   private def _plain_value_to_record(value: Any): Record =
     value match {
-      case m: java.util.Map[?, ?] =>
-        Record.create(m.asScala.toVector.map {
-          case (k, v) => k.toString -> _plain_config_value(v)
-        })
-      case other => Record.create(Vector("value" -> _plain_config_value(other)))
-    }
-
-  private def _plain_config_value(value: Any): Any =
-    value match {
-      case null => null
-      case _: java.lang.Boolean => value
-      case _: java.lang.Number => BigDecimal(value.toString)
-      case s: String => s
-      case m: java.util.Map[?, ?] =>
-        Record.create(m.asScala.toVector.map {
-          case (k, v) => k.toString -> _plain_config_value(v)
-        })
-      case xs: java.util.Collection[?] => xs.asScala.toVector.map(_plain_config_value)
-      case other => other.toString
+      case record: Record => record
+      case other => Record.data("value" -> other)
     }
 
   private def _shape(
@@ -337,7 +312,7 @@ final class RecordImportDecoder(
     datatype: DataType
   ): Either[String, Any] =
     datatype match {
-      case XString => Right(Option(value).map(_.toString).orNull)
+      case XString => Right(value.toString)
       case XBoolean => _string(value).flatMap {
         case "true" | "t" | "yes" | "y" | "1" => Right(true)
         case "false" | "f" | "no" | "n" | "0" => Right(false)
@@ -352,8 +327,10 @@ final class RecordImportDecoder(
       case _ => Right(value)
     }
 
-  private def _string(value: Any): Either[String, String] =
-    Option(value).map(_.toString.trim.toLowerCase(java.util.Locale.ROOT)).filter(_.nonEmpty).toRight("Value is empty")
+  private def _string(value: Any): Either[String, String] = {
+    val text = value.toString.trim.toLowerCase(java.util.Locale.ROOT)
+    Either.cond(text.nonEmpty, text, "Value is empty")
+  }
 
   private def _header_decision(
     row: Vector[String],
@@ -527,14 +504,6 @@ final class RecordImportDecoder(
     }
   }
 
-  private def _config_value(value: ConfigValue): Any =
-    value match {
-      case obj: ConfigObject => _config_object(obj)
-      case _ => _plain_config_value(value.unwrapped())
-    }
-
-  private def _config_object(obj: ConfigObject): Record =
-    Record.create(obj.entrySet().asScala.toVector.map(entry => entry.getKey -> _config_value(entry.getValue)))
 }
 
 object RecordImportDecoder {

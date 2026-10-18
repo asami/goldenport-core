@@ -15,10 +15,10 @@ import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode, SequenceNode, Ta
  * Explicit external text conversion into canonical structured values.
  *
  * @since   Oct.  5, 2026
- * @version Oct.  5, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
-private[schema] object StructuredDataText {
+private[goldenport] object StructuredDataText {
   def fromText(text: String, format: StructuredDataFormat): Consequence[Record] = {
     if (format == null) {
       _invalid("Absent structured data format")
@@ -34,6 +34,26 @@ private[schema] object StructuredDataText {
     }
   }
 
+  def fromJsonRecords(text: String, allowSingle: Boolean): Consequence[Vector[Record]] =
+    _parse_json(text).flatMap { json =>
+      json.asArray match {
+        case Some(values) => Consequence.zipN(values.map(XSemiStructuredData.fromJson)).map(_.toVector)
+        case None if allowSingle => XSemiStructuredData.fromJson(json).map(Vector(_))
+        case None => _invalid("JSON records require an array of objects")
+      }
+    }
+
+  def fromYamlRecords(text: String, allowSingle: Boolean): Consequence[Vector[Record]] =
+    _compose_yaml(text).flatMap {
+      case Some(sequence: SequenceNode) if sequence.getTag == Tag.SEQ =>
+        Consequence.zipN(sequence.getValue.asScala.toVector.map { node =>
+          _from_yaml(Some(node)).flatMap(XSemiStructuredData.normalizer.normalize)
+        }).map(_.toVector)
+      case node @ Some(_) if allowSingle =>
+        _from_yaml(node).flatMap(XSemiStructuredData.normalizer.normalize).map(Vector(_))
+      case _ => _invalid("YAML records require a list of mappings")
+    }
+
   private def _parse_json(text: String): Consequence[Json] = {
     try {
       parser.parse(text) match {
@@ -45,19 +65,19 @@ private[schema] object StructuredDataText {
     }
   }
 
-  private def _compose_yaml(text: String): Consequence[Node] = {
+  private def _compose_yaml(text: String): Consequence[Option[Node]] = {
     try {
       val options = new LoaderOptions()
       options.setMaxAliasesForCollections(Int.MaxValue)
-      Consequence.success(new Yaml(options).compose(new StringReader(text)))
+      Consequence.success(Option(new Yaml(options).compose(new StringReader(text))))
     } catch {
       case NonFatal(_) => Consequence.valueFormatError("Malformed YAML document", XSemiStructuredData)
     }
   }
 
-  private def _from_yaml(node: Node): Consequence[Record] = {
+  private def _from_yaml(node: Option[Node]): Consequence[Record] = {
     node match {
-      case mapping: MappingNode if mapping.getTag == Tag.MAP =>
+      case Some(mapping: MappingNode) if mapping.getTag == Tag.MAP =>
         _yaml_mapping(mapping, List(mapping))
       case _ => _invalid("YAML root must be a mapping")
     }
@@ -75,7 +95,7 @@ private[schema] object StructuredDataText {
             .map(_.toVector)
         case scalar: ScalarNode if scalar.getTag == Tag.STR => Consequence.success(scalar.getValue)
         case scalar: ScalarNode if scalar.getTag == Tag.BOOL => _yaml_boolean(scalar.getValue)
-        case scalar: ScalarNode if scalar.getTag == Tag.NULL => Consequence.success(null)
+        case scalar: ScalarNode if scalar.getTag == Tag.NULL => _invalid("Null YAML sequence element")
         case scalar: ScalarNode if scalar.getTag == Tag.INT || scalar.getTag == Tag.FLOAT =>
           _yaml_number(scalar)
         case _ => _invalid("Unsupported YAML node tag")
@@ -103,9 +123,13 @@ private[schema] object StructuredDataText {
         case scalar: ScalarNode if scalar.getTag == Tag.STR => Consequence.success(scalar.getValue)
         case _ => _invalid("YAML mapping key must be a string without merge semantics")
       }
-      key.zip(_decode_yaml(member.getValueNode, ancestors))
+      if (member.getValueNode.getTag == Tag.NULL) {
+        key.map(_ => Option.empty[(String, Any)])
+      } else {
+        key.zip(_decode_yaml(member.getValueNode, ancestors)).map(Some.apply)
+      }
     })
-    validkeys.zip(fields).map { case (_, values) => Record.createFull(values) }
+    validkeys.zip(fields).map { case (_, values) => Record.createFull(values.flatten) }
   }
 
   private def _yaml_boolean(text: String): Consequence[Boolean] = {

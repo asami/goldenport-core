@@ -128,16 +128,20 @@ final class StructuredValueReaderSpec
       }
     }
 
-    "reject null array elements in Json and Record inputs at every depth" in {
-      Given("object inputs with direct and nested invalid array positions")
+    "reject null array elements in Json reads and before Record construction at every depth" in {
+      Given("JSON and construction inputs with direct and nested invalid array positions")
       val values = Vector[Any](Json.obj("items" -> Json.arr(Json.Null)),
-        Json.obj("items" -> Json.arr(Json.arr(Json.Null))),
-        Record.data("items" -> Array[Any](null)),
-        Record.data("items" -> Vector(Vector[Any](null))))
-      When("the generic Record reader interprets each input")
+        Json.obj("items" -> Json.arr(Json.arr(Json.Null))))
+      val inputs = Vector[Any](Array[Any](null), Vector(Vector[Any](null)))
+      When("the generic reader interprets JSON and the C factory admits native Record inputs")
       val results = values.map(_read_c[Record])
-      Then("all null positions produce structured invalid outcomes")
+      val constructions = inputs.map(value => Record.createC(Vector("items" -> value)))
+      Then("JSON reads and native construction both reject null positions with structured outcomes")
       results.foreach(_expect_invalid(_, XSemiStructuredData))
+      constructions.foreach {
+        case Consequence.Failure(conclusion) => conclusion should be_invalid_failure_conclusion
+        case _ => fail("Native-null sequence construction must fail before typed reading")
+      }
     }
   }
 

@@ -14,7 +14,7 @@ import org.goldenport.record.Record
  * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
-private[schema] object StructuredDataJson {
+private[goldenport] object StructuredDataJson {
   def fromJsonText(text: String): Consequence[Json] = {
     if (text == null) {
       Consequence.valueFormatError(text, XJson)
@@ -41,6 +41,9 @@ private[schema] object StructuredDataJson {
     normalize(value).flatMap(_to_object)
   }
 
+  def valueToJson(value: Any): Consequence[Json] =
+    _normalize_value(value).flatMap(_to_value)
+
   def normalize(value: Record): Consequence[Record] = {
     if (value == null) {
       Consequence.valueInvalid(value, XSemiStructuredData)
@@ -53,8 +56,7 @@ private[schema] object StructuredDataJson {
           Consequence.valueInvalid(value, XSemiStructuredData)
         }
       }
-      val fields = Consequence.zipN(value.fields.filterNot(field =>
-        java.util.Objects.isNull(field.value.single)).map { field =>
+      val fields = Consequence.zipN(value.fields.map { field =>
         _normalize_value(field.value.single).map(field.key -> _)
       })
       validkeys.zip(fields).map { case (_, members) => Record.createFull(members) }

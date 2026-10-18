@@ -21,7 +21,10 @@ import org.goldenport.datatype.PathName
  * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
-case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
+case class Record private (fields: Vector[Field] = Vector.empty) extends Presentable {
+  def copy(fields: Vector[Field] = this.fields): Record =
+    Record.fromFieldsC(fields).TAKE
+
   def isEmpty: Boolean = fields.isEmpty
 
   def print: String = fields.map(_.print).mkString(",")
@@ -29,7 +32,6 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
   def getAs[T](key: String)(using reader: ValueReader[T]): Option[T] =
     fields.find(_.key == key).flatMap { field =>
       field.value match {
-        case Field.Value.Single(v) if java.util.Objects.isNull(v) => None
         case Field.Value.Single(v) => reader.read(v)
       }
     }
@@ -38,7 +40,6 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     fields.find(_.key == key) match {
       case None => Consequence.none
       case Some(field) => field.value match {
-        case Field.Value.Single(v) if java.util.Objects.isNull(v) => Consequence.none
         case Field.Value.Single(v) => reader.readC(v).map(Some.apply)
       }
     }
@@ -47,7 +48,6 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     fields.find(_.key == key) match {
       case None => Consequence.none
       case Some(field) => field.value match {
-        case Field.Value.Single(v) if java.util.Objects.isNull(v) => Consequence.none
         case Field.Value.Single(v) => reader.readContextC(v).map(Some.apply)
       }
     }
@@ -64,13 +64,7 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     }
 
   def getAny(key: String): Option[Any] =
-    fields.find(_.key == key).flatMap { field =>
-      val value = field.value.single
-      if (java.util.Objects.isNull(value))
-        None
-      else
-        Some(value)
-    }
+    fields.find(_.key == key).map(_.value.single)
 
   def getFirst(keys: Seq[String]): Option[Any] =
     keys.iterator.map(getAny).collectFirst { case Some(value) => value }
@@ -78,22 +72,10 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
   def keySet: Set[String] = asMap.keySet
 
   lazy val asMap: Map[String, Any] =
-    fields.flatMap { x =>
-      val value = x.value.single
-      if (java.util.Objects.isNull(value))
-        None
-      else
-        Some(x.key -> value)
-    }.toMap
+    fields.map(x => x.key -> x.value.single).toMap
 
   def asNameStringVector: Vector[(String, String)] =
-    fields.flatMap { x =>
-      val value = x.value.single
-      if (java.util.Objects.isNull(value))
-        None
-      else
-        Some(x.key -> value.toString)
-    }
+    fields.map(x => x.key -> x.value.single.toString)
 
   def ++(rhs: Record): Record = copy(fields = fields ++ rhs.fields)
 
@@ -188,10 +170,10 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     }
 
   def getStringVector(key: String): Option[Vector[String]] =
-    getVector(key).map(_.flatMap(_to_string_option))
+    getVector(key).map(_.map(_to_string))
 
   def getString(path: PathName): Option[String] =
-    _value_for_segments(path.segments).flatMap(_to_string_option)
+    _value_for_segments(path.segments).map(_to_string)
 
   private def _value_for_segments(segments: Vector[String]): Option[Any] =
     segments match {
@@ -199,16 +181,13 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
       case _ =>
         val pathKey = segments.mkString("/")
         asMap.get(pathKey) match {
-          case Some(value) if !java.util.Objects.isNull(value) => Some(value)
-          case Some(_) => None
+          case Some(value) => Some(value)
           case None =>
             fields.find(_.key == segments.head).flatMap { field =>
               val value = field.value match {
                 case Field.Value.Single(v) => v
               }
-              if (java.util.Objects.isNull(value))
-                None
-              else if (segments.tail.isEmpty)
+              if (segments.tail.isEmpty)
                 Some(value)
               else
                 value match {
@@ -220,13 +199,7 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
     }
 
   private def _to_string(p: Any): String =
-    _to_string_option(p).getOrElse("")
-
-  private def _to_string_option(p: Any): Option[String] =
-    if (java.util.Objects.isNull(p))
-      None
-    else
-      Some(p.toString)
+    p.toString
 
   private def _record_as[T](reader: ValueReader[T]): Option[T] =
     reader.read(asMap)
@@ -241,19 +214,73 @@ case class Record(fields: Vector[Field] = Vector.empty) extends Presentable {
 }
 
 object Record {
+  def apply(fields: Vector[Field] = Vector.empty): Record =
+    fromFieldsC(fields).TAKE
+
+  def fromProduct(product: Product): Record =
+    apply(product.productElement(0).asInstanceOf[Vector[Field]])
+
+  def fromFieldsC(fields: Vector[Field]): Consequence[Record] =
+    if (fields == null) {
+      Consequence.valueInvalid("Absent Record field vector")
+    } else {
+      Consequence.zipN(fields.map(_normalize_field)).map { members =>
+        new Record(members.flatten.toVector)
+      }
+    }
+
+  private def _normalize_field(field: Field): Consequence[Option[Field]] =
+    if (field == null) {
+      Consequence.valueInvalid("Absent Record field")
+    } else if (field.key == null) {
+      Consequence.valueInvalid("Absent Record field key")
+    } else {
+      field.value match {
+        case Field.Value.Single(value) =>
+          Option(value) match {
+            case None => Consequence.success(None)
+            case Some(present) => _own_value(present).map { owned =>
+              Some(Field(field.key, Field.Value.Single(owned)))
+            }
+          }
+        case _ => Consequence.valueInvalid("Absent or unsupported Record field value")
+      }
+    }
+
+  private def _own_value(value: Any): Consequence[Any] =
+    if (value == null) {
+      Consequence.valueInvalid("Null Record sequence element")
+    } else {
+      value match {
+        case record: Record => Consequence.success(record)
+        case values: NonEmptyVector[?] =>
+          _own_sequence(values.toVector).map(NonEmptyVector.fromVectorUnsafe)
+        case values: scala.collection.Seq[?] => _own_sequence(values)
+        case values: Array[?] => _own_sequence(values.toVector)
+        case other => Consequence.success(other)
+      }
+    }
+
+  private def _own_sequence(values: scala.collection.Seq[Any]): Consequence[Vector[Any]] =
+    Consequence.zipN(values.iterator.map(_own_value).toVector).map(_.toVector)
+
   val empty: Record = Record()
 
   given Monoid[Record] with
     def empty: Record = Record.empty
     def combine(x: Record, y: Record): Record = x ++ y
 
-  def create(xs: Seq[(String, Any)]): Record = {
-    val a = xs.flatMap {
-      case (_, v) if java.util.Objects.isNull(v) => None
-      case (k, v) => Some(Field(k, Field.Value.Single(v)))
-    }.toVector
-    Record(a.toVector)
-  }
+  def createC(xs: Seq[(String, Any)]): Consequence[Record] =
+    if (xs == null) {
+      Consequence.valueInvalid("Absent Record input attributes")
+    } else {
+      Consequence.zipN(xs.map {
+        case null => Consequence.valueInvalid[Field]("Absent Record input attribute")
+        case (key, value) => Consequence.success(Field(key, Field.Value.Single(value)))
+      }).flatMap(members => fromFieldsC(members.toVector))
+    }
+
+  def create(xs: Seq[(String, Any)]): Record = createC(xs).TAKE
 
   def createFull(xs: Seq[(String, Any)]): Record =
     create(xs)
@@ -272,13 +299,9 @@ object Record {
 
   def dataAuto(xs: (String, Any)*): Record = {
     val a = xs.flatMap {
-      case (_, v) if java.util.Objects.isNull(v) => None
       case (k, v) => v match {
         case Some(s) => Some(k -> s)
         case None => None
-        case m: Seq[_] if m.isEmpty => None
-        case m: Set[_] if xs.isEmpty => None
-        case m: Record if m.isEmpty => None
         case m => Some(k -> m)
       }
     }

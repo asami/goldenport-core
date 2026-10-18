@@ -222,18 +222,19 @@ final class StructuredDataTypeSpec
     }
 
     "reject null sequence elements without removing positions at any depth" in {
-      Given("Record and JSON objects containing direct, nested and native-array null elements")
-      val records = Vector(
-        Record.data("items" -> Vector[Any](null)),
-        Record.data("items" -> Vector(Vector[Any](1, null))),
-        Record.data("items" -> Array[Any](Record.empty, null)))
+      Given("construction and JSON inputs containing direct, nested and native-array null elements")
+      val inputs = Vector[Any](Vector[Any](null), Vector(Vector[Any](1, null)),
+        Array[Any](Record.empty, null))
       val jsons = Vector(Json.obj("items" -> Json.arr(Json.Null)),
         Json.obj("items" -> Json.arr(Json.arr(Json.fromInt(1), Json.Null))))
-      When("canonical encoding, semantic normalization and JSON decoding interpret them")
-      val results = records.flatMap(record => Vector(
-        XSemiStructuredData.toJson(record), XSemiStructuredData.normalizer.normalize(record))) ++
-        jsons.map(XSemiStructuredData.fromJson)
-      Then("every conversion rejects the invalid element instead of shortening its sequence")
+      When("C construction and independent canonical JSON decoding interpret them")
+      val constructions = inputs.map(value => Record.createC(Vector("items" -> value)))
+      val results = jsons.map(XSemiStructuredData.fromJson)
+      Then("construction rejects native null positions and JSON retains its canonical invalid taxonomy")
+      constructions.foreach {
+        case Consequence.Failure(conclusion) => conclusion should be_invalid_failure_conclusion
+        case _ => fail("Native-null sequence construction must fail")
+      }
       results.foreach(_expect_invalid(_, XSemiStructuredData))
     }
 

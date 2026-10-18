@@ -2,6 +2,7 @@ package org.goldenport.record.io
 
 import scala.jdk.CollectionConverters._
 import java.util.LinkedHashMap
+import cats.data.NonEmptyVector
 
 import io.circe.Json
 
@@ -10,7 +11,7 @@ import org.goldenport.record.Record
 import org.goldenport.schema.XSemiStructuredData
 import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
-import scala.xml.{Elem, NodeSeq, Text}
+import scala.xml.{Elem, Text}
 
 /*
  * @since   Feb.  7, 2026
@@ -65,12 +66,12 @@ class RecordEncoder(
     value match {
       case r: Record =>
         _elem(_xml_name(name), r.fields.map(f => _field_to_node(f.key, f.value.single)))
+      case xs: NonEmptyVector[?] =>
+        _elem(_xml_name(name), xs.toVector.map(v => _field_to_node("item", v)))
       case xs: Iterable[?] =>
         _elem(_xml_name(name), xs.toVector.map(v => _field_to_node("item", v)))
       case arr: Array[?] =>
         _elem(_xml_name(name), arr.toVector.map(v => _field_to_node("item", v)))
-      case null =>
-        _elem(_xml_name(name), NodeSeq.Empty)
       case other =>
         _elem(_xml_name(name), Text(other.toString))
     }

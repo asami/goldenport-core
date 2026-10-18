@@ -1,17 +1,18 @@
 package org.goldenport.record.io
 
 import java.io.ByteArrayOutputStream
-import scala.jdk.CollectionConverters.*
+import cats.data.NonEmptyVector
 import io.circe.Json
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 
 import org.goldenport.Consequence
-import org.goldenport.record.{Field, Record, RecordFormat}
-import org.goldenport.schema.Schema
+import org.goldenport.record.{Record, RecordFormat}
+import org.goldenport.schema.{Schema, StructuredDataJson, XSemiStructuredData}
 
 /*
  * @since   May. 24, 2026
- * @version Jul. 21, 2026
+ *  version Jul. 21, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class RecordExportEncoder(
@@ -42,20 +43,22 @@ final class RecordExportEncoder(
     format: RecordFormat,
     options: RecordExportOptions = RecordExportOptions.default
   ): Consequence[String] =
-    Consequence {
-      format match {
-        case RecordFormat.Json => _json(records).spaces2
-        case RecordFormat.Yaml => _yaml(records)
+    format match {
+      case RecordFormat.Json | RecordFormat.Tsl => _json(records).map(_.spaces2)
+      case RecordFormat.Yaml => _yaml(records)
+      case RecordFormat.Hocon => _hocon(records)
+      case _ => Consequence {
+        format match {
         case RecordFormat.Xml => _xml(records)
-        case RecordFormat.Hocon => _hocon(records)
         case RecordFormat.Toml => throw new IllegalArgumentException("TOML export is not supported.")
         case RecordFormat.Properties => _properties(records)
         case RecordFormat.Csv => _delimited(records, ",", options)
         case RecordFormat.Tsv => _delimited(records, "\t", options)
         case RecordFormat.Ltsv => _ltsv(records)
         case RecordFormat.Lines => _lines(records)
-        case RecordFormat.Tsl => _json(records).spaces2
         case RecordFormat.Excel => throw new IllegalArgumentException("Excel export is binary; use encodeBytes.")
+        case _ => throw new IllegalArgumentException("Unsupported text export format.")
+        }
       }
     }
 
@@ -85,7 +88,7 @@ final class RecordExportEncoder(
         records.zipWithIndex.foreach { case (record, rowindex) =>
           val row = sheet.createRow(rowindex + 1)
           columns.zipWithIndex.foreach { case (column, colindex) =>
-            row.createCell(colindex).setCellValue(_cell_text(record.getAny(column).orNull))
+            row.createCell(colindex).setCellValue(record.getAny(column).map(_cell_text).getOrElse(""))
           }
         }
         val out = ByteArrayOutputStream()
@@ -117,7 +120,7 @@ final class RecordExportEncoder(
     val columns = _columns(records, options)
     val header = columns.map(_delimited_cell(_, separator)).mkString(separator)
     val rows = records.map { record =>
-      columns.map(column => _delimited_cell(_cell_text(record.getAny(column).orNull), separator)).mkString(separator)
+      columns.map(column => _delimited_cell(record.getAny(column).map(_cell_text).getOrElse(""), separator)).mkString(separator)
     }
     (header +: rows).mkString("\n") + "\n"
   }
@@ -151,13 +154,18 @@ final class RecordExportEncoder(
         .getOrElse(_cell_text(record))
     }.mkString("\n") + "\n"
 
-  private def _yaml(records: Vector[Record]): String =
-    records.map { record =>
-      val fields = record.fields.map { field =>
-        s"  ${field.key}: ${_yaml_value(field.value.single)}"
-      }.mkString("\n")
-      s"-\n${fields}"
-    }.mkString("\n") + "\n"
+  private def _yaml(records: Vector[Record]): Consequence[String] =
+    Consequence.zipN(records.map(RecordEncoder.yamlC)).map { rows =>
+      if (rows.isEmpty) {
+        "[]\n"
+      } else {
+        rows.map { row =>
+          val lines = row.stripSuffix("\n").linesIterator.toVector
+          "- " + lines.headOption.getOrElse("{}") +
+            lines.drop(1).map(line => "\n  " + line).mkString
+        }.mkString("\n") + "\n"
+      }
+    }
 
   private def _xml(records: Vector[Record]): String = {
     val body = records.map { record =>
@@ -169,15 +177,22 @@ final class RecordExportEncoder(
     s"""<?xml version="1.0" encoding="UTF-8"?><records>${body}</records>"""
   }
 
-  private def _hocon(records: Vector[Record]): String = {
-    val rows = records.map { record =>
-      val fields = record.fields.map { field =>
-        s"${field.key} = ${_hocon_value(field.value.single)}"
-      }.mkString(", ")
-      s"{ ${fields} }"
-    }.mkString(",\n  ")
-    s"records = [\n  ${rows}\n]\n"
-  }
+  private def _hocon(records: Vector[Record]): Consequence[String] =
+    _json(records).map(json => s"records = ${_hocon_number_tokens(json).spaces2}\n")
+
+  private def _hocon_number_tokens(json: Json): Json =
+    json.fold(
+      json,
+      _ => json,
+      number => number.toBigDecimal match {
+        case Some(decimal) if decimal.isWhole && !decimal.isValidLong =>
+          Json.fromBigDecimal(new BigDecimal(decimal.bigDecimal.setScale(1), java.math.MathContext.UNLIMITED))
+        case _ => json
+      },
+      _ => json,
+      values => Json.fromValues(values.map(_hocon_number_tokens)),
+      fields => Json.fromJsonObject(fields.mapValues(_hocon_number_tokens))
+    )
 
   private def _properties(records: Vector[Record]): String = {
     val pairs =
@@ -192,45 +207,17 @@ final class RecordExportEncoder(
     }.mkString("\n") + "\n"
   }
 
-  private def _json(records: Vector[Record]): Json =
-    Json.fromValues(records.map(_json_record))
-
-  private def _json_record(record: Record): Json =
-    Json.fromJsonObject(io.circe.JsonObject.fromIterable(record.fields.collect {
-      case Field(key, Field.Value.Single(value)) => key -> _json_value(value)
-    }))
-
-  private def _json_value(value: Any): Json =
-    value match {
-      case null => Json.Null
-      case record: Record => _json_record(record)
-      case xs: Iterable[?] => Json.fromValues(xs.map(_json_value))
-      case arr: Array[?] => Json.fromValues(arr.toSeq.map(_json_value))
-      case b: java.lang.Boolean => Json.fromBoolean(b)
-      case n: java.lang.Number => Json.fromBigDecimal(BigDecimal(n.toString))
-      case s: String => Json.fromString(s)
-      case other => Json.fromString(other.toString)
-    }
+  private def _json(records: Vector[Record]): Consequence[Json] =
+    Consequence.zipN(records.map(XSemiStructuredData.toJson)).map(Json.fromValues)
 
   private def _cell_text(value: Any): String =
     value match {
-      case null => ""
-      case record: Record => _json_record(record).noSpaces
-      case xs: Iterable[?] => Json.fromValues(xs.map(_json_value)).noSpaces
-      case arr: Array[?] => Json.fromValues(arr.toSeq.map(_json_value)).noSpaces
+      case record: Record => StructuredDataJson.valueToJson(record).TAKE.noSpaces
+      case values: NonEmptyVector[?] => StructuredDataJson.valueToJson(values).TAKE.noSpaces
+      case values: Seq[?] => StructuredDataJson.valueToJson(values).TAKE.noSpaces
+      case values: Array[?] => StructuredDataJson.valueToJson(values).TAKE.noSpaces
       case other => other.toString
     }
-
-  private def _yaml_value(value: Any): String =
-    value match {
-      case null => "null"
-      case n: java.lang.Number => n.toString
-      case b: java.lang.Boolean => b.toString
-      case other => "\"" + _cell_text(other).replace("\\", "\\\\").replace("\"", "\\\"") + "\""
-    }
-
-  private def _hocon_value(value: Any): String =
-    _yaml_value(value)
 
   private def _properties_escape(
     value: String,

@@ -15,10 +15,13 @@ import org.goldenport.record.Record
  * Literal HOCON conversion with exact numeric text and declared string meaning.
  *
  * @since   Oct.  5, 2026
- * @version Oct.  5, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
-private[schema] object StructuredDataHocon {
+private[goldenport] object StructuredDataHocon {
+  def fromConfig(config: Config): Consequence[Record] =
+    _hocon_object(config.root(), config.root())
+
   def fromText(text: String): Consequence[Record] = {
     _parse_hocon(text).flatMap { original =>
       if (!original.isResolved) {
@@ -49,7 +52,10 @@ private[schema] object StructuredDataHocon {
     if (original.keySet() != adapted.keySet()) {
       _invalid("HOCON numeric adaptation changed object keys")
     } else {
-      val fields = original.entrySet().asScala.toVector.map { member =>
+      val fields = original.entrySet().asScala.toVector.filterNot { member =>
+        member.getValue.valueType() == ConfigValueType.NULL &&
+          adapted.get(member.getKey).valueType() == ConfigValueType.NULL
+      }.map { member =>
         _decode_hocon(member.getValue, adapted.get(member.getKey)).map(member.getKey -> _)
       }
       Consequence.zipN(fields).map(Record.createFull)
@@ -78,7 +84,7 @@ private[schema] object StructuredDataHocon {
       case (ConfigValueType.NUMBER, ConfigValueType.NUMBER) => _hocon_number(original)
       case (ConfigValueType.BOOLEAN, ConfigValueType.BOOLEAN) =>
         Consequence.success(original.unwrapped().asInstanceOf[Boolean])
-      case (ConfigValueType.NULL, ConfigValueType.NULL) => Consequence.success(null)
+      case (ConfigValueType.NULL, ConfigValueType.NULL) => _invalid("Null HOCON list element")
       case _ => _invalid("HOCON numeric adaptation changed an unsupported value type")
     }
   }
