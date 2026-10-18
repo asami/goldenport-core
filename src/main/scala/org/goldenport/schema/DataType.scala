@@ -54,7 +54,8 @@ import org.goldenport.value.{ContentBody, ContentMarkup}
  *  version Apr. 30, 2026
  *  version May.  4, 2026
  *  version May. 11, 2026
- * @version Oct. 18, 2026
+ *  version Oct. 18, 2026
+ * @version Oct. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType extends Presentable {
@@ -79,6 +80,10 @@ case object XString extends DataType {
 
 case object XBoolean extends DataType {
   def name = "boolean"
+}
+
+case object XShort extends DataType {
+  def name = "short"
 }
 
 case object XInt extends DataType {
