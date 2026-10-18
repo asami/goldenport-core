@@ -7,8 +7,8 @@ suites and a protected focused independent conformance review (PASS). That histo
 evidence applies to the earlier null-preserving prerequisite, not these Phase 3 semantics.
 The Phase 3 connected Step passed 39 representative tests across three suites,
 123 accumulator tests across nine suites (two existing pending placeholders),
-and independent protected focused Step review on 2026-10-18. This does not
-establish the remaining entry-point migration or complete Phase acceptance.
+and independent protected focused Step review on 2026-10-18. These are Step-level
+results; the completed Core Phase outcome is recorded below.
 
 ## Stage Status
 
@@ -17,12 +17,17 @@ establish the remaining entry-point migration or complete Phase acceptance.
   review. RCA-03 selected validation passed 176 tests across 16 suites with four
   existing pending cases. Its independent Step review's HOCON integer-roundtrip
   blocker was corrected, then 104 tests across four suites and the fresh focused
-  closure review passed. These counts overlap and are not additive. Phase-full
-  validation/review and release closure remain pending.
+  closure review passed. These counts overlap and are not additive. The sole
+  comprehensive independent Phase review passed. The final Observation timestamp
+  output-projection regression passed 36 tests across three suites and fresh
+  focused closure. Final repository-full `sbt --batch test` passed 575 tests
+  across 156 suites, with zero failures and 125 existing pending scenarios.
+  Core Phase 3 is closed by its local release commit; no downstream acceptance
+  or publication is supplied.
 - Owner: goldenport-core; the Workbench PHASE-1 / STEP-2 prerequisite remains historical context.
 - Update rule: Advance this status from actual focused validation and independent
-  Core review results. Generator, DataStore and final Phase acceptance retain
-  their separate closure criteria.
+  Core review results. Generator and DataStore adoption retain their separate
+  closure criteria; Core closure does not complete those consumers.
 
 The canonical declarations are in [DataType.scala](../../src/main/scala/org/goldenport/schema/DataType.scala).
 Their package-private JSON conversion is in [StructuredDataJson.scala](../../src/main/scala/org/goldenport/schema/StructuredDataJson.scala).
@@ -319,8 +324,8 @@ The executable contract MUST exercise the actual generic typed reader API with
 adjacent Given/When/Then clauses and should matchers. Generated canonical object
 Json containing exact decimals, Unicode, nested objects, nullable attributes and
 non-null arrays MUST preserve normalized semantic JSON equality through the Record reader followed by explicit
-`XSemiStructuredData.toJson`. Combined Core validation and independent review
-remain pending as recorded in Stage Status.
+`XSemiStructuredData.toJson`. The actual combined Core validation and independent
+review results are recorded in Stage Status.
 
 ## R13. Record construction and ordinary IO entry points
 

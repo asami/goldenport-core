@@ -48,7 +48,8 @@ import org.goldenport.util.SmEnum
  *  version Mar. 13, 2026
  *  version Apr. 14, 2026
  *  version May. 11, 2026
- * @version Aug. 10, 2026
+ *  version Aug. 10, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 case class Observation(
@@ -110,7 +111,7 @@ case class Observation(
     "phenomenon" -> phenomenon.name,
     "taxonomy" -> taxonomy.toRecord,
     "cause" -> cause.toRecord,
-    "timestamp" -> timestamp,
+    "timestamp" -> timestamp.toString,
     "assessment" -> assessment.toRecord,
     "properties" -> Record.create(properties)
   ) ++ Record.dataOption(

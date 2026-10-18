@@ -7,8 +7,12 @@ independent protected focused Step review on 2026-10-18. RCA-03 selected
 validation passed 176 tests across 16 suites with four existing pending cases.
 The independent Step review's HOCON integer-roundtrip blocker was corrected;
 104 tests across four suites and the fresh focused closure review passed.
-These counts overlap and are not additive. Phase-full validation/review and
-release acceptance remain pending; this Step result does not close the Phase.
+These counts overlap and are not additive. The sole independent Phase full
+review passed. The final timestamp-projection regression was repaired at the
+Observation output adapter; 36 tests across three suites and fresh focused
+closure passed. Final repository-full `sbt --batch test` passed 575 tests across
+156 suites, with zero failures and 125 existing pending scenarios. Core Phase 3
+is closed by its local release commit; no publication or CNCF adoption is claimed.
 
 The executable specification is
 [RecordNormalizationSpec.scala](../../src/test/scala/org/goldenport/record/RecordNormalizationSpec.scala).
@@ -186,5 +190,5 @@ Concrete CNCF115 handoff input:
 intentionally construct malformed null fields. CNCF must redesign these fixtures
 to test its closed-codec contract without invalid Record instances or subclass
 construction. Core MUST NOT weaken the construction invariant to preserve those
-fixtures. This Step edits no CNCF source and establishes neither downstream
-validation/adoption nor dependency publication or final Phase acceptance.
+fixtures. This Core Phase edits no CNCF source and establishes neither downstream
+validation/adoption nor dependency publication.

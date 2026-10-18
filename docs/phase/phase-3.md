@@ -1,10 +1,10 @@
 # Phase 3 - Record Collections and Attribute Normalization
 
-Status: IN_PROGRESS
+Status: CLOSED
 Owner: goldenport-core
 Created: 2026-10-18
 Checklist: [Phase 3 checklist](phase-3-checklist.md)
-Update rule: Record accepted delivery outcomes from actual validation and independent review; close the Phase only after its remaining implementation, full validation and release gates.
+Update rule: Retain the actual accepted implementation, independent review and full-validation results; the local Phase release commit records closure. Downstream adoption and publication remain separately owned.
 
 ## Goal
 
@@ -14,9 +14,10 @@ attributes, and preserve empty structures and the order of retained data.
 Deliver one connected construction -> encoding -> decoding -> typed-read
 route before completing the remaining affected entry points.
 
-The connected RCA-01/02 route and RCA-03 entry-point migration have passed their
-Step validation and independent review. The integrated focused evidence and
-consumer handoff passed final-Step documentation acceptance; Phase gates remain.
+All three declared delivery Steps and the Phase acceptance gates completed on
+2026-10-18. The sole comprehensive independent Phase review passed; the final
+timestamp-projection repair passed its fresh focused closure review and the
+repository-full test. The local release commit records this Core-only closure.
 This Phase does not inherit the unrelated
 error-model follow-ups of Phase 2.9.
 
@@ -40,10 +41,20 @@ error-model follow-ups of Phase 2.9.
   maintenance; no incidental naming or structural-syntax cleanup is included.
 - RCA-04/05: the [consumer handoff and integrated focused evidence](../spec/record-normalization-cncf115-handoff.md)
   passed independent documentation acceptance for the originally declared final Step.
-  Repository-full validation, the sole comprehensive independent Phase full
-  review and release closure remain open. RCA-04/05 remain unchecked until
-  those mandatory Phase gates complete; no successor Step or CNCF115 completion
-  dependency is introduced.
+  The sole comprehensive independent Phase review passed. The first full test
+  exposed an existing Observation-to-Record projection that still supplied an
+  Instant to the newly strict canonical encoder. Rendering that known timestamp
+  explicitly as its existing ISO string restored Conclusion JSON output without
+  weakening unsupported-value rejection. Its regression validation passed 36
+  tests across three suites, followed by fresh independent focused closure.
+  Final `sbt --batch test` passed 575 tests across 156 suites, with zero failures
+  or aborted suites and 125 existing pending scenarios. SBT and its wrapper
+  exited successfully and released the serial lock. The earlier failed full
+  run remains historical evidence, not a successful result.
+- RCA-01 through RCA-05 are complete. All three Step commits and the distinct
+  local Phase release are retained; no successor Step or CNCF115 completion
+  dependency is introduced. No artifact publication, dependency refresh, push
+  or downstream adoption is claimed.
 
 ## Governing rule: no null in normal program logic
 
@@ -73,12 +84,12 @@ DataStore/EntityStore adoption in the dedicated
 [CNCF Phase 115](../../../cloud-native-component-framework/docs/phase/phase-115.md).
 Core must not depend on CNCF or implement SQL/patch policy.
 
-The current [structured datatype specification](../spec/structured-data-types.md)
-and its implementation are work in progress originating in Workbench Phase 1
-and consumed by CNCF Phase 100. Their null-preserving contract is an explicit
-migration input. Preserve their actual work and validation history; do not
-silently relabel old evidence as acceptance of the new semantics. When this
-phase executes, revise affected specifications and behavior together.
+The [structured datatype specification](../spec/structured-data-types.md) and
+implementation originated as work in progress in Workbench Phase 1 and were
+consumed by CNCF Phase 100. Their earlier null-preserving contract was the
+explicit migration input. This Phase revised affected specifications and
+behavior together while retaining that work and validation history; historical
+evidence is not relabeled as acceptance of the new semantics.
 
 ## Planned behavior and acceptance examples
 

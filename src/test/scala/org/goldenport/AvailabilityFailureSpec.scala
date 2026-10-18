@@ -2,6 +2,7 @@ package org.goldenport
 
 import java.net.{ConnectException, NoRouteToHostException, SocketException, SocketTimeoutException}
 import java.net.http.HttpTimeoutException
+import java.time.Instant
 import java.util.concurrent.TimeoutException
 
 import org.scalatest.GivenWhenThen
@@ -12,11 +13,12 @@ import org.scalacheck.Gen
 
 import org.goldenport.conclusion.{Disposition, Interpretation}
 import org.goldenport.error.DetailCode
-import org.goldenport.observation.{Cause, Descriptor, Taxonomy}
+import org.goldenport.observation.{Cause, Descriptor, Observation, Phenomenon, Taxonomy}
 
 /*
  * @since   Aug. 10, 2026
- * @version Aug. 10, 2026
+ *  version Aug. 10, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 class AvailabilityFailureSpec
@@ -166,16 +168,56 @@ class AvailabilityFailureSpec
         .flatMap(_.getRecord("cause"))
         .getOrElse(fail("expected Docker cause record"))
       val endpointrecord = Descriptor.Facet.Endpoint("docker://daemon").toRecord
+      val dockerjson = _root_.io.circe.parser.parse(docker.toJsonString)
+        .fold(error => fail(s"expected Docker conclusion JSON: $error"), identity)
 
       Then("the endpoint key, JSON representation, and numeric dimensions are exact")
       dockercauserecord.getString("kind") shouldBe Some("not-running")
       dockercauserecord.getString("endpoint") shouldBe Some("docker://daemon")
       endpointrecord.toJsonString shouldBe "{\"endpoint\":\"docker://daemon\"}"
       docker.toJsonString should include("\"endpoint\":\"docker://daemon\"")
+      dockerjson.hcursor.downField("observation").get[String]("timestamp") shouldBe
+        Right(docker.observation.timestamp.toString)
       docker.status.detailCode.map(_.code) shouldBe Some(111113050403L)
       DetailCode.dimensions(docker) shouldBe DetailCode.Dimensions(11, 11, 13, 5, 4, 3)
       network.status.detailCode.map(_.code) shouldBe Some(181114060403L)
       DetailCode.dimensions(network) shouldBe DetailCode.Dimensions(18, 11, 14, 6, 4, 3)
+    }
+
+    "preserve fixed observation timestamps as ISO strings through canonical JSON" in {
+      val timestamps = Vector(
+        "1970-01-01T00:00:00Z",
+        "1969-12-31T23:59:59.123456789Z",
+        "2026-10-18T01:23:45.987654321Z"
+      )
+      timestamps.foreach { expected =>
+        Given(s"a Docker failure observation with fixed timestamp $expected")
+        val instant = Instant.parse(expected)
+        val observation = Observation(
+          phenomenon = Phenomenon.Failure,
+          taxonomy = Taxonomy.serviceUnavailable,
+          cause = Cause(
+            Some(Cause.Kind.NotRunning),
+            Descriptor(Descriptor.Facet.Endpoint("docker://daemon"), Nil)
+          ),
+          timestamp = instant
+        )
+
+        When("the observation record is encoded and independently parsed as JSON")
+        val record = observation.toRecord
+        val jsontext = record.toJsonStringC match {
+          case Consequence.Success(value) => value
+          case Consequence.Failure(conclusion) => fail(s"expected observation JSON: $conclusion")
+        }
+        val json = _root_.io.circe.parser.parse(jsontext)
+          .fold(error => fail(s"expected valid observation JSON: $error"), identity)
+
+        Then("the timestamp remains typed in the model and exact text beside the endpoint in JSON")
+        observation.timestamp shouldBe instant
+        record.getString("timestamp") shouldBe Some(expected)
+        json.hcursor.get[String]("timestamp") shouldBe Right(expected)
+        json.hcursor.downField("cause").get[String]("endpoint") shouldBe Right("docker://daemon")
+      }
     }
 
     "centralize wrapped availability-Throwable classification and leave unrelated failures alone" in {

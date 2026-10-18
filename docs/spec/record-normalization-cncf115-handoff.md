@@ -3,7 +3,9 @@
 Status: NON-NORMATIVE migration guide for the accepted Core Phase 3 source
 outcome. This guide summarizes existing contracts; it adds no behavior or
 upstream feature requirement. RCA-04/05 documentation passed independent Step
-acceptance on 2026-10-18; the remaining full Phase gates are still pending.
+acceptance on 2026-10-18. The sole comprehensive Phase review, final projection
+repair's independent focused closure and repository-full validation passed;
+Core Phase 3 is closed by its local release commit.
 
 The authorities are [Record normalization](record-normalization.md) and
 [canonical structured datatypes](structured-data-types.md). Delivery state is
@@ -21,9 +23,12 @@ The dependency coordinate remains unchanged in [build.sbt](../../build.sbt):
 "org.goldenport" %% "goldenport-core" % "0.4.3-SNAPSHOT"
 ```
 
-Select accepted Core source commit
-`dc14bf9554b45c881e674b35633fbf2b0be169d4` for the RCA-03 outcome, including
-the HOCON row correction. The earlier connected RCA-01/02 Step is
+Select the final Core Phase 3 closure commit on `main` containing this guide,
+including the Observation timestamp projection correction and its regression.
+The accepted RCA-03 source ancestor is
+`dc14bf9554b45c881e674b35633fbf2b0be169d4`, including the HOCON row correction;
+that ancestor alone does not contain the final timestamp correction.
+The earlier connected RCA-01/02 Step is
 `2150f9377c4c51eb7ce7114df30a350163492512`; the original Phase base is
 `8102fe40e2b052c637f89c929fec9a7434f24b57`.
 
@@ -31,8 +36,8 @@ This Phase has performed no artifact publication, publishLocal or dependency
 refresh. A local or remote artifact at this same SNAPSHOT coordinate may be
 older. Consumers need to deliberately select this source outcome and separately
 refresh or publish the intended dependency before trusting the coordinate.
-There is no claim of a newly available binary, release version bump, downstream
-build/adoption or full Phase acceptance.
+There is no claim of a newly available binary, release version bump or downstream
+build/adoption. Local Core Phase closure is distinct from library publication.
 
 ## Public construction and accepted behavior
 
@@ -130,9 +135,17 @@ adoption is claimed here.
 - These counts overlap; they are not an additive total. Earlier Workbench
   94 tests / 6 suites concern the historical null-preserving prerequisite,
   not proof of the new semantics.
+- The sole comprehensive independent Phase review passed. The first full run
+  passed 573 of 574 tests and exposed the Observation timestamp projection gap.
+  The existing output adapter now renders its known Instant as its previous ISO
+  string, leaving the typed model and strict canonical domain unchanged.
+  Focused regression validation passed 36 tests / 3 suites and fresh independent
+  focused closure passed. The final `sbt --batch test` passed 575 tests / 156
+  suites, with zero failures or aborted suites and 125 existing pending cases;
+  both exits were zero and the shared serial lock was released.
 - HYG-CORE-P3-001 through HYG-CORE-P3-003 remain nonblocking and unresolved.
-  Repository-full validation, the sole comprehensive Phase full review and
-  final release closure remain pending.
+  The local Core Phase release records closure without artifact publication,
+  a dependency refresh or consumer adoption.
 
 ## Downstream handoff checklist
 
