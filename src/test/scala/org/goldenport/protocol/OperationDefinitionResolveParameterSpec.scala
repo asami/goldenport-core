@@ -1,13 +1,15 @@
 package org.goldenport.protocol
 
 import org.goldenport.Consequence
+import io.circe.Json
+import org.goldenport.record.Record
 // import org.goldenport.observation.Cause
 import org.goldenport.observation.Taxonomy
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
-import org.goldenport.protocol.spec.OperationDefinition.{ResolvedEmpty, ResolvedMultiple, ResolvedSingle}
-import org.goldenport.schema.{Constraint, DataType, Multiplicity, ValueDomain, XNonNegativeInteger, XPositiveInteger, XString}
+import org.goldenport.protocol.spec.OperationDefinition.{ResolvedEmpty, ResolvedMultiple, ResolvedSingle, ResolvedValue}
+import org.goldenport.schema.{Constraint, DataType, Multiplicity, ValueDomain, XJson, XSemiStructuredData, XNonNegativeInteger, XPositiveInteger, XString}
 import org.goldenport.test.matchers.ConsequenceMatchers
 import org.scalacheck.Gen
 import org.scalacheck.Shrink
@@ -20,7 +22,8 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
  *  version Jan. 29, 2026
  *  version Apr. 11, 2026
  *  version Apr. 14, 2026
- * @version May. 11, 2026
+ *  version May. 11, 2026
+ * @version Oct. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec
@@ -154,6 +157,183 @@ class OperationDefinitionResolveParameterSpec
       switches = Nil,
       properties = Nil
     )
+
+  private final class StructuredOperationDefinition(datatype: DataType, multiplicity: Multiplicity)
+      extends OperationDefinition {
+    override val specification: OperationDefinition.Specification =
+      OperationDefinition.Specification(
+        name = "structured-operation",
+        request = RequestDefinition(parameters = List(ParameterDefinition(
+          content = org.goldenport.value.BaseContent.simple("value"),
+          kind = ParameterDefinition.Kind.Property,
+          domain = ValueDomain(datatype = datatype, multiplicity = multiplicity)))),
+        response = ResponseDefinition.void)
+
+    def resolve(request: Request): Consequence[ResolvedValue] = {
+      given Request = request
+      resolveParameter(specification.request.parameters.head)
+    }
+
+    override def createOperationRequest(req: Request): Consequence[OperationRequest] =
+      resolve(req).map(_ => OperationRequest(req))
+  }
+
+  private def _structured_request(values: List[Any]): Request =
+    Request.of("fixture", "admission", "structured-operation").copy(
+      properties = values.map(value => Property("value", value, None)))
+
+  "Canonical structured property carriers" should {
+    "interpret exact Vector carriers" which {
+      "resolve omitted and empty zero-or-more Json carriers as absence" in {
+        Given("a zero-or-more canonical Json property and omitted or exact empty Vector carriers")
+        val op = new StructuredOperationDefinition(XJson, Multiplicity.ZeroMore)
+        val domain = op.specification.request.parameters.head.domain
+        val requests = List(_structured_request(Nil), _structured_request(List(Vector.empty[Json])))
+        When("the existing resolver interprets both representations")
+        val results = requests.map(op.resolve)
+        Then("both resolve to the same typed empty value")
+        results.map(_.toOption) shouldBe List.fill(2)(Some(ResolvedEmpty(domain)))
+      }
+
+      "reject missing and empty nonempty structured collections" in {
+        Given("required nonempty Json and Record properties with omitted and empty Vector carriers")
+        val operations = Vector(XJson, XSemiStructuredData).map(
+          datatype => new StructuredOperationDefinition(datatype, Multiplicity.OneMore))
+        val requests = List(_structured_request(Nil), _structured_request(List(Vector.empty[Any])))
+        When("the resolver interprets the absent values")
+        val results = operations.flatMap(op => requests.map(op.resolve))
+        Then("the original required-parameter check rejects every absence")
+        results.foreach(_.isSuccess shouldBe false)
+      }
+
+      "preserve one and ordered multiple Json values exactly like repeated properties" in {
+        Given("Json vectors containing scalar documents, an array document and Json.Null")
+        val op = new StructuredOperationDefinition(XJson, Multiplicity.ZeroMore)
+        val domain = op.specification.request.parameters.head.domain
+        val one = Vector(Json.Null)
+        val many = Vector(Json.fromString("first"), Json.arr(Json.fromInt(2)), Json.Null)
+        When("typed carriers and the existing repeated-property representation are resolved")
+        val single = op.resolve(_structured_request(List(one)))
+        val multiple = op.resolve(_structured_request(List(many)))
+        val repeatedsingle = op.resolve(_structured_request(one.toList))
+        val repeatedmultiple = op.resolve(_structured_request(many.toList))
+        Then("one element remains ResolvedSingle and multiple elements retain their exact document order")
+        single.toOption shouldBe Some(ResolvedSingle(Json.Null, domain))
+        multiple.toOption shouldBe Some(ResolvedMultiple(many, domain))
+        repeatedsingle.toOption shouldBe single.toOption
+        repeatedmultiple.toOption shouldBe multiple.toOption
+      }
+
+      "retain a scalar Json array as one document and distinguish optional null from absence" in {
+        Given("single and optional Json properties, one array document, Json.Null and a missing property")
+        val single = new StructuredOperationDefinition(XJson, Multiplicity.One)
+        val optional = new StructuredOperationDefinition(XJson, Multiplicity.ZeroOne)
+        val array = Json.arr(Json.fromInt(1), Json.Null)
+        val singledomain = single.specification.request.parameters.head.domain
+        val optionaldomain = optional.specification.request.parameters.head.domain
+        When("the resolver interprets the original scalar and optional paths")
+        val arrayresult = single.resolve(_structured_request(List(array)))
+        val nullresult = optional.resolve(_structured_request(List(Json.Null)))
+        val missing = optional.resolve(_structured_request(Nil))
+        Then("the array is not flattened and a present Json.Null is not missing")
+        arrayresult.toOption shouldBe Some(ResolvedSingle(array, singledomain))
+        nullresult.toOption shouldBe Some(ResolvedSingle(Json.Null, optionaldomain))
+        missing.toOption shouldBe Some(ResolvedEmpty(optionaldomain))
+      }
+
+      "normalize Record and object Json carriers to exact nested Record documents" in {
+        Given("one raw Record and an equivalent object Json with an omitted null member")
+        val op = new StructuredOperationDefinition(XSemiStructuredData, Multiplicity.OneMore)
+        val domain = op.specification.request.parameters.head.domain
+        val raw = Record.createFull(Vector("nested" -> Record.createFull(Vector("count" -> 2))))
+        val json = Json.obj("nested" -> Json.obj("count" -> Json.fromInt(2)), "omitted" -> Json.Null)
+        val expected = Record.createFull(Vector("nested" -> Record.createFull(Vector("count" -> BigDecimal(2)))))
+        When("one and mixed multiple carriers and repeated properties pass through canonical normalization")
+        val single = op.resolve(_structured_request(List(Vector(raw))))
+        val multiple = op.resolve(_structured_request(List(Vector(raw, json))))
+        val repeatedsingle = op.resolve(_structured_request(List(raw)))
+        val repeated = op.resolve(_structured_request(List(raw, json)))
+        Then("only the normalized document contents occur in each ordered resolved element")
+        single.toOption shouldBe Some(ResolvedSingle(expected, domain))
+        repeatedsingle.toOption shouldBe single.toOption
+        multiple.toOption shouldBe Some(ResolvedMultiple(Vector(expected, expected), domain))
+        repeated.toOption shouldBe multiple.toOption
+      }
+
+      "resolve empty Record collections and optional absence while rejecting present optional Json.Null" in {
+        Given("zero-or-more and optional canonical Record properties with missing empty and null inputs")
+        val multiple = new StructuredOperationDefinition(XSemiStructuredData, Multiplicity.ZeroMore)
+        val optional = new StructuredOperationDefinition(XSemiStructuredData, Multiplicity.ZeroOne)
+        val multipledomain = multiple.specification.request.parameters.head.domain
+        val optionaldomain = optional.specification.request.parameters.head.domain
+        When("the resolver interprets the actual property carriers")
+        val missing = multiple.resolve(_structured_request(Nil))
+        val empty = multiple.resolve(_structured_request(List(Vector.empty[Record])))
+        val optionalmissing = optional.resolve(_structured_request(Nil))
+        val optionalnull = optional.resolve(_structured_request(List(Json.Null)))
+        Then("missing or empty collections are absent while present Json.Null fails the Record normalizer")
+        missing.toOption shouldBe Some(ResolvedEmpty(multipledomain))
+        empty.toOption shouldBe Some(ResolvedEmpty(multipledomain))
+        optionalmissing.toOption shouldBe Some(ResolvedEmpty(optionaldomain))
+        optionalnull.isSuccess shouldBe false
+      }
+
+      "preserve arbitrary Json order without discarded samples" in {
+        forAll(Gen.listOfN(4, Gen.choose(-10000, 10000))) { numbers =>
+          Given("independently sampled Json scalar documents followed by Json.Null")
+          val values = numbers.map(Json.fromInt).toVector :+ Json.Null
+          val op = new StructuredOperationDefinition(XJson, Multiplicity.OneMore)
+          val domain = op.specification.request.parameters.head.domain
+          When("the actual property Vector is resolved")
+          val result = op.resolve(_structured_request(List(values)))
+          Then("every sampled element is retained in order without scalar promotion or null loss")
+          result.toOption shouldBe Some(ResolvedMultiple(values, domain))
+        }
+      }
+    }
+
+    "retain strict normalization boundaries" which {
+      "reject Vector carriers for scalar and optional structured properties" in {
+        Given("single and optional canonical Json and Record parameters with Vector-valued properties")
+        val operations = for {
+          datatype <- Vector(XJson, XSemiStructuredData)
+          multiplicity <- Vector(Multiplicity.One, Multiplicity.ZeroOne)
+        } yield new StructuredOperationDefinition(datatype, multiplicity)
+        val request = _structured_request(List(Vector(Json.obj())))
+        When("the unchanged scalar path normalizes the whole Vector")
+        val results = operations.map(_.resolve(request))
+        Then("no single or optional parameter accepts a collection carrier")
+        results.foreach(_.isSuccess shouldBe false)
+      }
+
+      "reject malformed and nested elements without flattening repeated property lists" in {
+        Given("canonical repeated structured parameters with invalid elements or nested Vector carriers")
+        val operations = Vector(XJson, XSemiStructuredData).map(
+          datatype => new StructuredOperationDefinition(datatype, Multiplicity.ZeroMore))
+        val requests = Vector(
+          _structured_request(List(Vector[Any](Json.obj(), "{}"))),
+          _structured_request(List(Vector[Any](Json.obj(), null))),
+          _structured_request(List(Vector(Vector(Json.obj())))),
+          _structured_request(List(Vector(Json.obj()), Json.obj())))
+        When("each supplied element reaches its canonical scalar normalizer")
+        val results = operations.flatMap(op => requests.map(op.resolve))
+        Then("wrong runtime types, native null, nested carriers and mixed repeated carriers all fail")
+        results.foreach(_.isSuccess shouldBe false)
+      }
+
+      "leave other carrier shapes and noncanonical datatype paths unchanged" in {
+        Given("List, Array and NonEmptyVector carriers plus a nonstructured integer Vector")
+        val jsonop = new StructuredOperationDefinition(XJson, Multiplicity.ZeroMore)
+        val carriers = Vector[Any](List(Json.obj()), Array(Json.obj()), cats.data.NonEmptyVector.one(Json.obj()))
+        val integerop = new StructuredOperationDefinition(XNonNegativeInteger, Multiplicity.ZeroMore)
+        When("resolution uses only the admitted exact structured Vector adaptation")
+        val results = carriers.map(value => jsonop.resolve(_structured_request(List(value)))) :+
+          integerop.resolve(_structured_request(List(Vector(1, 2))))
+        Then("unsupported carrier shapes and integer vectors remain rejected")
+        results.foreach(_.isSuccess shouldBe false)
+      }
+    }
+  }
 
   "OperationDefinition.resolveParameter" should {
     "produce OperationRequest when normalization and validation succeed" in {

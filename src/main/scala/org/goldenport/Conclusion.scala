@@ -27,7 +27,7 @@ import org.goldenport.http.HttpRequest
  *  version Apr. 14, 2026
  *  version May. 11, 2026
  *  version Aug. 10, 2026
- * @version Oct. 18, 2026
+ * @version Oct. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 final class Conclusion private (
@@ -212,6 +212,7 @@ object Conclusion {
         case Taxonomy.Symptom.NotFound => WebCode.NotFound
         case Taxonomy.Symptom.AuthenticationRequired => WebCode.Unauthorized
         case Taxonomy.Symptom.PermissionDenied => WebCode.Forbidden
+        case Taxonomy.Symptom.Conflict => WebCode.Conflict
         case _ => _web_code_by_category(taxonomy)
       }
 
