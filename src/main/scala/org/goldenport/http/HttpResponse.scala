@@ -22,7 +22,7 @@ import org.goldenport.util.Strings
  *  version Feb.  6, 2026
  *  version Apr. 26, 2026
  *  version Sep. 29, 2026
- * @version Oct. 16, 2026
+ * @version Oct. 21, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait HttpResponse extends Presentable {
@@ -195,6 +195,7 @@ object HttpStatus {
   case object Unauthorized extends HttpStatus(401)
   case object Forbidden extends HttpStatus(403)
   case object NotFound extends HttpStatus(404)
+  case object Conflict extends HttpStatus(409)
   case object InternalServerError extends HttpStatus(500)
   case object ServiceUnavailable extends HttpStatus(503)
 
@@ -211,6 +212,7 @@ object HttpStatus {
       case 401 => Some(Unauthorized)
       case 403 => Some(Forbidden)
       case 404 => Some(NotFound)
+      case 409 => Some(Conflict)
       case 500 => Some(InternalServerError)
       case 503 => Some(ServiceUnavailable)
       case code if 300 <= code && code <= 399 => Some(Redirection(code))
