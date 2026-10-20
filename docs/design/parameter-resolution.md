@@ -232,3 +232,33 @@ Key properties:
 
 This separation ensures correctness, testability,
 and consistency across all protocol front-ends.
+
+## Typed structured collection carriers — 2026-10-19
+
+For canonical `XJson` and `XSemiStructuredData` parameters whose existing
+multiplicity permits multiple values, a single extracted value that is exactly
+a Scala `Vector` is a collection carrier. Resolution unwraps that one carrier
+before the existing absence, single-value and multiple-value branches. Each
+element still passes through the canonical scalar normalizer and existing
+domain/constraint validation. This accommodates the actual typed protocol
+producer without bypassing operation validation or introducing another reader.
+
+An omitted or empty carrier follows existing absence semantics: zero-or-more
+resolves to `ResolvedEmpty`; one-or-more fails as missing. A singleton resolves
+to `ResolvedSingle`, and ordered multiple elements resolve to `ResolvedMultiple`,
+just like the existing repeated-property representation. Range and Ranges
+multiplicities use the existing required/multiple predicates; this adjustment
+introduces no new count-bound behavior.
+
+A `Json` array remains one document, including under a multiple-value
+declaration; it is never interpreted as a Vector carrier. Repeated extracted
+property lists are not flattened, nor are nested Vector elements, arbitrary
+Seq/Array/NonEmptyVector carriers, scalar or optional parameters, or other
+datatypes. Canonical normalization rejects invalid elements and native null.
+`Json.Null` remains a valid Json document; a null Record document remains
+invalid. Record and object Json elements retain canonical nested Record rules.
+
+[OperationDefinitionResolveParameterSpec](../../src/test/scala/org/goldenport/protocol/OperationDefinitionResolveParameterSpec.scala)
+specifies the actual Property carriers, literal resolved values, repeated-property
+equivalence and strict rejection boundaries. Its existing integer, enum and range
+scenarios continue to describe their original semantics.

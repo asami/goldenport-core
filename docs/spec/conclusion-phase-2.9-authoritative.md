@@ -32,6 +32,24 @@ source of truth; every statement below is derived directly from that code.
   and `appStatus`.
 - Reaction and handling guidance belongs to `Disposition`, not to `Status`.
 
+For failure Conclusions, the `Conflict` symptom MUST generate `WebCode.Conflict`
+(409) for every taxonomy category, including State and Operation, before category
+fallback is considered. The symptom mappings for NotFound (404),
+AuthenticationRequired (401), and PermissionDenied (403), and all remaining
+category fallbacks MUST be preserved. A Conclusion with a Success interpretation
+MUST generate `WebCode.Ok` (200), including when its observation carries Conflict.
+These generated mappings are specified by
+[`ConclusionHttpStatusSpec`](../../src/test/scala/org/goldenport/ConclusionHttpStatusSpec.scala).
+
+The protocol-level HTTP carrier MUST preserve the generated Conflict code:
+`HttpStatus.fromInt(409)` selects the first-class `HttpStatus.Conflict` status.
+Converting a public `Consequence.stateConflict` through this mapping into
+`HttpResponse.text`, or parsing an HTTP 409 response, MUST retain 409 and its
+response body. Parsing MUST also preserve response headers. Existing named
+statuses, dynamic 3xx statuses, and unsupported-code fallback remain unchanged.
+This transport contract is specified by
+[`HttpStatusConflictSpec`](../../src/test/scala/org/goldenport/http/HttpStatusConflictSpec.scala).
+
 ## Causal Chain Semantics
 
 - `previous` forms the basis of the causal chain; `causes` flattens this chain in temporal order by

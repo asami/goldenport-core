@@ -9,7 +9,7 @@ import org.goldenport.http.HttpRequest
 import org.goldenport.observation.Cause
 import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
-import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Multiplicity, ValueDomain}
+import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Multiplicity, ValueDomain, XJson, XSemiStructuredData}
 
 /*
  * @since   Oct.  6, 2018
@@ -24,7 +24,8 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Mar. 29, 2026
  *  version Apr. 11, 2026
  *  version Apr. 14, 2026
- * @version May. 11, 2026
+ *  version May. 11, 2026
+ * @version Oct. 19, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -47,13 +48,19 @@ abstract class OperationDefinition
     p: ParameterDefinition
   )(using req: Request): Consequence[ResolvedValue] = {
     val domain = p.domain
-    val values: List[Any] = p.kind match {
+    val rawvalues: List[Any] = p.kind match {
       case ParameterDefinition.Kind.Argument =>
         req.arguments.filter(_.name == p.name).map(_.value)
       case ParameterDefinition.Kind.Switch =>
         req.switches.filter(_.name == p.name).map(_.value)
       case ParameterDefinition.Kind.Property =>
         req.properties.filter(_.name == p.name).map(_.value)
+    }
+    val values = rawvalues match {
+      case (carrier: Vector[?]) :: Nil
+          if _allows_multiple(p) && (p.datatype == XJson || p.datatype == XSemiStructuredData) =>
+        carrier.toList
+      case _ => rawvalues
     }
 
     values match {
