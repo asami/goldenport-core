@@ -18,6 +18,7 @@ import org.goldenport.protocol.spec.OperationDefinition
 import org.goldenport.protocol.spec.ParameterDefinition
 import org.goldenport.protocol.spec.ServiceDefinitionGroup
 import org.goldenport.http.HttpRequest
+import org.goldenport.schema.Multiplicity
 
 /*
  * @since   Dec. 28, 2025
@@ -26,7 +27,8 @@ import org.goldenport.http.HttpRequest
  *  version Apr. 11, 2026
  *  version Apr. 27, 2026
  *  version Jul. 20, 2026
- * @version Aug. 10, 2026
+ *  version Aug. 10, 2026
+ * @version Oct. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class Ingress[T] {
@@ -50,7 +52,19 @@ object Ingress {
     val argumentnames = _name_map(definitions, ParameterDefinition.Kind.Argument)
     record.fields.foldLeft((List.empty[Argument], List.empty[Switch], List.empty[Property])) {
       case (z, field) =>
-        val values = _field_values(field.value.single)
+        val value = field.value.single
+        val definition =
+          if (switchnames.contains(field.key)) None
+          else argumentnames.get(field.key).flatMap { name =>
+            definitions.find(p => p.kind == ParameterDefinition.Kind.Argument && p.name == name)
+          }.orElse(propertynames.get(field.key).flatMap { name =>
+            definitions.find(p => p.kind == ParameterDefinition.Kind.Property && p.name == name)
+          })
+        val collection = definition.exists(p => _allows_multiple(p.multiplicity))
+        val values = value match {
+          case carrier: Vector[?] if collection => Vector(carrier)
+          case _ => _field_values(value)
+        }
         if (values.isEmpty) {
           val (arguments, switches, properties) = z
           val key = field.key
@@ -87,6 +101,14 @@ object Ingress {
         }
     }
   }
+
+  private def _allows_multiple(multiplicity: Multiplicity): Boolean =
+    multiplicity match {
+      case Multiplicity.One | Multiplicity.ZeroOne => false
+      case Multiplicity.OneMore | Multiplicity.ZeroMore => true
+      case Multiplicity.Range(_, to) => to > 1
+      case Multiplicity.Ranges(ranges) => ranges.exists(_.head.to > 1)
+    }
 
   private def _field_values(value: Any): Vector[Any] =
     value match {

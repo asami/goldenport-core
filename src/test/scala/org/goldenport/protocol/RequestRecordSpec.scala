@@ -1,15 +1,38 @@
 package org.goldenport.protocol
 
+import org.scalatest.GivenWhenThen
+import org.scalacheck.Gen
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 
 /*
  * @since   Mar. 31, 2026
- * @version Jul. 10, 2026
+ *  version Jul. 10, 2026
+ * @version Oct. 28, 2026
  * @author  ASAMI, Tomoharu
  */
-class RequestRecordSpec extends AnyWordSpec with Matchers {
+class RequestRecordSpec extends AnyWordSpec with Matchers with GivenWhenThen with ScalaCheckDrivenPropertyChecks {
   "Request.toRecord" should {
+    "retain explicitly carried collections independently of repeated scalar parameters" in {
+      forAll(Gen.listOf(Gen.oneOf(" 雪 ", "e\u0301", "é", "🧭/%", "", "\n"))) { sample =>
+        Given("explicit Vector Arguments and Properties including empty and singleton collections")
+        val vectors = Vector(Vector.empty[String], Vector(" 雪/e\u0301🧭 "), sample.toVector)
+        When("Request is represented as a Record with dotted property nesting")
+        val results = vectors.map { values =>
+          val req = Request.of("fixture", "material", "create").copy(
+            arguments = List(Argument("sources", values, None)),
+            properties = List(Property("selection.resources", values, None)))
+          values -> req.toRecord
+        }
+        Then("each exact Vector survives without singleton collapse or empty omission")
+        results.foreach { case (values, record) =>
+          record.getAny("sources") shouldBe Some(values)
+          record.getRecord("selection").get.getAny("resources") shouldBe Some(values)
+        }
+      }
+    }
+
     "nest dotted argument and property names into nested records" in {
       val req = Request(
         component = Some("sample"),

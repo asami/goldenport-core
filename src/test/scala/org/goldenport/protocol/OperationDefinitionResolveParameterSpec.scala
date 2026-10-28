@@ -9,7 +9,7 @@ import org.goldenport.protocol.Request
 import org.goldenport.protocol.operation.OperationRequest
 import org.goldenport.protocol.spec.{OperationDefinition, ParameterDefinition, RequestDefinition, ResponseDefinition}
 import org.goldenport.protocol.spec.OperationDefinition.{ResolvedEmpty, ResolvedMultiple, ResolvedSingle, ResolvedValue}
-import org.goldenport.schema.{Constraint, DataType, Multiplicity, ValueDomain, XJson, XSemiStructuredData, XNonNegativeInteger, XPositiveInteger, XString}
+import org.goldenport.schema.{Constraint, DataType, Multiplicity, ValueDomain, XJson, XSemiStructuredData, XNonNegativeInteger, XPositiveInteger, XString, XDateTime}
 import org.goldenport.test.matchers.ConsequenceMatchers
 import org.scalacheck.Gen
 import org.scalacheck.Shrink
@@ -23,7 +23,7 @@ import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
  *  version Apr. 11, 2026
  *  version Apr. 14, 2026
  *  version May. 11, 2026
- * @version Oct. 19, 2026
+ * @version Oct. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 class OperationDefinitionResolveParameterSpec
@@ -158,7 +158,11 @@ class OperationDefinitionResolveParameterSpec
       properties = Nil
     )
 
-  private final class StructuredOperationDefinition(datatype: DataType, multiplicity: Multiplicity)
+  private final class StructuredOperationDefinition(
+    datatype: DataType,
+    multiplicity: Multiplicity,
+    constraints: Vector[Constraint] = Vector.empty
+  )
       extends OperationDefinition {
     override val specification: OperationDefinition.Specification =
       OperationDefinition.Specification(
@@ -166,7 +170,7 @@ class OperationDefinitionResolveParameterSpec
         request = RequestDefinition(parameters = List(ParameterDefinition(
           content = org.goldenport.value.BaseContent.simple("value"),
           kind = ParameterDefinition.Kind.Property,
-          domain = ValueDomain(datatype = datatype, multiplicity = multiplicity)))),
+          domain = ValueDomain(datatype = datatype, multiplicity = multiplicity, constraints = constraints)))),
         response = ResponseDefinition.void)
 
     def resolve(request: Request): Consequence[ResolvedValue] = {
@@ -321,17 +325,87 @@ class OperationDefinitionResolveParameterSpec
         results.foreach(_.isSuccess shouldBe false)
       }
 
-      "leave other carrier shapes and noncanonical datatype paths unchanged" in {
-        Given("List, Array and NonEmptyVector carriers plus a nonstructured integer Vector")
+      "leave unsupported structured carrier shapes unchanged" in {
+        Given("List, Array and NonEmptyVector carriers for canonical Json")
         val jsonop = new StructuredOperationDefinition(XJson, Multiplicity.ZeroMore)
         val carriers = Vector[Any](List(Json.obj()), Array(Json.obj()), cats.data.NonEmptyVector.one(Json.obj()))
-        val integerop = new StructuredOperationDefinition(XNonNegativeInteger, Multiplicity.ZeroMore)
-        When("resolution uses only the admitted exact structured Vector adaptation")
-        val results = carriers.map(value => jsonop.resolve(_structured_request(List(value)))) :+
-          integerop.resolve(_structured_request(List(Vector(1, 2))))
-        Then("unsupported carrier shapes and integer vectors remain rejected")
+        When("resolution uses only the exact Vector adaptation")
+        val results = carriers.map(value => jsonop.resolve(_structured_request(List(value))))
+        Then("unsupported carrier shapes remain rejected")
         results.foreach(_.isSuccess shouldBe false)
       }
+    }
+  }
+
+  "Declared typed collection carriers" should {
+    "normalize explicit strings without losing exact order or changing resolved cardinality" in {
+      forAll(Gen.listOf(Gen.oneOf(" 雪 ", "é", "e\u0301", "🧭/%", "", "\n"))) { sample =>
+        Given("a zero-or-more string property and explicit opaque string Vectors")
+        val op = new StructuredOperationDefinition(XString, Multiplicity.ZeroMore)
+        val domain = op.specification.request.parameters.head.domain
+        val vectors = Vector(Vector.empty[String], Vector(" 雪/e\u0301🧭 "), sample.toVector)
+        When("the carrier elements pass through the ordinary string normalization path")
+        val results = vectors.map(values => values -> op.resolve(_structured_request(List(values))))
+        Then("absence singleton and multiple results match repeated properties while raw Request retains its carrier")
+        results.foreach { case (values, result) =>
+          val expected = values.toList match {
+            case Nil => ResolvedEmpty(domain)
+            case value :: Nil => ResolvedSingle(value, domain)
+            case _ => ResolvedMultiple(values, domain)
+          }
+          result.toOption shouldBe Some(expected)
+          op.resolve(_structured_request(values.toList)).toOption shouldBe result.toOption
+        }
+      }
+    }
+
+    "normalize every integer element and enforce datatype domains and constraints" in {
+      Given("a nonnegative integer collection constrained to at most ten")
+      val op = new StructuredOperationDefinition(XNonNegativeInteger, Multiplicity.ZeroMore,
+        Vector(Constraint.MaxInclusive(BigInt(10))))
+      val domain = op.specification.request.parameters.head.domain
+      When("valid typed and textual integers and malformed or out-of-domain elements are resolved")
+      val valid = op.resolve(_structured_request(List(Vector[Any]("0", 5, BigInt(10)))))
+      val invalidformat = op.resolve(_structured_request(List(Vector("1", "invalid"))))
+      val invaliddomain = op.resolve(_structured_request(List(Vector("1", "-1"))))
+      val invalidconstraint = op.resolve(_structured_request(List(Vector("1", "11"))))
+      val invalidnull = op.resolve(_structured_request(List(Vector[Any]("1", null))))
+      Then("valid elements normalize individually and every invalid element blocks semantic construction")
+      valid.toOption shouldBe Some(ResolvedMultiple(Vector(BigInt(0), BigInt(5), BigInt(10)), domain))
+      assert_taxonomy(invalidformat, Taxonomy.argumentFormatError)
+      assert_datatype(invaliddomain)
+      assert_constraint(invalidconstraint)
+      invalidnull.isSuccess shouldBe false
+    }
+
+    "validate constraints on singleton and later string collection elements" in {
+      Given("an enum-constrained string collection")
+      val op = new StructuredOperationDefinition(XString, Multiplicity.ZeroMore,
+        Vector(Constraint.Enum(Set("雪", "🧭"))))
+      When("a singleton or later element violates the enum")
+      val singleton = op.resolve(_structured_request(List(Vector("outside"))))
+      val later = op.resolve(_structured_request(List(Vector("雪", "outside"))))
+      Then("neither carrier bypasses ordinary per-element constraints")
+      assert_constraint(singleton)
+      assert_constraint(later)
+    }
+
+    "preserve required empty and scalar behavior while normalizing temporal collections" in {
+      Given("required integer collections and canonical dateTime collections")
+      val required = new StructuredOperationDefinition(XNonNegativeInteger, Multiplicity.OneMore)
+      val temporal = new StructuredOperationDefinition(XDateTime, Multiplicity.ZeroMore)
+      val domain = temporal.specification.request.parameters.head.domain
+      val instant = java.time.ZonedDateTime.parse("2026-10-28T00:00:00Z")
+      When("empty and scalar integer inputs and typed textual temporal elements are resolved")
+      val empty = required.resolve(_structured_request(List(Vector.empty[String])))
+      val scalar = required.resolve(_structured_request(List("5")))
+      val times = temporal.resolve(_structured_request(List(Vector[Any](instant, instant.toString))))
+      val invalidtime = temporal.resolve(_structured_request(List(Vector("invalid-date"))))
+      Then("empty remains missing scalar remains single and temporal normalizers see each element")
+      assert_taxonomy(empty, Taxonomy.argumentMissing)
+      scalar.toOption shouldBe Some(ResolvedSingle(BigInt(5), required.specification.request.parameters.head.domain))
+      times.toOption shouldBe Some(ResolvedMultiple(Vector(instant, instant), domain))
+      invalidtime.isSuccess shouldBe false
     }
   }
 

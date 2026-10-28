@@ -25,7 +25,7 @@ import org.goldenport.schema.{CanonicalDataType, Constraint, IntegerDataType, Mu
  *  version Apr. 11, 2026
  *  version Apr. 14, 2026
  *  version May. 11, 2026
- * @version Oct. 19, 2026
+ * @version Oct. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 abstract class OperationDefinition
@@ -58,7 +58,7 @@ abstract class OperationDefinition
     }
     val values = rawvalues match {
       case (carrier: Vector[?]) :: Nil
-          if _allows_multiple(p) && (p.datatype == XJson || p.datatype == XSemiStructuredData) =>
+          if _allows_multiple(p) =>
         carrier.toList
       case _ => rawvalues
     }
