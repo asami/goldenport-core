@@ -1,7 +1,13 @@
 val scala3Version = "3.3.8"
 
+// Qualify only the collection API and its usage specification under the
+// selected compiler policy; legacy Core sources retain their existing options.
+lazy val CollectionStrict = config("collectionStrict").extend(Test)
+
 lazy val root = project
   .in(file("."))
+  .configs(CollectionStrict)
+  .settings(inConfig(CollectionStrict)(Defaults.testSettings))
   .settings(
     organization := "org.goldenport",
     name := "goldenport-core",
@@ -10,6 +16,17 @@ lazy val root = project
     scalaVersion := scala3Version,
     Compile / scalacOptions ++= Seq("-release:17", "-deprecation"),
     Compile / javacOptions ++= Seq("--release", "17"),
+    CollectionStrict / sources := Seq(
+      baseDirectory.value / "src/main/scala/org/goldenport/util/TypeSafeCollections.scala",
+      baseDirectory.value / "src/test/scala/org/goldenport/util/TypeSafeCollectionsSpec.scala"
+    ),
+    CollectionStrict / dependencyClasspath := (Test / dependencyClasspath).value,
+    CollectionStrict / scalacOptions := Seq(
+      "-release:17", "-language:strictEquality", "-Yexplicit-nulls", "-Ysafe-init",
+      "-Wvalue-discard", "-Wnonunit-statement", "-Wunused:imports,privates,locals",
+      "-unchecked", "-deprecation", "-feature", "-Werror"
+    ),
+    Test / compile := ((Test / compile) dependsOn (CollectionStrict / compile)).value,
 
     libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test",
     libraryDependencies += "org.typelevel" %% "cats-core" % "2.7.0",
