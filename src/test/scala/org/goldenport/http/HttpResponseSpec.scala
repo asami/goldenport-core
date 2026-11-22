@@ -13,7 +13,8 @@ import org.scalacheck.Gen
 
 /*
  * @since   Apr. 25, 2026
- * @version Sep. 29, 2026
+ *  version Sep. 29, 2026
+ * @version Nov. 22, 2026
  * @author  ASAMI, Tomoharu
  */
 final class HttpResponseSpec
@@ -107,6 +108,30 @@ final class HttpResponseSpec
       Then("the body is decoded as text")
       response.getString shouldBe Some("ok")
       response.headerValue("Content-Type") shouldBe Some("text/plain; charset=utf-8")
+    }
+  }
+
+  "HttpStatus rate limit" should {
+    "preserve a parsed 429 response and distinguish it from a server error" in {
+      Given("429 and 500 wire responses with UTF-8 bodies and request identifiers")
+      val responses = Vector(429 -> HttpStatus.TooManyRequests, 500 -> HttpStatus.InternalServerError)
+      val headers = Map(
+        "Content-Type" -> IndexedSeq("text/plain; charset=utf-8"),
+        "X-Request-Id" -> IndexedSeq("rate-limit-fixture")
+      )
+
+      responses.foreach { case (code, status) =>
+        When(s"the Core parser reads HTTP $code")
+        val body = s"fixture response $code: café 日本"
+        val response = HttpResponse.parser(code, headers, new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)))
+
+        Then("status, code, UTF-8 body, and request identifier are preserved")
+        HttpStatus.fromInt(code) shouldBe Some(status)
+        response.status shouldBe status
+        response.code shouldBe code
+        response.getString shouldBe Some(body)
+        response.headerValue("x-request-id") shouldBe Some("rate-limit-fixture")
+      }
     }
   }
 
