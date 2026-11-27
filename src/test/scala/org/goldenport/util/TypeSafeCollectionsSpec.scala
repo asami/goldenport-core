@@ -25,6 +25,14 @@ final class TypeSafeCollectionsSpec extends AnyWordSpec with Matchers with Given
   import TypeSafeCollectionsFixtures.*
 
   "Vector equality" should {
+    "find the first index using the supplied equality" in {
+      val equality: Eq[String] = Eq.instance((left, right) => left.equalsIgnoreCase(right))
+      val values = Vector("other", "Alpha", "ALPHA").typeSafe
+      val _ = values.indexOfEq("alpha")(using equality) shouldBe 1
+      val _ = values.indexOfEq("missing")(using equality) shouldBe -1
+      Vector.empty[String].typeSafe.indexOfEq("alpha")(using equality) shouldBe -1
+    }
+
     "consume the supplied lawful equality rather than universal equality" in {
       Given("case-insensitive string equality")
       val equality: Eq[String] = Eq.instance((left, right) => left.equalsIgnoreCase(right))
@@ -86,6 +94,19 @@ final class TypeSafeCollectionsSpec extends AnyWordSpec with Matchers with Given
   }
 
   "Captured types" should {
+    "reject an index query of a different element type" in {
+      val errors = typeCheckErrors("""
+        import org.goldenport.util.TypeSafeCollections.*
+        given cats.Eq[String] = cats.Eq.instance((left, right) => left == right)
+        given cats.Eq[Any] = cats.Eq.instance[Any]((_, _) => true)
+        Vector("one").typeSafe.indexOfEq(1)
+      """)
+      val _ = errors should have size 1
+      val _ = errors.head.message should include ("=:=" )
+      val _ = errors.head.message should include ("Int")
+      errors.head.message should include ("String")
+    }
+
     "accept matching direct and captured calls with the same common-parent Eq instances" in {
       val errors = typeCheckErrors("""
         import org.goldenport.util.TypeSafeCollections.*
@@ -101,7 +122,9 @@ final class TypeSafeCollectionsSpec extends AnyWordSpec with Matchers with Given
         given cats.Eq[TraceId] = cats.Eq.by(_.value)
         val values = Vector(Entity(None, "x")).typeSafe
         values.containsEq(Entity(None, "x"))
+        values.indexOfEq(Entity(None, "x"))
         Vector(Entity(None, "x")).typeSafe.containsEq(Entity(None, "x"))
+        Vector(Entity(None, "x")).typeSafe.indexOfEq(Entity(None, "x"))
         val widened: Vector[Any] = Vector(Entity(None, "x"))
         widened.typeSafe.containsEq[Any]("a valid Any")
         val ids = Vector(Entity(Some(TraceId("major", "minor")), "x")).typeSafe.identifiableBy(optional)

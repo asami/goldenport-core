@@ -19,6 +19,10 @@ object TypeSafeCollections {
     def containsEq[B](value: B)(using equality: Eq[A])(using same: B =:= A): Boolean =
       values.exists(element => equality.eqv(element, same(value)))
 
+    /** Index of the first Eq-equivalent element, or -1 if none exists. */
+    def indexOfEq[B](value: B)(using equality: Eq[A])(using same: B =:= A): Int =
+      values.indexWhere(element => equality.eqv(element, same(value)))
+
     def identifiedBy[I <: UniversalId](relation: Identified[A, I])(using equality: Eq[I]): VectorIds[A, I] =
       new VectorIds(values, element => Some(relation.id(element)), equality)
 
